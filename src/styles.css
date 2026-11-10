@@ -189,3 +189,22 @@ body { font-family: var(--font-sans); }
 .anim-glow { animation: pulseglow 1.8s ease-in-out infinite, bob 3s ease-in-out infinite; }
 .anim-swing { animation: swing .7s ease-in-out infinite; transform-origin: 50% 90%; }
 .anim-shake { animation: shake .12s linear infinite; }
+:root { --tire: oklch(0.25 0.01 260); --rim: oklch(0.7 0.01 260); --dust: oklch(0.8 0.03 70 / 0.7); }
+@theme inline { --color-tire: var(--tire); --color-rim: var(--rim); --color-dust: var(--dust); }
+@keyframes spin { to { transform: rotate(360deg); } }
+.wheel { position:absolute; transform: translate(-50%,-50%) scaleX(.62) rotate(-25deg); border-radius:9999px; }
+.wheel > i { position:absolute; inset:0; border-radius:9999px; animation: spin .6s linear infinite;
+  background: radial-gradient(circle, var(--color-rim) 0 22%, var(--color-tire) 23% 30%, transparent 31%),
+    repeating-conic-gradient(var(--color-tire) 0 15deg, oklch(0.35 0.01 260) 15deg 30deg); }
+@keyframes jiggle { 0%,100%{transform:translate(0,0) rotate(0)} 25%{transform:translate(.6px,-1.2px) rotate(.4deg)} 75%{transform:translate(-.6px,-.6px) rotate(-.4deg)} }
+.anim-jiggle { animation: jiggle .25s linear infinite; }
+@keyframes wander { 0%{transform:translate(0,0) scaleX(1)} 45%{transform:translate(var(--dx),var(--dy)) scaleX(1)} 50%{transform:translate(var(--dx),var(--dy)) scaleX(-1)} 95%{transform:translate(0,0) scaleX(-1)} 100%{transform:translate(0,0) scaleX(1)} }
+.anim-wander { animation: wander var(--t, 8s) ease-in-out infinite; }
+@keyframes step { 0%,100%{translate:0 0} 50%{translate:0 -3px} }
+.anim-step { animation: step .4s ease-in-out infinite; }
+@keyframes push { 0%,100%{transform:translate(0,0)} 50%{transform:translate(-45%,-25%)} }
+.anim-push { animation: push 7s ease-in-out infinite; }
+@keyframes scoop { 0%,100%{transform:rotate(0)} 40%{transform:rotate(-10deg) translateY(-6px)} 60%{transform:rotate(4deg)} }
+.anim-scoop { animation: scoop 1.4s ease-in-out infinite; transform-origin: 40% 90%; }
+@keyframes puff { 0%{transform:translate(0,0) scale(.3);opacity:.9} 100%{transform:translate(var(--dx),-40px) scale(1.6);opacity:0} }
+.dust { position:absolute; width:14%; aspect-ratio:1; border-radius:9999px; background: radial-gradient(circle, var(--color-dust), transparent 70%); animation: puff 1.6s ease-out infinite; pointer-events:none; }
