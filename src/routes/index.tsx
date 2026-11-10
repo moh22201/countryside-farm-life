@@ -29,8 +29,8 @@ const pens: { title: string; bg: string; animals: Animal[] }[] = [
     { src: hen, x: 55, y: 48, w: 13, dx: "70%", dy: "-20%", t: 5 } ] },
   { title: "حظيرة أبقار (3 أبقار)", bg: cowEmpty, animals: [
     { src: cow1, x: 40, y: 55, w: 20, dx: "80%", dy: "30%", t: 10 },
-    { src: cow1, x: 60, y: 50, w: 20, dx: "-40%", dy: "50%", t: 12 },
-    { src: cow1, x: 52, y: 66, w: 20, dx: "60%", dy: "-30%", t: 9 } ] },
+    { src: cow1, x: 55, y: 42, w: 20, dx: "-40%", dy: "50%", t: 12 },
+    { src: cow1, x: 38, y: 62, w: 20, dx: "60%", dy: "-30%", t: 9 } ] },
   { title: "حظيرة أغنام (3 خراف)", bg: sheepEmpty, animals: [
     { src: sheep1, x: 22, y: 45, w: 18, dx: "90%", dy: "40%", t: 9 },
     { src: sheep1, x: 45, y: 58, w: 18, dx: "-60%", dy: "30%", t: 8 },
@@ -100,7 +100,7 @@ function Index() {
             <div className="absolute inset-[6%]">
               <Img src={p.bg} alt={p.title} />
               {p.animals.map((a, i) => (
-                <div key={i} className="absolute" style={{ left: `${a.x}%`, top: `${a.y}%`, width: `${a.w}%` }}>
+                <div key={i} className="absolute" style={{ left: `${a.x}%`, top: `${a.y}%`, width: `${a.w * 1.6}%` }}>
                   <div className="anim-wander" style={{ ["--dx" as string]: a.dx, ["--dy" as string]: a.dy, ["--t" as string]: `${a.t}s`, animationDelay: `${-i * 2}s` }}>
                     <div className="anim-step"><Img src={a.src} alt="" /></div>
                   </div>
@@ -129,7 +129,7 @@ function Index() {
             <div className="anim-step"><Img src={minerCart} alt="عامل يجر عربة" /></div>
           </div>
           {/* عامل يجمع المستخرج */}
-          <div className="absolute w-[20%] left-[2%] bottom-[2%]">
+          <div className="absolute w-[18%] left-[16%] bottom-[14%]">
             <div className="anim-scoop"><Img src={minerShovel} alt="عامل يجمع الخام" /></div>
             <span className="dust" style={{ left: "45%", bottom: "5%", width: "40%", ["--dx" as string]: "10px" }} />
           </div>
