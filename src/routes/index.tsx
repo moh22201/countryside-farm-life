@@ -15,6 +15,17 @@ import cow1 from "@/assets/cow1.png";
 import sheep1 from "@/assets/sheep1.png";
 import minerCart from "@/assets/miner-cart.png";
 import minerShovel from "@/assets/miner-shovel.png";
+import deliveryTruck from "@/assets/delivery-truck.png";
+import fabricPlant from "@/assets/fabric-plant.png";
+import forklift from "@/assets/forklift.png";
+import freightPier from "@/assets/freight-pier.png";
+import ironMine from "@/assets/iron-mine.png";
+import lumberMill from "@/assets/lumber-mill.png";
+import nuclear from "@/assets/nuclear.png";
+import powerPlant from "@/assets/power-plant.png";
+import steelMill from "@/assets/steel-mill.png";
+import tradeDepot from "@/assets/trade-depot.png";
+import tradePier from "@/assets/trade-pier.png";
 
 const Wheel = ({ x, y, d, speed = 0.6 }: { x: number; y: number; d: number; speed?: number }) => (
   <span className="wheel" style={{ left: `${x}%`, top: `${y}%`, width: `${d}%`, height: `${d}%` }}>
@@ -22,6 +33,20 @@ const Wheel = ({ x, y, d, speed = 0.6 }: { x: number; y: number; d: number; spee
   </span>
 );
 type Animal = { src: string; x: number; y: number; w: number; dx: string; dy: string; t: number };
+const additionalAssets = [
+  { title: "شاحنة التوصيل", src: deliveryTruck, alt: "شاحنة التوصيل" },
+  { title: "مصنع الأقمشة", src: fabricPlant, alt: "مصنع الأقمشة" },
+  { title: "رافعة شوكية", src: forklift, alt: "رافعة شوكية" },
+  { title: "رصيف الشحن", src: freightPier, alt: "رصيف الشحن" },
+  { title: "منجم الحديد", src: ironMine, alt: "منجم الحديد" },
+  { title: "مصنع الأخشاب", src: lumberMill, alt: "مصنع الأخشاب" },
+  { title: "محطة الطاقة النووية", src: nuclear, alt: "محطة الطاقة النووية" },
+  { title: "محطة الكهرباء", src: powerPlant, alt: "محطة الكهرباء" },
+  { title: "مصنع الفولاذ", src: steelMill, alt: "مصنع الفولاذ" },
+  { title: "مركز التجارة البري", src: tradeDepot, alt: "مركز التجارة البري" },
+  { title: "رصيف التجارة البحري", src: tradePier, alt: "رصيف التجارة البحري" },
+];
+
 const pens: { title: string; bg: string; animals: Animal[] }[] = [
   { title: "حظيرة دجاج (3 دجاجات)", bg: chickenEmpty, animals: [
     { src: hen, x: 30, y: 55, w: 14, dx: "60%", dy: "40%", t: 6 },
@@ -106,6 +131,13 @@ function Index() {
                   </div>
                 </div>
               ))}
+            </div>
+          </Card>
+        ))}
+        {additionalAssets.map((asset) => (
+          <Card key={asset.title} title={asset.title}>
+            <div className="absolute inset-[8%]">
+              <Img src={asset.src} alt={asset.alt} />
             </div>
           </Card>
         ))}
