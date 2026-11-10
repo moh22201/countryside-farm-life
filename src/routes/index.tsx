@@ -61,7 +61,7 @@ function Index() {
             ))}
           </div>
         </Card>
-        {[["حظيرة دجاج", chicken], ["حظيرة أبقار", cow], ["حظيرة أغنام", sheep]].map(([t, s]) =>
+        {([["حظيرة دجاج", chicken], ["حظيرة أبقار", cow], ["حظيرة أغنام", sheep]] as [string, string][]).map(([t, s]) =>
           three.map((i) => (
             <Card key={t + i} title={`${t} ${i + 1}`}>
               <div className="absolute inset-[6%]" style={{ animation: `breathe 3s ease-in-out ${i * 0.5}s infinite`, transformOrigin: "bottom" }}>
