@@ -186,14 +186,14 @@ function aiW(w,dt){w.walk=false;if(!w.home||w.home.roadOK===false)return;w.tm+=d
  case'chop':w.tg.shake=1;if(w.tm>4){const g=w.tg,tx=Math.floor(g.x),ty=Math.floor(g.y);objs.splice(objs.indexOf(g),1);if(!objs.some(o=>o.k=='tree'&&Math.floor(o.x)==tx&&Math.floor(o.y)==ty))T[tx][ty]=0;w.log={k:'log',x:g.x,y:g.y};objs.push(w.log);w.st='pick';w.tm=0}break;
  case'pick':if(w.tm>.8){objs.splice(objs.indexOf(w.log),1);w.car='log';w.st='toStore'}break;
  case'toStore':if(st&&go(w,st.x+st.fw/2,st.y+st.fd+.4,dt)){w.st='drop';w.tm=0}break;
- case'drop':if(w.tm>.6){wood++;w.car=null;w.st='idle'}break}}
+ case'drop':if(w.tm>.6){addStock('wood',1);w.car=null;w.st='idle'}break}}
 function aiF(w,dt){w.walk=false;if(!w.home||w.home.roadOK===false)return;w.tm+=dt;const fl=find('field'),sl=stor('silo','depot');
  switch(w.st){
  case'idle':{if(!w.home||w.home.roadOK===false)break;const rd=nearest(fl.filter(f=>f.st==2&&!f.rs),w);if(rd){rd.rs=1;w.tg=rd;w.st='toHarv';break}const em=nearest(fl.filter(f=>f.st==0&&!f.rs),w);if(em&&src(w)){em.rs=1;w.tg=em;w.st='toWater';break}const h=fr(w.home);go(w,h.x,h.y,dt);break}
  case'toHarv':if(go(w,w.tg.x+.5,w.tg.y+.5,dt)){w.st='harv';w.tm=0}break;
  case'harv':if(w.tm>1.5){w.tg.st=0;w.tg.t=0;w.tg.rs=0;w.car='crop';w.st='toSilo'}break;
  case'toSilo':if(sl&&go(w,sl.x+1,sl.y+2.6,dt)){w.st='drop';w.tm=0}break;
- case'drop':if(w.tm>.6){crop++;w.car=null;w.st='idle'}break;
+ case'drop':if(w.tm>.6){addStock('crop',1);w.car=null;w.st='idle'}break;
  case'toWater':{const p=src(w);if(p&&go(w,p.x,p.y,dt)){w.st='fill';w.tm=0}break}
  case'fill':if(w.tm>1.2){w.car='bucket';w.st='toWF'}break;
  case'toWF':if(go(w,w.tg.x+.5,w.tg.y+.5,dt)){w.st='water';w.tm=0}break;
@@ -305,7 +305,7 @@ cv.addEventListener('pointerup',up);cv.addEventListener('pointercancel',up);
 cv.addEventListener('wheel',e=>{e.preventDefault();zoom(e.deltaY<0?1.12:.89,e.clientX,e.clientY)},{passive:false});
 function pickObj(px,py){for(const z of[0,20,40,62]){const p=pick(px,py+z*cam.s);if(p&&OBJ[p.x][p.y])return OBJ[p.x][p.y]}return null}
 function fits(o,x,y){for(let i=0;i<(o.fw||1);i++)for(let j=0;j<(o.fd||1);j++){const a=x+i,b=y+j;if(a<0||b<0||a>=W||b>=H)return false;if(T[a][b]!=0&&OBJ[a][b]!==o)return false}return true}
-function roadAccess(o,x,y){if(o.role==='field')return true;const fw=o.fw||1,fd=o.fd||1;for(let i=-1;i<=fw;i++)for(let j=-1;j<=fd;j++){if(i>=0&&i<fw&&j>=0&&j<fd)continue;if(i!==-1&&i!==fw&&j!==-1&&j!==fd)continue;const a=x+i,b=y+j;if(a>=0&&b>=0&&a<W&&b<H&&T[a][b]===1)return true}return false}
+function roadAccess(o,x,y){if(o.role==='field')return true;const fw=o.fw||1,fd=o.fd||1;for(let i=0;i<fw;i++){if(y>0&&T[x+i][y-1]===1)return true;if(y+fd<H&&T[x+i][y+fd]===1)return true}for(let j=0;j<fd;j++){if(x>0&&T[x-1][y+j]===1)return true;if(x+fw<W&&T[x+fw][y+j]===1)return true}return false}
 function tap(px,py){const p=pick(px,py),info=s=>$('info').textContent=s;
  if(placing){if(!p)return;const d=ITEMS[placing-1],z=SZ[d[3]]||1,o={k:'cat',ci:placing-1,role:ROLE(d),x:p.x,y:p.y,fw:z,fd:z,mv:1,st:0,t:0};if(o.role=='tractor'){delete o.fw;delete o.fd;o.k='veh';o.x+=.5;o.y+=.5;o.hx=o.x;o.hy=o.y;o.nocc=1;o.mv=0;o.st='idle';o.fx=1}if(!fits(o,p.x,p.y))return info('المربع مشغول');o.roadOK=roadAccess(o,p.x,p.y);objs.push(o);occ(o,1);return info(o.roadOK?'تم البناء ✓ — اضغط مربعاً آخر أو أغلق القائمة':'تم البناء، لكن المبنى لن يعمل حتى يكون ملاصقاً للطريق')}
  if(mov){if(p&&OBJ[p.x][p.y]===mov){mov=null;return info('أُلغي التحديد')}if(p&&fits(mov,p.x,p.y)){const movedObj=mov;occ(movedObj,0);movedObj.x=p.x;movedObj.y=p.y;movedObj.roadOK=roadAccess(movedObj,movedObj.x,movedObj.y);occ(movedObj,1);mov=null;return info('تم النقل ✓'+(movedObj.roadOK===false?' — لن يعمل دون طريق':''))}return info('لا يتسع هنا — اختر مكاناً فارغاً')}
