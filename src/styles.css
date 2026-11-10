@@ -153,3 +153,39 @@
     color: var(--color-foreground);
   }
 }
+
+:root {
+  --background: oklch(0.95 0.04 120);
+  --foreground: oklch(0.25 0.05 140);
+  --card: oklch(0.98 0.02 110);
+  --primary: oklch(0.55 0.15 145);
+  --primary-foreground: oklch(0.98 0.02 110);
+  --muted-foreground: oklch(0.45 0.05 140);
+  --tile: oklch(0.82 0.12 135);
+  --tile-edge: oklch(0.6 0.1 70);
+  --glow: oklch(0.85 0.25 140);
+}
+@theme inline {
+  --font-display: "Lalezar", system-ui;
+  --font-sans: "Cairo", system-ui;
+  --color-tile: var(--tile);
+  --color-tile-edge: var(--tile-edge);
+  --color-glow: var(--glow);
+}
+body { font-family: var(--font-sans); }
+.iso-tile { position:absolute; inset:auto 10% 8% 10%; height:38%; background:var(--color-tile);
+  transform: rotateX(60deg) rotateZ(45deg); border-radius:1rem; box-shadow: 0 14px 0 var(--color-tile-edge); }
+@keyframes drive { 0%{transform:translate(-30%,15%)} 50%{transform:translate(30%,-15%)} 100%{transform:translate(-30%,15%)} }
+@keyframes bump { 0%,100%{translate:0 0} 50%{translate:0 -4px} }
+@keyframes bob { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+@keyframes breathe { 0%,100%{transform:scale(1)} 50%{transform:scale(1.03,0.98)} }
+@keyframes pulseglow { 0%,100%{filter:drop-shadow(0 0 6px var(--color-glow))} 50%{filter:drop-shadow(0 0 28px var(--color-glow))} }
+@keyframes swing { 0%,100%{transform:rotate(-6deg)} 50%{transform:rotate(8deg) translateY(4px)} }
+@keyframes shake { 0%,100%{transform:translate(0)} 25%{transform:translate(1px,-1px)} 75%{transform:translate(-1px,1px)} }
+.anim-drive { animation: drive 6s ease-in-out infinite; }
+.anim-bump { animation: bump .35s linear infinite; }
+.anim-bob { animation: bob 2.4s ease-in-out infinite; }
+.anim-breathe { animation: breathe 3s ease-in-out infinite; transform-origin: bottom; }
+.anim-glow { animation: pulseglow 1.8s ease-in-out infinite, bob 3s ease-in-out infinite; }
+.anim-swing { animation: swing .7s ease-in-out infinite; transform-origin: 50% 90%; }
+.anim-shake { animation: shake .12s linear infinite; }
