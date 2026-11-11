@@ -474,8 +474,7 @@ function getItems(){return objs.filter(o=>o.k==='cat')}
 function has(name){return getItems().some(o=>ITEMS[o.ci][1]===name||ITEMS[o.ci][2]===name)}
 function getWorkers(){return objs.filter(o=>o.k==='worker')}
 function activeCount(){return getWorkers().filter(w=>w.walk||!['idle','rest'].includes(w.st)).length}
-function uiStats(){if(!$e('ecoMoney'))return;$e('ecoMoney').textContent=Math.floor(E.money).toLocaleString('en-US')+'</html>
-;$e('ecoStock').textContent=sum()+' / '+E.capacity;$e('ecoWorkers').textContent=getWorkers().length+' ('+activeCount()+' يعملون)'}
+function uiStats(){if(!$e('ecoMoney'))return;$e('ecoMoney').textContent=Math.floor(E.money).toLocaleString('en-US')+'$';$e('ecoStock').textContent=sum()+' / '+E.capacity;$e('ecoWorkers').textContent=getWorkers().length+' ('+activeCount()+' يعملون)'}
 function draw(){
  uiStats();const c=$e('ecoContent');if(!c)return;
  if(E.mode==='overview'){
@@ -487,10 +486,8 @@ function draw(){
  }else{
  c.innerHTML='<h3>أدوات الاختبار</h3><p>إعادة ضبط الرصيد: مليون دولار. المخزون والقرية لا يتغيران.</p><div class="erow"><button id="ecoAddTest">إضافة 10,000$ للاختبار</button><button id="ecoClearStock">تفريغ مخزون الاختبار</button></div><p class="small">أسعار العناصر غير المعتمدة لا تُخمن؛ يظهر تنبيه عند محاولة شرائها.</p>';
  }
- const sellBtn=$e('ecoSell');if(sellBtn)sellBtn.onclick=()=>{const k=$e('ecoSellItem').value,n=Math.max(1,Math.floor(+$e('ecoSellQty').value||1)),q=take(k,n);if(!q){say('لا توجد كمية كافية للبيع');}else{const v=q*sell[k];E.money+=v;E.sales+=v;say('بيع '+q+' '+names[k]+' بقيمة '+v+'</html>
-);}draw()};
- const addBtn=$e('ecoAddTest');if(addBtn)addBtn.onclick=()=>{E.money+=10000;say('إضافة رصيد اختبار 10,000</html>
-);draw()};
+ const sellBtn=$e('ecoSell');if(sellBtn)sellBtn.onclick=()=>{const k=$e('ecoSellItem').value,n=Math.max(1,Math.floor(+$e('ecoSellQty').value||1)),q=take(k,n);if(!q){say('لا توجد كمية كافية للبيع');}else{const v=q*sell[k];E.money+=v;E.sales+=v;say('بيع '+q+' '+names[k]+' بقيمة '+v+'$');}draw()};
+ const addBtn=$e('ecoAddTest');if(addBtn)addBtn.onclick=()=>{E.money+=10000;say('إضافة رصيد اختبار 10,000$');draw()};
  const clear=$e('ecoClearStock');if(clear)clear.onclick=()=>{E.inventory={};say('تم تفريغ مخزون الاختبار');draw()};
 }
 $e('ecoToggle').onclick=()=>panel.classList.toggle('open');
@@ -513,8 +510,7 @@ function chargeBuild(o){
  if(cost===null){say('لم يُعتمد سعر شراء '+d[1]+' بعد؛ لم يتم البناء');return false}
  if(E.money<cost){say('الرصيد غير كافٍ لشراء '+d[1]);return false}
  E.money-=cost;o.purchaseCost=cost;
- say('شراء '+d[1]+' مقابل '+cost+'</html>
-);return true;
+ say('شراء '+d[1]+' مقابل '+cost+'$');return true;
 }
 const oldTap=tap;
 tap=function(px,py){
@@ -575,8 +571,8 @@ function production(dt){
  getItems().filter(o=>ITEMS[o.ci][2]==='Windmill').forEach(o=>{o.prod=(o.prod||0)+dt;if(o.prod>=10&&all('wheat')>=10){o.prod-=10;take('wheat',10);add('flour',1)}});
  // Approved wages are charged only for workers currently performing work.
  if(E.wageClock>=300){const cycles=Math.floor(E.wageClock/300);E.wageClock-=cycles*300;
-  const workers=getWorkers();workers.forEach(w=>{if(walkActive(w)){const role=w.role==='farm'?'farm':w.role==='wood'?'wood':w.role==='hand'?'industry':'industry';const v=wage[role]||7;E.money-=v*cycles;say('أجرة عامل '+role+' عن فترة عمل: '+v*cycles+'</html>
-)}});
+  const workers=getWorkers();workers.forEach(w=>{if(walkActive(w)){const role=w.role==='farm'?'farm':w.role==='wood'?'wood':w.role==='hand'?'industry':'industry';const v=wage[role]||7;E.money-=v*cycles;say('أجرة عامل '+role+' عن فترة عمل: '+v*cycles+'$');
+}});
  }
 }
 function walkActive(w){return !!(w.walk||!['idle','rest'].includes(w.st));}
