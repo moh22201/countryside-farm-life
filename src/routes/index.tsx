@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { NewAssetCollection } from "@/components/new-asset-collection";
 import quad from "@/assets/quad.png";
 import cart from "@/assets/cart.png";
 import chicken from "@/assets/chicken.png";
@@ -167,6 +168,7 @@ function Index() {
           </div>
         </div>
       </section>
+      <NewAssetCollection />
     </main>
   );
 }
