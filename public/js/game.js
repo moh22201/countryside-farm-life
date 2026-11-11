@@ -178,7 +178,7 @@ const find=k=>objs.filter(o=>(o.role||o.k)==k),nearest=(a,w)=>a.reduce((b,o)=>!b
 const fr=o=>({x:o.x+o.fw/2+.02,y:o.y+o.fd+.55});
 const src=w=>{const ws=find('well');return nearest(ws.length?ws.map(o=>({x:o.x+.5,y:o.y+1.35})):SHORE,w)};
 function go(w,tx,ty,dt){const dx=tx-w.x,dy=ty-w.y,l=Math.hypot(dx,dy);if(l<.07)return true;const s=Math.min(l,1.7*dt);w.x+=dx/l*s;w.y+=dy/l*s;w.mvg+=dt*10;w.walk=true;w.fx=dx-dy>=0?1:-1;return false}
-function update(dt){[...objs].forEach(o=>{if(o.role=='field'&&o.st==1){o.t+=dt;if(o.t>=10)o.st=2}if(o.k=='worker')(o.role=='wood'?aiW:o.role=='hand'?aiH:aiF)(o,dt);if(o.mv&&!o.sp&&o.roadOK!==false){o.sp=1;spawnFor(o)}tick(o,dt)});const cap=STORAGE_CAP.toLocaleString();const s=`🪵 ${wood.toLocaleString()}/${cap} · 🌾 قمح ${crop.toLocaleString()}/${cap} · 🥖 طحين ${flour.toLocaleString()}/${cap} · 🔋 ${bat.toLocaleString()}/${cap} · 💰 ${money.toLocaleString()}`;if($('res').textContent!=s)$('res').textContent=s;autoSave()}
+function update(dt){[...objs].forEach(o=>{if(o.role=='field'&&o.st==1){o.t+=dt;if(o.t>=10)o.st=2}if(o.k=='worker')(o.role=='wood'?aiW:aiH)(o,dt);if(o.mv&&!o.sp&&o.roadOK!==false){o.sp=1;spawnFor(o)}tick(o,dt)});const cap=STORAGE_CAP.toLocaleString();const s=`🪵 ${wood.toLocaleString()}/${cap} · 🌾 قمح ${crop.toLocaleString()}/${cap} · 🥖 طحين ${flour.toLocaleString()}/${cap} · 🔋 ${bat.toLocaleString()}/${cap} · 💰 ${money.toLocaleString()}`;if($('res').textContent!=s)$('res').textContent=s;autoSave()}
 function aiW(w,dt){w.walk=false;if(!w.home||w.home.roadOK===false)return;w.tm+=dt;const st=find('store')[0];
  switch(w.st){
  case'idle':{const b=nearest(objs.filter(o=>o.k=='tree'&&!o.res),w);if(b){b.res=1;w.tg=b;w.st='toTree'}else{const h=fr(w.home);go(w,h.x,h.y,dt)}break}
