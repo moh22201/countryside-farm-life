@@ -458,7 +458,7 @@ const price={
 };
 const englishPrice={'Wheat Field':50,'Iron Mine':1200,'Steel Mill':3000,'Wind Turbine':1500,'Power Plant':5000,'Water Pump':500,'Chicken Coop':700,'Milk Barn':1500,'Sheep Pen':1200,'Oil Pump':2000,'Refinery':5000,'Farm Tractor':10000,'Silo':400,'Windmill':500,'Bakery':800,'Feed Mill':900,'Lumber Mill':1200,'Fabric Plant':1500,'Winery':1800,'Cafe':2000,'Cakery':2200,'Candy Shop':2500,'Chocolate Shop':3000,'Glass Factory':3500};
 const names={wheat:'قمح',flour:'طحين',iron:'خام الحديد',steel:'الفولاذ',battery:'بطارية',wood:'خشب',plank:'لوح خشب',egg:'بيض',milk:'حليب',wool:'صوف',feed:'علف',oil:'نفط خام',fuel:'وقود',water:'ماء',bread:'خبز'};
-const sell={wheat:0.5,flour:550,iron:15,steel:150,battery:20,egg:20,milk:35,wool:45,feed:10,fuel:50,bread:400,plank:100};
+const sell={flour:550,iron:15,steel:150,battery:20,egg:20,milk:35,wool:45,feed:10,fuel:50,bread:400,plank:100};
 const wage={farm:5,wood:5,animal:6,industry:7,builder:8};
 const say=s=>{E.log.unshift(new Date().toLocaleTimeString('ar-DZ')+' — '+s);E.log=E.log.slice(0,30)};
 const sum=()=>Object.values(E.inventory).reduce((a,b)=>a+b,0);
@@ -495,6 +495,9 @@ $e('ecoToggle').onclick=()=>panel.classList.toggle('open');
 $e('ecoReset').onclick=()=>{E.money=E.initial;E.sales=0;say('إعادة ضبط رصيد الحساب التجريبي إلى مليون دولار');draw()};
 function attachInitialAssets(){
  // Preserve existing visual scene; add the starter farm's working entities only when absent.
+ if(!objs.some(o=>o.k==='cat'&&ITEMS[o.ci][2]==='Farm House')){
+  const ix=ITEMS.findIndex(d=>d[2]==='Farm House'),o={k:'cat',ci:ix,role:ROLE(ITEMS[ix]),x:7,y:2,fw:2,fd:2,mv:1,st:0,t:0,starter:true};objs.push(o);occ(o,1);
+ }
  if(!objs.some(o=>o.k==='cat'&&ITEMS[o.ci][2]==='Wheat Field')){
   const ix=ITEMS.findIndex(d=>d[2]==='Wheat Field'),o={k:'cat',ci:ix,role:'field',x:8,y:6,fw:1,fd:1,mv:1,st:1,t:0};objs.push(o);occ(o,1);say('إضافة حقل القمح التجريبي الأول');
  }
