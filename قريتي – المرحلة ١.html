@@ -555,14 +555,8 @@ function production(dt){
  E.elapsed+=dt;E.wageClock+=dt;
  const farms=getItems().filter(o=>ITEMS[o.ci][2]==='Wheat Field');
  farms.forEach(f=>{f.grow=(f.grow||0)+dt;if(f.grow>=10){f.grow-=10;f.ready=(f.ready||0)+1}});
- // Farmhand harvests wheat into the silo inventory.
- getWorkers().filter(w=>w.role==='farm').forEach(w=>{
-  if(w.st==='idle'||w.st==='rest'){const f=farms.find(x=>(x.ready||0)>0&&!x.locked);if(f){f.locked=1;w.jobField=f;w.st='eco_to_field';w.path=null}}
-  if(w.st==='eco_to_field'&&w.jobField){if(go(w,w.jobField.x+.5,w.jobField.y+.5,dt)){w.st='eco_harvest';w.tm=0}}
-  else if(w.st==='eco_harvest'){w.tm+=dt;if(w.tm>1.5){w.jobField.ready--;w.jobField.locked=0;w.car='crop';w.st='eco_to_silo';w.path=null}}
-  else if(w.st==='eco_to_silo'){const silo=getItems().find(o=>ITEMS[o.ci][2]==='Silo');if(silo&&go(w,silo.x+1,silo.y+2,dt)){w.st='eco_drop';w.tm=0}}
-  else if(w.st==='eco_drop'){w.tm+=dt;if(w.tm>.6){add('wheat',1);w.car=null;w.st='idle'}}
- });
+ // Existing farmer AI handles harvest and physical delivery; account for its delivered crop here.
+ if(crop>0){const delivered=Math.min(crop,Math.max(0,E.capacity-sum()));if(delivered){crop-=delivered;add('wheat',delivered)}}
  // Iron mine: one raw iron every 30 seconds.
  getItems().filter(o=>ITEMS[o.ci][2]==='Iron Mine').forEach(o=>{o.prod=(o.prod||0)+dt;if(o.prod>=30){o.prod-=30;add('iron',1)}});
  // Wind turbine: one battery every minute.
@@ -581,7 +575,7 @@ function production(dt){
 }
 function walkActive(w){return !!(w.walk||!['idle','rest'].includes(w.st));}
 const oldUpdate=update;
-update=function(dt){oldUpdate(dt);production(dt);if(performance.now()-E.lastUI>700){E.lastUI=performance.now();uiStats()}};
+update=function(dt){oldUpdate(dt);production(dt);money=E.money;if(performance.now()-E.lastUI>700){E.lastUI=performance.now();uiStats()}};
 attachInitialAssets();
 say('بدأ الحساب التجريبي برصيد مليون دولار');
 draw();uiStats();
