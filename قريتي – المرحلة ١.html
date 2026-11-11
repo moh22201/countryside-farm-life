@@ -496,7 +496,7 @@ $e('ecoReset').onclick=()=>{E.money=E.initial;E.sales=0;say('إعادة ضبط �
 function attachInitialAssets(){
  // Preserve existing visual scene; add the starter farm's working entities only when absent.
  if(!objs.some(o=>o.k==='cat'&&ITEMS[o.ci][2]==='Farm House')){
-  const ix=ITEMS.findIndex(d=>d[2]==='Farm House'),o={k:'cat',ci:ix,role:ROLE(ITEMS[ix]),x:7,y:2,fw:2,fd:2,mv:1,st:0,t:0,starter:true};objs.push(o);occ(o,1);
+  const ix=ITEMS.findIndex(d=>d[2]==='Farm House'),o={k:'cat',ci:ix,role:ROLE(ITEMS[ix]),x:7,y:2,fw:2,fd:2,mv:1,st:0,t:0,starter:true,sp:1};objs.push(o);occ(o,1);
  }
  if(!objs.some(o=>o.k==='cat'&&ITEMS[o.ci][2]==='Wheat Field')){
   const ix=ITEMS.findIndex(d=>d[2]==='Wheat Field'),o={k:'cat',ci:ix,role:'field',x:8,y:6,fw:1,fd:1,mv:1,st:1,t:0};objs.push(o);occ(o,1);say('إضافة حقل القمح التجريبي الأول');
