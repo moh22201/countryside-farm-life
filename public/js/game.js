@@ -246,12 +246,12 @@ function aiH(w,dt){w.walk=false;if(!w.home||w.home.roadOK===false)return;if(!w.s
 function taskH(w){const n=a=>nearest(a,w),sk=stor('depot'),ml=stor('mill'),ws=src(w),mp=once(()=>{const m=stor('mill');return m&&ft(m)}),dp=once(()=>{const d=stor('depot');return d&&ft(d)});
  const bt=n(find('turb').filter(o=>(o.bat||0)>0&&!o.rs&&o.roadOK!==false));
  if(bt&&sk){bt.rs=1;return[{go:()=>ft(bt)},{d:.8,st:'take',fn:()=>{bt.bat=Math.max(0,(bt.bat||0)-1);bt.rs=0;w.car='bat'}},{go:dp},{d:.6,st:'drop',fn:()=>{addStock('bat',1);w.car=null}}]}
- const hv=n(find('field').filter(f=>f.st==2&&!f.rs));
- if(hv&&ml){hv.rs=1;return[{go:()=>ct(hv)},{d:1.5,st:'harv',fn:()=>{hv.st=0;hv.t=0;hv.rs=0;w.car='crop'}},{go:mp},{d:.6,st:'drop',fn:()=>{addStock('crop',1);w.car=null}}]}
+ const pf=n(find('pen').filter(p=>p.nf&&!p.rs));
+ if(pf&&ml){pf.rs=1;return[{go:mp},{d:.8,st:'take',fn:()=>{if(crop>0)crop--;w.car='feed'}},{go:()=>ft(pf)},{d:1.5,st:'feed',fn:()=>{pf.nf=0;pf.tf=0;pf.rs=0;w.car=null}}]}
  const pw=n(find('pen').filter(p=>p.nw&&!p.rs));
  if(pw&&ws){pw.rs=1;return[{go:once(()=>src(w))},{d:1.2,st:'fill',fn:()=>{w.car='bucket'}},{go:()=>ft(pw)},{d:1.5,st:'water',fn:()=>{pw.nw=0;pw.tw=0;pw.rs=0;w.car=null}}]}
- const pf=n(find('pen').filter(p=>p.nf&&!p.rs));
- if(pf&&ml&&crop>0){pf.rs=1;return[{go:mp},{d:.8,st:'take',fn:()=>{if(crop>0)crop--;w.car='feed'}},{go:()=>ft(pf)},{d:1.5,st:'feed',fn:()=>{pf.nf=0;pf.tf=0;pf.rs=0;w.car=null}}]}
+ const hv=n(find('field').filter(f=>f.st==2&&!f.rs));
+ if(hv&&ml){hv.rs=1;return[{go:()=>ct(hv)},{d:1.5,st:'harv',fn:()=>{hv.st=0;hv.t=0;hv.rs=0;w.car='crop'}},{go:mp},{d:.6,st:'drop',fn:()=>{addStock('crop',1);w.car=null}}]}
  const em=n(find('field').filter(f=>f.st==0&&!f.rs));
  if(em&&ws){em.rs=1;return[{go:once(()=>src(w))},{d:1.2,st:'fill',fn:()=>{w.car='bucket'}},{go:()=>ct(em)},{d:1.5,st:'water',fn:()=>{em.st=1;em.t=0;em.rs=0;w.car=null}}]}
  return null}
