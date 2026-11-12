@@ -477,10 +477,10 @@ function plan(w){const L=a=>nearest(a,w),act=(...r)=>objs.filter(o=>r.includes(o
   ]}
  }
  if(w.role=='hand'){
-   const bt=L(objs.filter(o=>o.role=='prod'&&o.act!==false&&ITEMS[o.ci][2]=='Wind Turbine'&&o.bat>0&&!CL.has('b'+oid(o))&&dst('bat',1,o)));
+   const bt=L(objs.filter(o=>o.role=='prod'&&ITEMS[o.ci][2]=='Wind Turbine'&&o.out>0&&o.ores=='bat'&&!CL.has('b'+oid(o))&&dst('bat',1,o)));
    if(bt){const k='b'+oid(bt),D=dst('bat',1,bt);cl(k);w.ks=[k];return[
     {go:()=>ft(bt)},
-    {d:.8,st:'take',fn:()=>{if(bt.bat<1)return false;bt.bat=0;bt.pt=0;w.n=1;w.car='bat'}},
+    {d:.8,st:'take',fn:()=>{const n=Math.min(1,bt.out||0);if(n<1||bt.ores!='bat')return false;bt.out-=n;if(bt.out<=0)bt.out=0;w.n=n;w.car='bat'}},
     {go:()=>ft(D)},
     {d:.6,st:'drop',fn:()=>{give(D,'bat',w.n);w.car=null;w.n=0}}
    ]}
@@ -675,7 +675,7 @@ function lots(){const st=objs.filter(q=>q.role=='wh'&&q.act!==false&&q.inv),tt={
 function pickups(L,o){const out=[];L.forEach(l=>{let n=l.n;objs.filter(q=>q.role=='wh'&&q.act!==false&&q.inv&&(q.inv[l.r]||0)>0).sort((a,b)=>Math.hypot(a.x-o.x,a.y-o.y)-Math.hypot(b.x-o.x,b.y-o.y)).forEach(q=>{if(n>0){const a=Math.min(n,q.inv[l.r]);out.push({q,r:l.r,n:a});n-=a}})});return out}
 function tick(o,dt){const r=o.role;if(!r)return;if(o.k=='veh'){(r=='truck'?aiK:aiT)(o,dt);return}if(!o.mv)return;
  if(o.inv==null){o.inv={};o.out=0;o.pg=0;if(STO[r])o.cap=CAP[r]||100}
- o.act=NEED.includes(r)?onRoad(o):true;if(!o.act)return;const n=ITEMS[o.ci][2];
+ o.act=NEED.includes(r)?(r=='prod'&&ITEMS[o.ci][2]=='Wind Turbine'?true:onRoad(o)):true;if(!o.act)return;const n=ITEMS[o.ci][2];
  if(!(o.out>=1)&&o.oq&&o.oq.length){const q=o.oq.shift();o.out=q.n;o.ores=q.r}
  if(r=='field'){if(o.st==1){o.t+=dt;if(o.t>=10){o.st=2;o.out=1;o.ores=FO[n]}}}
  else if(r=='waterfield'){}
