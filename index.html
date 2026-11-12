@@ -476,7 +476,16 @@ function plan(w){const L=a=>nearest(a,w),act=(...r)=>objs.filter(o=>r.includes(o
    {d:.8,st:'drop',fn:()=>{give(wh,'flour',w.n);w.car=null}}
   ]}
  }
- const dry=(w.role=='farm'?act('field'):[]).filter(f=>f.st==0&&!CL.has('fw'+oid(f)));
+ if(w.role=='hand'){
+   const bt=L(objs.filter(o=>o.role=='prod'&&o.act!==false&&ITEMS[o.ci][2]=='Wind Turbine'&&o.bat>0&&!CL.has('b'+oid(o))&&dst('bat',1,o)));
+   if(bt){const k='b'+oid(bt),D=dst('bat',1,bt);cl(k);w.ks=[k];return[
+    {go:()=>ft(bt)},
+    {d:.8,st:'take',fn:()=>{if(bt.bat<1)return false;bt.bat=0;bt.pt=0;w.n=1;w.car='bat'}},
+    {go:()=>ft(D)},
+    {d:.6,st:'drop',fn:()=>{give(D,'bat',w.n);w.car=null;w.n=0}}
+   ]}
+  }
+  const dry=(w.role=='farm'?act('field'):[]).filter(f=>f.st==0&&!CL.has('fw'+oid(f)));
  const ripe=act('field').filter(f=>f.st==2&&f.out>=1);
  if(dry.length&&(w.farmWaterNext!==false||!ripe.length)){
   const f=L(dry),source=once(()=>wsrc(w)),k='fw'+oid(f);
