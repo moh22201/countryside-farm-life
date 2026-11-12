@@ -426,7 +426,7 @@ const PNM={'Chicken Coop':'egg','Duck House':'egg','Sheep Pen':'wool','Milk Barn
 const FO={'Cotton Field':'cotton','Sugarcane Field':'sugar','Wheat Field':'wheat','Tree Farm':'wood','Oak Tree Farm':'wood','Salt Field':'salt','Peppermint Field':'mint','Pumpkin Patch':'pumpkin','Strawberry Field':'strawberry','Cocoa Tree':'cocoa','Apple Tree':'apple','Blueberry Field':'blueberry','Lettuce Field':'lettuce','Corn Field':'corn','Soybean Field':'soy','Tomato Farm':'tomato','Vanilla Bean Field':'vanilla','Cabernet Vines':'grape','Chardonnay Vines':'grape','Pinot Noir Vines':'grape','Bamboo Farm':'bamboo','Wild Clover':'clover','Clay Field':'clay'};
 let UID=0;const CL=new Set(),oid=o=>o.uid||(o.uid=++UID),cl=k=>{CL.add(k)},rls=ks=>ks.forEach(k=>CL.delete(k)),tot=o=>Object.values(o.inv).reduce((a,b)=>a+b,0);
 function roleOf(d){const n=d[2];if(n=='Farm Tractor')return'tractor';if(n=='Sales Truck')return'truck';const m={'Silo':'silo','Wood Shed':'store','Storehouse':'depot','Warehouse':'depot','Pantry':'pantry','Fuel Storage':'fuelst','Worker House':'whouse','Lumberjack House':'lhouse','Farm House':'fhouse','Animal Keeper House':'animalhouse','Builder House':'bhouse','Well':'waterfield','Water Field':'waterfield','Water Pump':'well','Wind Pump':'well','Water Facility':'well'};if(m[n])return m[n];if(FO[n])return'field';if(PNM[n])return'pen';if(RC[n])return'proc';if(PR[n])return'prod';return null}
-function give(s,r,n){if(!s||!s.inv)return;s.inv[r]=(s.inv[r]||0)+Math.max(0,Math.min(n,s.cap-tot(s)))}
+function give(s,r,n){if(!s||!s.inv)return;const feedMill=s.role=='proc'&&ITEMS[s.ci][2]=='Feed Mill',used=tot(s)+(feedMill?(s.out||0):0),sp=s.cap?s.cap-used:10-(s.inv[r]||0);s.inv[r]=(s.inv[r]||0)+Math.max(0,Math.min(n,sp))}
 function dst(r,n,p){const g=RS[r][0];let b=null,bd=1e9;objs.forEach(o=>{if(!ACC[o.role]||o.act===false||!o.inv||!ACC[o.role].includes(g)||tot(o)+(n||1)>o.cap)return;const s=Math.hypot(o.x-p.x,o.y-p.y)+(o.role=='depot'?1000:0);if(s<bd){bd=s;b=o}});return b}
 function onRoad(o){const w=o.fw||1,h=o.fd||1;for(let i=-1;i<=w;i++)for(let j=-1;j<=h;j++){const ix=i>=0&&i<w,jx=j>=0&&j<h;if(ix&&jx)continue;if(!ix&&!jx)continue;const x=o.x+i,y=o.y+j;if(x>=0&&y>=0&&x<W&&y<H&&T[x][y]==1)return true}return false}
 function roadAt(x,y){if((T[x][y]==0&&!OBJ[x][y])||(T[x][y]==1&&RT[x][y]!=(ITEMS[placing-1][2]=='Dirt Road'?1:0))){T[x][y]=1;RT[x][y]=ITEMS[placing-1][2]=='Dirt Road'?1:0;$('info').textContent='تم بناء طريق معبد ✓'}}
@@ -465,12 +465,10 @@ function aiH(w,dt){w.walk=false;if(!w.steps){w.steps=plan(w);w.tm=0;if(!w.steps)
  if(w.steps&&!w.steps.length)fin(w)}
 function plan(w){const L=a=>nearest(a,w),act=(...r)=>objs.filter(o=>r.includes(o.role)&&o.act!==false&&o.inv),stk=r=>objs.filter(q=>ACC[q.role]&&q.role!='wh'&&q.act!==false&&q.inv&&(q.inv[r]||0)>0);
  if(w.role=='animal'){
-  const pf=L(act('pen').filter(p=>p.nf>0&&!CL.has('f'+oid(p)))),fs=['feed','corn'].find(r=>stk(r).length);
-  if(pf&&fs){const k='f'+oid(pf),src=nearest(stk(fs),w);cl(k);w.ks=[k];return[{go:()=>ft(src)},{d:.8,st:'take',fn:()=>{const a=Math.min(src.inv[fs]||0,pf.nf);if(a<1)return false;src.inv[fs]-=a;w.n=a;w.car='feed'}},{go:()=>ft(pf)},{d:1.5,st:'feed',fn:()=>{pf.nf=Math.max(0,pf.nf-w.n);w.car=null;penDone(pf)}}]}
+  const pf=L(act('pen').filter(p=>p.nf>0&&!CL.has('f'+oid(p)))),feedMill=L(act('proc').filter(o=>ITEMS[o.ci][2]=='Feed Mill'&&o.ores=='feed'&&o.out>0));
+  if(pf&&feedMill){const k='f'+oid(pf);cl(k);w.ks=[k];return[{go:()=>ft(feedMill)},{d:.8,st:'take',fn:()=>{const a=Math.min(feedMill.out||0,pf.nf);if(a<1||feedMill.ores!='feed')return false;feedMill.out-=a;w.n=a;w.car='feed'}},{go:()=>ft(pf)},{d:1.5,st:'feed',fn:()=>{pf.nf=Math.max(0,pf.nf-w.n);w.car=null;penDone(pf)}}]}
   const pw=L(act('pen').filter(p=>p.nw&&!CL.has('p'+oid(p)))),ws=wsrc(w);
   if(pw&&ws){const k='p'+oid(pw);cl(k);w.ks=[k];return[{go:once(()=>wsrc(w))},{d:1.2,st:'fill',fn:()=>{w.car='bucket'}},{go:()=>ft(pw)},{d:1.5,st:'water',fn:()=>{pw.nw=0;w.car=null;penDone(pw)}}]}
-  const penOut=L(act('pen').filter(p=>p.out>=1&&!CL.has('a'+oid(p))&&dst(p.ores,p.out,w)));
-  if(penOut){const k='a'+oid(penOut);cl(k);w.ks=[k];let D;return[{go:()=>ft(penOut)},{d:.8,st:'take',fn:()=>{if(penOut.out<1)return false;w.n=penOut.out;w.car=penOut.ores;penOut.out=0}},{go:()=>(D=D||dst(w.car,w.n,w))&&ft(D)},{d:.8,st:'drop',fn:()=>{if(D)give(D,w.car,w.n);w.car=null}}]}
   return null;
  }
  const whs=w.role=='hand'?act('wh'):[],whFree=whs.some(q=>q.cap-tot(q)>0);
@@ -487,6 +485,8 @@ function plan(w){const L=a=>nearest(a,w),act=(...r)=>objs.filter(o=>r.includes(o
   ]}
  }
  if(w.role=='hand'){
+   const animalProduct=L(act('pen').filter(p=>p.out>0&&['milk','egg','wool'].includes(p.ores)&&!CL.has('a'+oid(p))&&whs.some(q=>q.cap-tot(q)>=p.out)));
+   if(animalProduct){const k='a'+oid(animalProduct),D=L(whs.filter(q=>q.cap-tot(q)>=animalProduct.out));cl(k);w.ks=[k];return[{go:()=>ft(animalProduct)},{d:.8,st:'take',fn:()=>{if(animalProduct.out<1)return false;w.n=animalProduct.out;w.car=animalProduct.ores;animalProduct.out=0}},{go:()=>ft(D)},{d:.8,st:'drop',fn:()=>{give(D,w.car,w.n);w.car=null;w.n=0}}]}
    const bt=L(objs.filter(o=>o.role=='prod'&&ITEMS[o.ci][2]=='Wind Turbine'&&o.out>0&&o.ores=='bat'&&!CL.has('b'+oid(o))));
    const D=bt&&L(objs.filter(o=>o.role=='wh'&&o.inv&&o.cap&&tot(o)<o.cap));
    if(bt&&D){const k='b'+oid(bt);cl(k);w.ks=[k];return[
@@ -499,9 +499,10 @@ function plan(w){const L=a=>nearest(a,w),act=(...r)=>objs.filter(o=>r.includes(o
   /* سقي الحقول يتم آلياً من حقل ماء قريب؛ لا يحتاج الفلاح إلى السقي. */
   const wheatSilo=(n,p)=>nearest(objs.filter(q=>q.role=='silo'&&q.act!==false&&q.inv&&tot(q)+n<=q.cap),p);
  const goodsStore=(n,p)=>nearest(objs.filter(q=>q.role=='depot'&&q.act!==false&&q.inv&&tot(q)+n<=q.cap),p);
+ const feedMillStore=(n,p)=>nearest(objs.filter(q=>q.role=='proc'&&ITEMS[q.ci][2]=='Feed Mill'&&q.act!==false&&q.inv&&tot(q)+(q.out||0)+n<=100),p);
  const haulRoles=w.role=='hand'?['prod','proc']:w.role=='farm'?['field','proc']:[];
- const co=L(act(...haulRoles).filter(o=>o.out>=1&&(o.role!='field'||o.st==2)&&!(o.role=='proc'&&ITEMS[o.ci][2]=='Windmill'&&o.out<1)&&!CL.has('c'+oid(o))&&((w.role=='farm'&&o.role=='proc'&&ITEMS[o.ci][2]=='Windmill'&&o.ores=='flour'&&!!dst('flour',o.out,w))||(w.role=='hand'&&['oil','ore','fuel','steel','bat'].includes(o.ores)&&!!dst(o.ores,o.out,w))||(o.role=='field'&&!!(['corn','soy'].includes(o.ores)?goodsStore(o.out,o):dst(o.ores,o.out,o))))));
- if(co){const k='c'+oid(co),f=co.role=='field';cl(k);w.ks=[k];let D;return[{go:()=>f?ct(co):ft(co)},{d:1.2,st:f?'harv':'take',fn:()=>{if(co.out<1)return false;w.n=co.out;w.car=co.ores;co.out=0;if(f){co.st=0;co.t=0;w.farmWaterNext=true}}},{go:()=>(D=D||(f&&['corn','soy'].includes(w.car)?goodsStore(w.n,w):f&&w.car=='wheat'?wheatSilo(w.n,w):dst(w.car,w.n,w)))&&ft(D)},{d:.6,st:'drop',fn:()=>{if(D)give(D,w.car,w.n);w.car=null}}]}
+ const co=L(act(...haulRoles).filter(o=>o.out>=1&&(o.role!='field'||o.st==2)&&!(o.role=='proc'&&ITEMS[o.ci][2]=='Windmill'&&o.out<1)&&!CL.has('c'+oid(o))&&((w.role=='farm'&&o.role=='proc'&&ITEMS[o.ci][2]=='Windmill'&&o.ores=='flour'&&!!dst('flour',o.out,w))||(w.role=='hand'&&['oil','ore','fuel','steel','bat'].includes(o.ores)&&!!dst(o.ores,o.out,w))||(o.role=='field'&&!!(['corn','soy'].includes(o.ores)?feedMillStore(o.out,o):dst(o.ores,o.out,o))))));
+ if(co){const k='c'+oid(co),f=co.role=='field';cl(k);w.ks=[k];let D;return[{go:()=>f?ct(co):ft(co)},{d:1.2,st:f?'harv':'take',fn:()=>{if(co.out<1)return false;w.n=co.out;w.car=co.ores;co.out=0;if(f){co.st=0;co.t=0;w.farmWaterNext=true}}},{go:()=>(D=D||(f&&['corn','soy'].includes(w.car)?feedMillStore(w.n,w):f&&w.car=='wheat'?wheatSilo(w.n,w):dst(w.car,w.n,w)))&&ft(D)},{d:.6,st:'drop',fn:()=>{if(D)give(D,w.car,w.n);w.car=null}}]}
  const millsNeed=act('proc').filter(p=>ITEMS[p.ci][2]=='Windmill'&&p.out<50&&(p.inv.wheat||0)<10);millsNeed.forEach(p=>objs.filter(q=>q.role=='silo'&&q.act!==false&&q.inv&&(q.inv.wheat||0)>0).forEach(q=>q.wheatFlow=1));
  const C=[];(w.role=='hand'?act('proc').filter(p=>['Refinery','Steel Mill'].includes(ITEMS[p.ci][2])):w.role=='farm'?act('proc').filter(p=>ITEMS[p.ci][2]=='Windmill'):[]).forEach(p=>{const rc=RC[ITEMS[p.ci][2]],outCap=ITEMS[p.ci][2]=='Windmill'?50:10;if(p.out>=outCap) return;for(const r in rc.in){const need=Math.min(6,rc.in[r]-(p.inv[r]||0)),k='d'+oid(p)+r;if(need>0&&!CL.has(k)){const sources=stk(r).filter(q=>(w.role!='farm'||r=='wheat')&&(w.role!='hand'||['oil','ore'].includes(r))&&(r!='wood'||q.role=='store')&&(r!='wheat'||q.role!='silo'||q.wheatFlow||tot(q)>=q.cap));const silo=sources.find(q=>q.role=='silo'&&r=='wheat');if(silo&&tot(silo)>=silo.cap)silo.wheatFlow=1;const src=nearest(sources,p);if(src)C.push({p,r,s:src,need,k,x:p.x,y:p.y})}}});
  const c=L(C);
@@ -927,6 +928,7 @@ function genNew(){const inNew=(x,y)=>x>=40||y>=25;
 genNew();
 /* ===== ترتيب الحبوب والتخزين والطحن والبيع ===== */
 RC['Windmill']={in:{wheat:10,wood:1},out:'flour',t:10};
+RC['Feed Mill']={in:{corn:3,soy:2},out:'feed',qty:5,t:60};
 RC['Lumber Mill']={in:{wood:5},out:'plank',qty:3,t:40};
 RC['Steel Mill']={in:{ore:5},out:'steel',t:60};
 PR['Iron Mine'].t=30;RC['Refinery']={in:{oil:5},out:'fuel',t:300};
@@ -934,6 +936,7 @@ const FOV=new Set(Object.values(FO));FOV.add('ore');FOV.add('oil');const CAP={si
 const RAWC=['wheat','corn','cotton','sugar','soy','salt','mint','pumpkin','strawberry','blueberry','lettuce','tomato','vanilla','clover','cocoa','apple','bamboo','grape','feed'];
 const SG={silo:RAWC,store:['wood','plank'],depot:['flour','wool','fabric','pot','ore','sand','glass','steel','bat','clay'],pantry:['flour','egg','milk','honey','bread','cake','candy','choco','wine','meal','jam'],fuelst:['oil','fuel']};
 function dst(r,n,p){let b=null,bd=1e9;n=n||1;
+ if(r=='corn'||r=='soy'){objs.forEach(o=>{if(o.role!='proc'||ITEMS[o.ci][2]!='Feed Mill'||o.act===false||!o.inv||tot(o)+(o.out||0)+n>100)return;const d=Math.hypot(o.x-p.x,o.y-p.y);if(d<bd){bd=d;b=o}});return b}
  if(r=='flour'){objs.forEach(o=>{if(o.role=='wh'&&o.act!==false&&o.inv&&tot(o)+n<=o.cap){const d=Math.hypot(o.x-p.x,o.y-p.y);if(d<bd){bd=d;b=o}}});return b}
  if(FOV.has(r))objs.forEach(o=>{if(o.role!='proc'||o.act===false||!o.inv)return;const rc=RC[ITEMS[o.ci][2]];if(!rc.in[r]||(o.inv[r]||0)+n>10)return;const s=Math.hypot(o.x-p.x,o.y-p.y);if(s<bd){bd=s;b=o}});
  if(b)return b;bd=1e9;
@@ -943,17 +946,17 @@ function lots(){const st=objs.filter(q=>q.role=='wh'&&q.act!==false&&q.inv),tt={
 function pickups(L,o){const out=[];L.forEach(l=>{let n=l.n;objs.filter(q=>q.role=='wh'&&q.act!==false&&q.inv&&(q.inv[l.r]||0)>0).sort((a,b)=>Math.hypot(a.x-o.x,a.y-o.y)-Math.hypot(b.x-o.x,b.y-o.y)).forEach(q=>{if(n>0){const a=Math.min(n,q.inv[l.r]);out.push({q,r:l.r,n:a});n-=a}})});return out}
 function tick(o,dt){const r=o.role;if(!r)return;if(o.k=='veh'){(r=='truck'?aiK:aiT)(o,dt);return}if(!o.mv)return;
  if(o.inv==null){o.inv={};o.out=0;o.pg=0;if(STO[r])o.cap=CAP[r]||100}
- o.act=NEED.includes(r)?(r=='prod'&&ITEMS[o.ci][2]=='Wind Turbine'?true:onRoad(o)):true;if(!o.act)return;const n=ITEMS[o.ci][2];
+ o.act=NEED.includes(r)?(r=='prod'&&ITEMS[o.ci][2]=='Wind Turbine'?true:onRoad(o)):true;if(!o.act)return;const n=ITEMS[o.ci][2];if(r=='proc'&&n=='Feed Mill')o.cap=100;
  if(!(o.out>=1)&&o.oq&&o.oq.length){const q=o.oq.shift();o.out=q.n;o.ores=q.r}
  if(r=='field'){if(o.st==0)autoIrrigate(o);if(o.st==1){o.t+=dt;if(o.t>=10){o.st=2;o.out=1;o.ores=FO[n]}}}
  else if(r=='waterfield'){}
   else if(r=='pen'){if(o.nw||o.nf>0)o.need=1;if(!o.need){o.tf=(o.tf==null?30:o.tf)+dt;if(o.tf>=40){o.need=1;o.nw=1;o.nf=FEED[n]||1}}}
  else if(r=='prod'){if(o.out<10){o.pg+=dt;const p=PR[n];if(o.pg>=(p.t||20)){o.pg=0;o.out++;o.ores=p.out}}}
- else if(r=='proc'){const rc=RC[n],outCap=n=='Windmill'?50:10;if(!o.run){if(o.out<outCap&&(o.oq||[]).length<4&&Object.keys(rc.in).every(k=>(o.inv[k]||0)>=rc.in[k])){for(const k in rc.in)o.inv[k]-=rc.in[k];o.run=1;o.pg=0}}else{o.pg+=dt;if(o.pg>=(rc.t||30)){o.run=0;(rc.outs||[[rc.out,1]]).forEach(([rr,nn])=>{if(o.out>=1&&o.ores==rr)o.out+=nn;else if(!(o.out>=1)){o.out=nn;o.ores=rr}else(o.oq=o.oq||[]).push({r:rr,n:nn})})}}}}
+ else if(r=='proc'){const rc=RC[n],outCap=n=='Windmill'?50:n=='Feed Mill'?100:10;if(!o.run){if(o.out<outCap&&(n!='Feed Mill'||tot(o)+(o.out||0)<=100)&&(o.oq||[]).length<4&&Object.keys(rc.in).every(k=>(o.inv[k]||0)>=rc.in[k])){for(const k in rc.in)o.inv[k]-=rc.in[k];o.run=1;o.pg=0}}else{o.pg+=dt;if(o.pg>=(rc.t||30)){o.run=0;(rc.outs||[[rc.out,1]]).forEach(([rr,nn])=>{if(o.out>=1&&o.ores==rr)o.out+=nn;else if(!(o.out>=1)){o.out=nn;o.ores=rr}else(o.oq=o.oq||[]).push({r:rr,n:nn})})}}}}
 function descr(o){const d=ITEMS[o.ci];if(!d)return'';let s=d[1];if(NEED.includes(o.role)&&o.act===false)s+=' ⛔ لا يعمل (يحتاج طريقاً أمامه)';
- if(o.inv){const v=Object.entries(o.inv).filter(a=>a[1]>0).map(a=>RS[a[0]][1]+a[1]).join(' ');if(o.cap)s+=' | '+tot(o)+'/'+o.cap+' '+v;else if(v)s+=' | '+v}
+ if(o.inv){const v=Object.entries(o.inv).filter(a=>a[1]>0).map(a=>RS[a[0]][1]+a[1]).join(' ');if(o.cap)s+=' | '+(o.role=='proc'&&ITEMS[o.ci][2]=='Feed Mill'?tot(o)+(o.out||0):tot(o))+'/'+o.cap+' '+v;else if(v)s+=' | '+v}
  if(SG[o.role])s+=' | يخزّن: '+SG[o.role].map(r=>RS[r][1]).join('');else if(o.role=='wh')s+=' | مستودع البيع (يبيع منه الشاحنة فقط)';
  if(o.role=='pen'&&(o.nw||o.nf>0))s+=' | يحتاج: '+(o.nw?'💧 ':'')+(o.nf>0?'🌾×'+o.nf:'');
- if(o.out>=1){s+=' | ناتج: '+RS[o.ores][1]+'×'+o.out;if(!dst(o.ores,o.out,o))s+=' (لا يوجد مخزن مناسب)'}return s}
+ if(o.out>=1){s+=' | ناتج: '+RS[o.ores][1]+'×'+o.out;if(!(o.role=='proc'&&ITEMS[o.ci][2]=='Feed Mill')&&!dst(o.ores,o.out,o))s+=' (لا يوجد مخزن مناسب)'}return s}
 addEventListener('resize',()=>{rs()});rs();center();requestAnimationFrame(frame);
 </script></body></html>
