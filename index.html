@@ -500,16 +500,16 @@ function aiW(w,dt){w.walk=false;w.tm+=dt;
    if(d){lm.plankRes=1;w.mill=lm;w.ds=d;w.st='toMill';break}
   }
   const b=nearest(objs.filter(o=>o.k=='tree'&&!o.res),w);
-  if(b&&dst('wood',1,w)){b.res=1;w.tg=b;w.st='toTree'}else{const h=fr(w.home);go(w,h.x,h.y,dt)}
+  if(b&&dst('wood',1,w)){b.res=1;w.tg=b;w.st='toTree'}else{const h=fr(w.home);goRoad(w,h.x,h.y,dt)}
   break}
- case'toMill':if(!w.mill||w.mill.out<1||w.mill.ores!='plank'){if(w.mill)w.mill.plankRes=0;w.mill=null;w.ds=null;w.st='idle'}else if(go(w,ft(w.mill).x,ft(w.mill).y,dt)){w.st='takePlank';w.tm=0}break;
+ case'toMill':if(!w.mill||w.mill.out<1||w.mill.ores!='plank'){if(w.mill)w.mill.plankRes=0;w.mill=null;w.ds=null;w.st='idle'}else if(goRoad(w,ft(w.mill).x,ft(w.mill).y,dt)){w.st='takePlank';w.tm=0}break;
  case'takePlank':if(w.tm>.8){const a=Math.min(w.mill?.out||0,w.ds?Math.max(0,w.ds.cap-tot(w.ds)):0);if(a>0){w.mill.out-=a;w.n=a;w.car='plank';w.st='toDepot'}else{if(w.mill)w.mill.plankRes=0;w.mill=null;w.ds=null;w.st='idle'}}break;
- case'toDepot':if(w.ds&&go(w,ft(w.ds).x,ft(w.ds).y,dt)){w.st='dropPlank';w.tm=0}break;
+ case'toDepot':if(w.ds&&goRoad(w,ft(w.ds).x,ft(w.ds).y,dt)){w.st='dropPlank';w.tm=0}break;
  case'dropPlank':if(w.tm>.6){give(w.ds,'plank',w.n);if(w.mill)w.mill.plankRes=0;w.mill=null;w.ds=null;w.n=0;w.car=null;w.st='idle'}break;
- case'toTree':if(go(w,w.tg.x+.3,w.tg.y+.3,dt)){w.fx=(w.tg.x-w.x)-(w.tg.y-w.y)>=0?1:-1;w.st='chop';w.tm=0}break;
+ case'toTree':if(goRoad(w,w.tg.x+.3,w.tg.y+.3,dt)){w.fx=(w.tg.x-w.x)-(w.tg.y-w.y)>=0?1:-1;w.st='chop';w.tm=0}break;
  case'chop':w.tg.shake=1;if(w.tm>4){const g=w.tg,tx=Math.floor(g.x),ty=Math.floor(g.y);objs.splice(objs.indexOf(g),1);if(!objs.some(o=>o.k=='tree'&&Math.floor(o.x)==tx&&Math.floor(o.y)==ty))T[tx][ty]=0;w.log={k:'log',x:g.x,y:g.y};objs.push(w.log);w.st='pick';w.tm=0}break;
  case'pick':if(w.tm>.8){objs.splice(objs.indexOf(w.log),1);w.car='log';w.st='toStore';w.ds=null}break;
- case'toStore':{w.ds=w.ds||dst('wood',1,w);if(w.ds&&go(w,w.ds.x+w.ds.fw/2,w.ds.y+w.ds.fd+.4,dt)){w.st='drop';w.tm=0}break}
+ case'toStore':{w.ds=w.ds||dst('wood',1,w);if(w.ds&&goRoad(w,w.ds.x+w.ds.fw/2,w.ds.y+w.ds.fd+.4,dt)){w.st='drop';w.tm=0}break}
  case'drop':if(w.tm>.6){give(w.ds,'wood',1);w.car=null;w.st='idle'}break}}
 function aiT(o,dt){o.walk=false;o.tm=(o.tm||0)+dt;
  if(o.st=='idle'){const f=nearest(objs.filter(q=>q.role=='field'&&q.act!==false&&q.st==2&&q.out>=1&&!CL.has('c'+oid(q))&&dst(q.ores,q.out,o)),o);if(f){o.k0='c'+oid(f);cl(o.k0);o.tg=f;o.st='toF'}else drive(o,o.hx,o.hy,dt)}
