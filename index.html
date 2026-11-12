@@ -774,6 +774,162 @@ let lastK='';
 setInterval(()=>{$('bv').textContent=Math.floor(money).toLocaleString();const n=objs.filter(o=>o.mv).length,k=UP.av+'|'+UP.name;if(k!=lastK){lastK=k;$('av').innerHTML=UP.av?`<img src='${UP.av}'>`:'🧑‍🌾';$('pn').textContent=UP.name}$('plv').textContent='المستوى '+(1+Math.floor(n/5))+' · '+n+' منشأة';chips();
  let t='';if(placing)t='📍 '+ITEMS[placing-1][1]+' — المس الأرض للبناء (بلا حدّ)';else if(mov)t='↔ المس مربعاً فارغاً لنقل المنشأة';else if(delMode)t='🗑️ وضع الحذف: المس منشأة (السعر حسب النوع) أو صخرة (50$) أو طريقاً (مجاناً)';$('pbar').style.display=t?'flex':'none';$('pt').textContent=t;[...document.querySelectorAll('#dock button')].forEach(b=>{if(b.dataset.d=='del')b.classList.toggle('on',delMode)})},500);
 setInterval(()=>{if(shKind=='truck'||shKind=='det'||shKind=='fact'){if(shKind=='det'&&!objs.includes(detObj)){closeSheet();return}const y=$('sb').scrollTop;render();$('sb').scrollTop=y}},900);
+/* ===== إضافات توجيه وظائف العمال المعتمدة ===== */
+PREF.bread=['wh'];
+PREF.fabric=['wh'];
+/* مخرجات المخبزة والقماش والفولاذ والبطاريات لا تُحوّل إلى مخزن آخر عند امتلاء المستودع؛ تنتظر حتى تتوفر سعته. */
+const __dstBeforeWarehouseOnly=dst;
+const __warehouseOnlyProducts=new Set(['bread','fabric','steel','bat']);
+dst=function(r,n,p){
+ if(__warehouseOnlyProducts.has(r)){
+  return nearest(objs.filter(o=>o.role=='wh'&&o.act!==false&&o.inv&&o.cap-tot(o)>=(n||1)),p);
+ }
+ return __dstBeforeWarehouseOnly(r,n,p);
+};
+
+
+/* الفلاح لا يحصد خشب مزارع الأشجار؛ تبقى هذه المزارع ضمن اختصاص الحطّاب. */
+const __planBeforeWorkerRouting=plan;
+plan=function(w){
+ const hiddenTreeOutputs=[];
+ const hiddenBakeryOutputs=[];
+ if(w.role=='farm'){
+  objs.forEach(o=>{
+   if(o.role=='field'&&FO[ITEMS[o.ci]?.[2]]=='wood'&&o.out>0){
+    hiddenTreeOutputs.push([o,o.out]);
+    o.out=0;
+   }
+   if(o.role=='proc'&&ITEMS[o.ci]?.[2]=='Bakery'&&o.out>0){
+    hiddenBakeryOutputs.push([o,o.out]);
+    o.out=0;
+   }
+  });
+ }
+ let tasks=null;
+ try{tasks=__planBeforeWorkerRouting(w)}
+ finally{
+  hiddenTreeOutputs.forEach(([o,n])=>{o.out=n});
+  hiddenBakeryOutputs.forEach(([o,n])=>{o.out=n});
+ }
+ if(tasks)return tasks;
+
+ /* عامل المصانع يجمع الخبز النهائي من المخبزة إلى المستودع، ولا يزوّدها بالمدخلات. */
+ if(w.role=='hand'){
+  const warehouses=objs.filter(o=>o.role=='wh'&&o.act!==false&&o.inv&&o.cap>tot(o));
+  const bakery=nearest(objs.filter(o=>o.role=='proc'&&ITEMS[o.ci]?.[2]=='Bakery'&&o.act!==false&&o.out>0&&!CL.has('c'+oid(o))&&warehouses.some(d=>d.cap-tot(d)>0)),w);
+  if(bakery){
+   const dest=nearest(warehouses.filter(d=>d.cap-tot(d)>0),bakery);
+   if(dest){
+    const key='c'+oid(bakery);
+    cl(key);w.ks=[key];
+    let amount=0;
+    return[
+     {go:()=>ft(bakery)},
+     {d:.8,st:'take',fn:()=>{
+      amount=Math.min(bakery.out,Math.max(0,dest.cap-tot(dest)));
+      if(amount<1)return false;
+      bakery.out-=amount;w.n=amount;w.car='bread';
+     }},
+     {go:()=>ft(dest)},
+     {d:.6,st:'drop',fn:()=>{
+      if(dest.cap-tot(dest)<w.n)return false;
+      give(dest,'bread',w.n);w.car=null;w.n=0;
+     }}
+    ];
+   }
+  }
+ }
+ return null;
+};
+
+/* الحطّاب يجمع أيضاً إنتاج Tree Farm وOak Tree Farm، ويوجهه إلى مصانع الخشب/الطاحونة ثم مخازن الخشب عند توفر السعة. */
+const __aiWBeforeTreeFields=aiW;
+const __woodRoomForWorker=d=>{
+ if(!d||!d.inv)return 0;
+ if(d.role=='proc'){
+  const rc=RC[ITEMS[d.ci]?.[2]];
+  return rc&&rc.in.wood?Math.max(0,icap(rc,'wood')-(d.inv.wood||0)):0;
+ }
+ return Math.max(0,(d.cap||0)-tot(d));
+};
+aiW=function(w,dt){
+ if(w.st=='idle'){
+  const field=nearest(objs.filter(o=>o.role=='field'&&o.act!==false&&o.st==2&&o.out>0&&FO[ITEMS[o.ci]?.[2]]=='wood'&&!CL.has('c'+oid(o))),w);
+  if(field){
+   const dest=dst('wood',1,w);
+   if(dest&&__woodRoomForWorker(dest)>0){
+    w.tg=field;w.ds=dest;w.k0='c'+oid(field);cl(w.k0);w.st='toFarmTreeField';w.tm=0;
+   }
+  }
+ }
+ if(w.st=='toFarmTreeField'){
+  if(!w.tg||w.tg.out<1){rls([w.k0]);w.k0=null;w.st='idle';return}
+  const p=ct(w.tg);
+  if(p&&go(w,p.x,p.y,dt)){w.st='takeFarmTreeWood';w.tm=0}
+  return;
+ }
+ if(w.st=='takeFarmTreeWood'){
+  w.tm+=dt;
+  if(w.tm>.8){
+   let room=__woodRoomForWorker(w.ds);
+   if(room<1){w.ds=dst('wood',1,w);room=__woodRoomForWorker(w.ds)}
+   const amount=Math.min(w.tg?.out||0,room);
+   if(amount<1)return;
+   w.tg.out-=amount;w.n=amount;w.car='wood';
+   if(w.tg.out<1){w.tg.out=0;w.tg.st=0;w.tg.t=0}
+   w.st='toFarmTreeWoodDest';w.tm=0;
+  }
+  return;
+ }
+ if(w.st=='toFarmTreeWoodDest'){
+  if(!w.ds||__woodRoomForWorker(w.ds)<w.n)w.ds=dst('wood',w.n,w);
+  if(!w.ds)return;
+  const p=ft(w.ds);
+  if(p&&go(w,p.x,p.y,dt)){w.st='dropFarmTreeWood';w.tm=0}
+  return;
+ }
+ if(w.st=='dropFarmTreeWood'){
+  w.tm+=dt;
+  if(w.tm>.6){
+   if(!w.ds||__woodRoomForWorker(w.ds)<w.n){w.ds=dst('wood',w.n,w);w.st='toFarmTreeWoodDest';return}
+   const before=w.ds.role=='proc'?(w.ds.inv.wood||0):tot(w.ds);
+   give(w.ds,'wood',w.n);
+   const after=w.ds.role=='proc'?(w.ds.inv.wood||0):tot(w.ds);
+   const moved=Math.max(0,after-before);
+   w.n-=moved;
+   if(w.n>0){w.ds=null;w.st='toFarmTreeWoodDest';return}
+   rls([w.k0]);w.k0=null;w.tg=null;w.ds=null;w.n=0;w.car=null;w.st='idle';
+  }
+  return;
+ }
+ __aiWBeforeTreeFields(w,dt);
+};
+
+/* الجرار ينفذ خطة الفلاح نفسها: السقي والحصاد والنقل والتزويد، مع استبعاد خشب مزارع الأشجار. */
+aiT=function(o,dt){
+ o.walk=false;
+ if(!o.steps){
+  const role=o.role;o.role='farm';
+  try{o.steps=plan(o)}finally{o.role=role}
+  o.tm=0;
+  if(!o.steps){drive(o,o.hx,o.hy,dt);return}
+ }
+ const step=o.steps[0];
+ if(!step){rls(o.ks||[]);o.ks=[];o.steps=null;o.st='idle';o.car=0;return}
+ if(step.go){
+  const p=step.go();
+  if(!p){rls(o.ks||[]);o.ks=[];o.steps=null;o.st='idle';o.car=0;return}
+  if(drive(o,p.x,p.y,dt)){o.steps.shift();o.tm=0}
+ }else{
+  o.st=step.st;o.tm+=dt;
+  if(o.tm>=step.d){
+   if(step.fn&&step.fn()===false){rls(o.ks||[]);o.ks=[];o.steps=null;o.st='idle';o.car=0;return}
+   o.steps.shift();o.tm=0;o.st='idle';
+  }
+ }
+ if(o.steps&&!o.steps.length){rls(o.ks||[]);o.ks=[];o.steps=null;o.st='idle';o.car=0;o.n=0}
+};
+
 applyRM();
 addEventListener('resize',()=>{rs()});rs();center();requestAnimationFrame(frame);
 </script></body></html>
