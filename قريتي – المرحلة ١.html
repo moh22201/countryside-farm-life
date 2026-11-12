@@ -529,7 +529,7 @@ function plan(w){const L=a=>nearest(a,w),act=(...r)=>objs.filter(o=>r.includes(o
   if(windmill){
    const need=Math.max(0,(RC['Windmill'].in.wheat||0)-(windmill.inv.wheat||0));
    const silo=L(objs.filter(q=>q.role=='silo'&&q.act!==false&&q.inv&&(q.inv.wheat||0)>0&&!CL.has('wheat-to-mill'+oid(q))));
-   const amount=Math.min(need,silo?(silo.inv.wheat||0):0,Math.max(0,10-tot(windmill)));
+   const amount=Math.min(need,silo?(silo.inv.wheat||0):0,Math.max(0,10-(windmill.inv.wheat||0)));
    if(need>0&&silo&&amount>0){
     const k='wheat-to-mill'+oid(silo);cl(k);w.ks=[k];
     return[{go:()=>ft(silo)},{d:.8,st:'take',fn:()=>{const n=Math.min(amount,silo.inv.wheat||0);if(n<1)return false;silo.inv.wheat-=n;w.n=n;w.car='wheat'}},{go:()=>ft(windmill)},{d:.8,st:'drop',fn:()=>{give(windmill,'wheat',w.n);w.car=null;w.n=0}}]
