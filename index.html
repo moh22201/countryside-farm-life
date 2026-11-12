@@ -848,4 +848,114 @@ aiT=function(o,dt){
  if(o.steps&&!o.steps.length){rls(o.ks||[]);o.ks=[];o.steps=null;o.st='idle';o.car=0;o.n=0}
 };
 
-</script></body></html>
+
+/* ===== واجهة قريتي المحسّنة — طبقة عرض فقط، دون تعديل منطق اللعبة أو العمال ===== */
+(()=>{
+ const style=document.createElement('style');
+ style.textContent=\`
+ .hud.top,.hud.bot{display:none!important}
+ #villageUI{position:fixed;inset:0;z-index:50;pointer-events:none;direction:rtl;font-family:system-ui,"Segoe UI",Tahoma,sans-serif;color:var(--ink)}
+ #villageUI button{all:unset;box-sizing:border-box;cursor:pointer;pointer-events:auto;display:flex;align-items:center;justify-content:center;gap:6px;min-height:40px;padding:0 12px;border-radius:13px;background:var(--card);color:inherit;box-shadow:0 3px 12px rgba(0,0,0,.17);font-size:14px;line-height:1.2}
+ #villageUI button:active{transform:scale(.97)}
+ #villageUI .vtop{position:absolute;top:calc(9px + env(safe-area-inset-top,0px));left:10px;right:10px;display:flex;align-items:center;gap:7px;pointer-events:none}
+ #villageUI .vbrand,#villageUI .vbalance,#villageUI .vresources,#villageUI .vzoom,#villageUI .vdock,#villageUI .vsheet{pointer-events:auto;background:var(--card);backdrop-filter:blur(9px);box-shadow:0 3px 14px rgba(0,0,0,.16);border:1px solid rgba(255,255,255,.35)}
+ #villageUI .vbrand{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:14px;min-width:0}
+ #villageUI .vavatar{width:37px;height:37px;border-radius:50%;background:#e5c77e;display:grid;place-items:center;font-size:22px}
+ #villageUI .vbrand b{display:block;font-size:13px;white-space:nowrap}
+ #villageUI .vbrand small{display:block;font-size:10px;opacity:.7}
+ #villageUI .vbalance{margin-right:auto;border-radius:14px;padding:8px 11px;font-weight:800;white-space:nowrap}
+ #villageUI .vresources{position:absolute;top:calc(57px + env(safe-area-inset-top,0px));right:10px;left:10px;border-radius:13px;padding:7px 10px;font-size:11px;line-height:1.7;overflow:hidden}
+ #villageUI #res{white-space:normal}
+ #villageUI #cnt{display:block;font-size:10px;opacity:.65}
+ #villageUI .vzoom{position:absolute;left:10px;top:45%;display:flex;flex-direction:column;gap:6px;padding:6px;border-radius:15px}
+ #villageUI .vzoom button{width:38px;height:38px;padding:0;font-size:20px}
+ #villageUI .vdock{position:absolute;bottom:calc(10px + env(safe-area-inset-bottom,0px));left:10px;right:10px;display:flex;justify-content:space-around;gap:5px;padding:7px;border-radius:17px}
+ #villageUI .vdock button{flex:1;min-width:0;flex-direction:column;gap:3px;padding:6px 2px;font-size:20px;min-height:53px}
+ #villageUI .vdock small{font-size:10px;font-weight:600}
+ #villageUI .vdock button.on{outline:2px solid #4caf50}
+ #villageUI .vsheet{position:absolute;left:10px;right:10px;bottom:calc(77px + env(safe-area-inset-bottom,0px));max-height:54vh;overflow:auto;border-radius:18px;padding:10px;display:none}
+ #villageUI .vsheet.show{display:block}
+ #villageUI .vhead{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px;font-weight:800;font-size:14px}
+ #villageUI .vhead button{width:34px;min-height:34px;padding:0;font-size:18px}
+ #villageUI #info{position:static!important;display:block!important;transform:none!important;max-width:none!important;opacity:1!important;pointer-events:auto!important;text-align:right!important;margin:0 0 7px;padding:7px 9px;border-radius:10px;font-size:11px;box-shadow:none;background:rgba(127,127,127,.1)}
+ #villageUI #cat{display:flex;gap:6px;overflow-x:auto;padding:5px 0;background:transparent;box-shadow:none}
+ #villageUI #cat button{flex:0 0 42px;width:42px;height:42px;min-height:42px;padding:0;font-size:22px}
+ #villageUI #pan{display:none;max-height:none;overflow:visible;padding:5px 0;background:transparent;box-shadow:none}
+ #villageUI #pan.show{display:block}
+ #villageUI #items{display:grid;grid-template-columns:repeat(auto-fill,minmax(82px,1fr));gap:7px}
+ #villageUI .it{background:rgba(127,127,127,.1);border-radius:11px;text-align:center;font-size:11px;padding:5px 3px;cursor:pointer;border:2px solid transparent;min-width:0}
+ #villageUI .it.on{border-color:#4caf50}
+ #villageUI .it img{width:100%;display:block}
+ #villageUI #det{font-size:12px;margin:0 0 6px;min-height:18px}
+ #villageUI .vstats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+ #villageUI .vstat{padding:10px;border-radius:12px;background:rgba(127,127,127,.11);font-size:12px}
+ #villageUI .vstat b{display:block;font-size:17px;margin-top:3px}
+ @media(min-width:700px){#villageUI .vsheet{left:auto;right:14px;width:min(440px,45vw);bottom:85px;max-height:70vh}#villageUI .vdock{left:50%;right:auto;transform:translateX(-50%);width:min(520px,70vw)}#villageUI .vresources{left:auto;width:min(440px,48vw)}}
+ \`;
+ document.head.appendChild(style);
+ const ui=document.createElement('div');ui.id='villageUI';
+ ui.innerHTML='<div class="vtop"><div class="vbrand"><div class="vavatar">🏡</div><div><b>قريتي</b><small>حياتك في المزرعة</small></div></div><button class="vbalance" id="vWallet">💰 <span id="vMoney">—</span></button></div><div class="vresources"><div id="vResHost"></div></div><div class="vzoom"><button id="vPlus">＋</button><button id="vMinus">－</button><button id="vCenter">◎</button></div><div class="vsheet" id="vSheet"><div class="vhead"><span id="vTitle">الإنشاءات</span><button id="vClose">✕</button></div><div id="vContent"></div></div><div class="vdock"><button data-vtab="build">🏗️<small>البناء</small></button><button data-vtab="factory">🏭<small>المصانع</small></button><button data-vtab="truck">🚚<small>الشاحنة</small></button><button data-vtab="delete">🗑️<small>حذف</small></button></div>';
+ document.body.appendChild(ui);
+ const $v=id=>document.getElementById(id);
+ const sheet=$v('vSheet'),content=$v('vContent'),title=$v('vTitle');
+ const info=$('info'),pan=$('pan'),cat=$('cat'),res=$('res'),cnt=$('cnt');
+ const resHost=$v('vResHost');if(res)resHost.appendChild(res);if(cnt)resHost.appendChild(cnt);
+ content.appendChild(info);content.appendChild(cat);content.appendChild(pan);
+ const close=()=>{sheet.classList.remove('show');ui.querySelectorAll('.vdock button').forEach(b=>b.classList.remove('on'));};
+ const open=tab=>{sheet.classList.add('show');ui.querySelectorAll('.vdock button').forEach(b=>b.classList.toggle('on',b.dataset.vtab===tab));};
+ const showBuild=()=>{title.textContent='🏗️ الإنشاءات والمنشآت';cat.style.display='flex';pan.classList.remove('show');$('info').textContent='اختر تصنيفاً ثم المنشأة، وبعدها المس أرض اللعبة لوضعها.';open('build');};
+ const showFactories=()=>{
+  title.textContent='🏭 المصانع والإنتاج';cat.style.display='none';pan.classList.add('show');
+  const ids=ITEMS.map((d,i)=>i).filter(i=>!!(RC[ITEMS[i][2]]||PR[ITEMS[i][2]]));
+  $('det').textContent='اختر المصنع الذي تريد بناءه. وصفات الإنتاج تبقى كما هي في نظام اللعبة.';
+  $('items').innerHTML=ids.map(i=>'<div class="it" data-i="'+i+'"><img src="'+icon(i)+'"><div>'+ITEMS[i][1]+'</div></div>').join('');
+  open('factory');
+ };
+ const showTruck=()=>{
+  title.textContent='🚚 البيع والنقل';cat.style.display='none';pan.classList.add('show');
+  const trucks=objs.filter(o=>o.k==='veh'&&o.role==='truck');
+  const active=trucks.filter(o=>o.away||o.st!=='idle').length;
+  $('det').textContent='نظام البيع الحالي يعمل بالشاحنة وفق آلية اللعبة الموجودة؛ لم تتم إضافة طريقة بيع أو اقتصاد جديد.';
+  $('items').innerHTML='<div class="vstats"><div class="vstat">الشاحنات المملوكة<b>'+trucks.length+'</b></div><div class="vstat">في رحلة أو تعمل<b>'+active+'</b></div><div class="vstat">رصيد اللعبة<b>'+Math.floor(money).toLocaleString()+' $</b></div><div class="vstat">حالة البيع<b>تلقائي</b></div></div>';
+  open('truck');
+ };
+ const showWallet=()=>{
+  title.textContent='💰 رصيد اللعبة';cat.style.display='none';pan.classList.add('show');
+  $('det').textContent='الرصيد المعروض هو رصيد اللعبة الحالي، دون إضافة عمليات إيداع أو سحب جديدة.';
+  $('items').innerHTML='<div class="vstat">الرصيد الحالي<b>'+Math.floor(money).toLocaleString()+' $</b></div>';
+  open('wallet');
+ };
+ const showProfile=()=>{
+  title.textContent='👨‍🌾 ملف المزرعة';cat.style.display='none';pan.classList.add('show');
+  const buildings=objs.filter(o=>o.mv).length,workers=objs.filter(o=>o.k==='worker').length,vehicles=objs.filter(o=>o.k==='veh').length;
+  $('det').textContent='ملخص مزرعتك الحالية.';
+  $('items').innerHTML='<div class="vstats"><div class="vstat">المنشآت<b>'+buildings+'</b></div><div class="vstat">العمال<b>'+workers+'</b></div><div class="vstat">المركبات<b>'+vehicles+'</b></div><div class="vstat">مساحة الأرض<b>'+W*H+' مربع</b></div></div>';
+  open('profile');
+ };
+ ui.querySelectorAll('.vdock button').forEach(b=>b.addEventListener('click',()=>{
+  const t=b.dataset.vtab;
+  if(t==='build')showBuild();
+  else if(t==='factory')showFactories();
+  else if(t==='truck')showTruck();
+  else if(t==='delete'){close();$('bd').click();}
+ }));
+ $v('vClose').addEventListener('click',close);
+ $v('vWallet').addEventListener('click',showWallet);
+ $v('vPlus').addEventListener('click',()=>$('bz').click());
+ $v('vMinus').addEventListener('click',()=>$('bm').click());
+ $v('vCenter').addEventListener('click',()=>$('bc').click());
+ ui.querySelector('.vbrand').style.cursor='pointer';
+ ui.querySelector('.vbrand').addEventListener('click',showProfile);
+ $('items').addEventListener('click',e=>{
+  const it=e.target.closest('.it');if(!it)return;
+  setTimeout(()=>{if(placing){close();cat.style.display='flex';}},0);
+ });
+ let lastMoney=-1;
+ setInterval(()=>{
+  const n=Math.floor(money);
+  if(n!==lastMoney){lastMoney=n;$v('vMoney').textContent=n.toLocaleString();}
+ },500);
+})();
+
+</script>
+</body></html>
