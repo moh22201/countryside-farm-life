@@ -853,54 +853,63 @@ aiT=function(o,dt){
 (()=>{
  const style=document.createElement('style');
  style.textContent=`
- .hud.top,.hud.bot{display:none!important}
- canvas#c{position:fixed!important;inset:0!important;z-index:1!important;display:block!important;visibility:visible!important;opacity:1!important;pointer-events:auto!important;width:100%!important;height:100%!important}
- #villageUI{position:fixed;inset:0;z-index:2;pointer-events:none;background:transparent;direction:rtl;font-family:system-ui,"Segoe UI",Tahoma,sans-serif;color:var(--ink)}
- #villageUI button{all:unset;box-sizing:border-box;cursor:pointer;pointer-events:auto;display:flex;align-items:center;justify-content:center;gap:6px;min-height:40px;padding:0 12px;border-radius:13px;background:var(--card);color:inherit;box-shadow:0 3px 12px rgba(0,0,0,.17);font-size:14px;line-height:1.2}
- #villageUI button:active{transform:scale(.97)}
- #villageUI .vtop{position:absolute;top:calc(9px + env(safe-area-inset-top,0px));left:10px;right:10px;display:flex;align-items:center;gap:7px;pointer-events:none}
- #villageUI .vbrand,#villageUI .vbalance,#villageUI .vresources,#villageUI .vzoom,#villageUI .vdock,#villageUI .vsheet{pointer-events:auto;background:var(--card);backdrop-filter:blur(9px);box-shadow:0 3px 14px rgba(0,0,0,.16);border:1px solid rgba(255,255,255,.35)}
- #villageUI .vbrand{pointer-events:auto;display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:14px;min-width:0}
- #villageUI .vavatar{width:37px;height:37px;border-radius:50%;background:#e5c77e;display:grid;place-items:center;font-size:22px}
- #villageUI .vbrand b{display:block;font-size:13px;white-space:nowrap}
- #villageUI .vbrand small{display:block;font-size:10px;opacity:.7}
- #villageUI .vbalance{margin-right:auto;border-radius:14px;padding:8px 11px;font-weight:800;white-space:nowrap}
- #villageUI .vresources{position:absolute;top:calc(57px + env(safe-area-inset-top,0px));right:10px;left:10px;border-radius:13px;padding:7px 10px;font-size:11px;line-height:1.7;overflow:hidden}
- #villageUI #res{white-space:normal}
- #villageUI #cnt{display:block;font-size:10px;opacity:.65}
- #villageUI .vzoom{position:absolute;left:10px;top:45%;display:flex;flex-direction:column;gap:6px;padding:6px;border-radius:15px}
- #villageUI .vzoom button{width:38px;height:38px;padding:0;font-size:20px}
- #villageUI .vdock{position:absolute;bottom:calc(10px + env(safe-area-inset-bottom,0px));left:10px;right:10px;display:flex;justify-content:space-around;gap:5px;padding:7px;border-radius:17px}
- #villageUI .vdock button{flex:1;min-width:0;flex-direction:column;gap:3px;padding:6px 2px;font-size:20px;min-height:53px}
- #villageUI .vdock small{font-size:10px;font-weight:600}
- #villageUI .vdock button.on{outline:2px solid #4caf50}
- #villageUI .vsheet{position:absolute;left:10px;right:10px;bottom:calc(77px + env(safe-area-inset-bottom,0px));max-height:54vh;overflow:auto;border-radius:18px;padding:10px;display:none}
- #villageUI .vsheet.show{display:block}
- #villageUI .vhead{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px;font-weight:800;font-size:14px}
- #villageUI .vhead button{width:34px;min-height:34px;padding:0;font-size:18px}
- #villageUI #info{position:static!important;display:block!important;transform:none!important;max-width:none!important;opacity:1!important;pointer-events:auto!important;text-align:right!important;margin:0 0 7px;padding:7px 9px;border-radius:10px;font-size:11px;box-shadow:none;background:rgba(127,127,127,.1)}
- #villageUI #cat{display:flex;gap:6px;overflow-x:auto;padding:5px 0;background:transparent;box-shadow:none}
- #villageUI #cat button{flex:0 0 42px;width:42px;height:42px;min-height:42px;padding:0;font-size:22px}
- #villageUI #pan{display:none;max-height:none;overflow:visible;padding:5px 0;background:transparent;box-shadow:none}
- #villageUI #pan.show{display:block}
- #villageUI #items{display:grid;grid-template-columns:repeat(auto-fill,minmax(82px,1fr));gap:7px}
- #villageUI .it{background:rgba(127,127,127,.1);border-radius:11px;text-align:center;font-size:11px;padding:5px 3px;cursor:pointer;border:2px solid transparent;min-width:0}
- #villageUI .it.on{border-color:#4caf50}
- #villageUI .it img{width:100%;display:block}
- #villageUI #det{font-size:12px;margin:0 0 6px;min-height:18px}
- #villageUI .vstats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
- #villageUI .vstat{padding:10px;border-radius:12px;background:rgba(127,127,127,.11);font-size:12px}
- #villageUI .vstat b{display:block;font-size:17px;margin-top:3px}
- @media(min-width:700px){#villageUI .vsheet{left:auto;right:14px;width:min(440px,45vw);bottom:85px;max-height:70vh}#villageUI .vdock{left:50%;right:auto;transform:translateX(-50%);width:min(520px,70vw)}#villageUI .vresources{left:auto;width:min(440px,48vw)}}
- `;
+.hud.top,.hud.bot{display:none!important}
+canvas#c{position:fixed!important;inset:0!important;z-index:1!important;display:block!important;visibility:visible!important;opacity:1!important;pointer-events:auto!important;width:100%!important;height:100%!important}
+#villageUI{position:fixed;inset:0;z-index:10;pointer-events:none;background:transparent;direction:rtl;font-family:system-ui,"Segoe UI",Tahoma,sans-serif;color:var(--ink)}
+#villageUI button{all:unset;box-sizing:border-box;cursor:pointer;pointer-events:auto;width:38px;height:38px;border-radius:12px;background:var(--card);color:inherit;text-align:center;line-height:38px;font-size:18px;box-shadow:0 2px 8px rgba(0,0,0,.2)}
+#villageUI button:active{transform:scale(.97)}
+#villageUI .gl{background:var(--card);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);border:1px solid rgba(127,127,127,.2);box-shadow:0 4px 18px rgba(0,0,0,.2);pointer-events:auto}
+#villageUI .vtop{position:absolute;top:calc(8px + env(safe-area-inset-top,0px));left:8px;right:8px;display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:18px}
+#villageUI .vbrand{display:flex;align-items:center;gap:9px;flex:1;min-width:0;cursor:pointer}
+#villageUI .vavatar{width:46px;height:46px;flex:0 0 46px;border-radius:50%;border:2px solid #4caf50;background:#dfe8d8;display:grid;place-items:center;font-size:26px}
+#villageUI .who{min-width:0;display:flex;flex-direction:column;line-height:1.25}
+#villageUI .who b{font-size:14px;white-space:nowrap}
+#villageUI .who small{font-size:11px;opacity:.7}
+#villageUI .vbalance{width:auto;height:36px;padding:0 12px;border-radius:18px;background:linear-gradient(135deg,#f6cb45,#e8951a);color:#3a2600;font-weight:800;font-size:14px;line-height:36px;white-space:nowrap;box-shadow:none}
+#villageUI .vgear{flex:0 0 38px;background:rgba(127,127,127,.15);box-shadow:none}
+#villageUI .vresources{position:absolute;top:calc(70px + env(safe-area-inset-top,0px));left:8px;right:8px;display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding:2px 0;pointer-events:auto}
+#villageUI .vresources .chip{flex:0 0 auto;padding:5px 10px;border-radius:14px;background:var(--card);font-size:12px;font-weight:600;box-shadow:0 1px 6px rgba(0,0,0,.18)}
+#villageUI #res{white-space:nowrap}
+#villageUI #cnt{display:none}
+#villageUI .vzoom{position:absolute;right:10px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:8px;padding:6px;border-radius:16px}
+#villageUI .vzoom button{background:rgba(127,127,127,.12);box-shadow:none}
+#villageUI .vmenu{position:absolute;top:calc(64px + env(safe-area-inset-top,0px));left:8px;display:none;flex-direction:column;gap:6px;padding:8px;border-radius:14px}
+#villageUI .vmenu.show{display:flex}
+#villageUI .vmenu button{width:auto;height:36px;padding:0 12px;border-radius:10px;font-size:13px;line-height:36px;white-space:nowrap}
+#villageUI .vsheet{position:absolute;left:0;right:0;bottom:calc(86px + env(safe-area-inset-bottom,0px));max-height:52vh;border-radius:22px 22px 0 0;display:none;flex-direction:column;overflow:hidden}
+#villageUI .vsheet.show{display:flex}
+#villageUI .vhead{display:flex;align-items:center;gap:8px;padding:12px 14px 6px;font-weight:800}
+#villageUI .vhead span{flex:1}
+#villageUI .vhead button{width:34px;height:34px;line-height:34px;font-size:16px;background:rgba(127,127,127,.25);box-shadow:none}
+#villageUI #vContent{overflow-y:auto;padding:4px 12px 14px;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;pointer-events:auto}
+#villageUI #info{position:static!important;display:block!important;transform:none!important;max-width:none!important;opacity:1!important;pointer-events:auto!important;text-align:right!important;margin:0 0 7px;padding:7px 9px;border-radius:10px;font-size:12px;box-shadow:none;background:rgba(127,127,127,.1)}
+#villageUI #cat{display:flex;gap:6px;overflow-x:auto;padding:6px 2px;background:transparent;box-shadow:none;pointer-events:auto}
+#villageUI #cat button{flex:0 0 46px;width:46px;height:46px;line-height:46px;font-size:24px;box-shadow:none;background:rgba(127,127,127,.14)}
+#villageUI #pan{display:none;max-height:none;overflow:visible;padding:8px 0;background:transparent;box-shadow:none}
+#villageUI #pan.show{display:block}
+#villageUI #det{font-size:13px;margin:0 0 6px;min-height:18px}
+#villageUI #items{display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:8px}
+#villageUI .it{background:rgba(127,127,127,.12);border-radius:12px;text-align:center;font-size:11px;padding:5px 3px;cursor:pointer;border:2px solid transparent;min-width:0}
+#villageUI .it.on{border-color:#4caf50}
+#villageUI .it img{width:100%;display:block}
+#villageUI .vstats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+#villageUI .vstat{padding:10px;border-radius:12px;background:rgba(127,127,127,.1);font-size:12px}
+#villageUI .vstat b{display:block;font-size:17px;margin-top:3px}
+#villageUI .vdock{position:absolute;bottom:calc(10px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);display:flex;gap:6px;padding:8px;border-radius:22px;z-index:5}
+#villageUI .vdock button{width:64px;height:58px;border-radius:16px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:24px;line-height:1;box-shadow:none;background:rgba(127,127,127,.14)}
+#villageUI .vdock small{font-size:10px;margin-top:4px}
+#villageUI .vdock button.on{background:#4caf50;color:#fff}
+@media(min-width:700px){#villageUI .vsheet{left:0;right:14px;width:min(460px,45vw);bottom:85px;max-height:70vh;border-radius:22px}#villageUI .vdock{left:50%;width:auto}#villageUI .vresources{right:8px;left:8px}}
+@media(max-width:380px){#villageUI .vdock button{width:56px}#villageUI .vbalance{padding:0 8px;font-size:12px}}
+`;
  document.head.appendChild(style);
  const ui=document.createElement('div');ui.id='villageUI';
- ui.innerHTML='<div class="vtop"><div class="vbrand"><div class="vavatar">🏡</div><div><b>قريتي</b><small>حياتك في المزرعة</small></div></div><button class="vbalance" id="vWallet">💰 <span id="vMoney">—</span></button></div><div class="vresources"><div id="vResHost"></div></div><div class="vzoom"><button id="vPlus">＋</button><button id="vMinus">－</button><button id="vCenter">◎</button></div><div class="vsheet" id="vSheet"><div class="vhead"><span id="vTitle">الإنشاءات</span><button id="vClose">✕</button></div><div id="vContent"></div></div><div class="vdock"><button data-vtab="build">🏗️<small>البناء</small></button><button data-vtab="factory">🏭<small>المصانع</small></button><button data-vtab="truck">🚚<small>الشاحنة</small></button><button data-vtab="delete">🗑️<small>حذف</small></button></div>';
+ ui.innerHTML=`<div class="vtop gl"><div class="vbrand"><div class="vavatar">🏡</div><div class="who"><b>قريتي</b><small>حياتك في المزرعة</small></div></div><button class="vbalance" id="vWallet">💰 <span id="vMoney">—</span></button><button class="vgear" id="vGear">⚙️</button></div><div class="vresources" id="vResHost"></div><div class="vzoom gl"><button id="vPlus">＋</button><button id="vMinus">－</button><button id="vCenter">◎</button></div><div class="vmenu gl" id="vMenu"><button data-cmd="bs">💾 حفظ التقدم</button><button data-cmd="bg">▦ إظهار الشبكة</button><button data-cmd="br">🔄 إعادة البداية</button></div><div class="vsheet gl" id="vSheet"><div class="vhead"><span id="vTitle">الإنشاءات</span><button id="vClose">✕</button></div><div id="vContent"></div></div><div class="vdock gl"><button data-vtab="build">🏗️<small>البناء</small></button><button data-vtab="factory">🏭<small>المصانع</small></button><button data-vtab="truck">🚚<small>الشاحنة</small></button><button data-vtab="delete">🗑️<small>حذف</small></button></div>`;
  document.body.appendChild(ui);
  const $v=id=>document.getElementById(id);
  const sheet=$v('vSheet'),content=$v('vContent'),title=$v('vTitle');
  const info=$('info'),pan=$('pan'),cat=$('cat'),res=$('res'),cnt=$('cnt');
- const resHost=$v('vResHost');if(res)resHost.appendChild(res);if(cnt)resHost.appendChild(cnt);
+ const resHost=$v('vResHost');if(res){const chip=document.createElement('div');chip.className='chip';chip.appendChild(res);resHost.appendChild(chip)}if(cnt){const chip=document.createElement('div');chip.className='chip';chip.appendChild(cnt);resHost.appendChild(chip)}
  content.appendChild(info);content.appendChild(cat);content.appendChild(pan);
  const close=()=>{sheet.classList.remove('show');ui.querySelectorAll('.vdock button').forEach(b=>b.classList.remove('on'));};
  const open=tab=>{sheet.classList.add('show');ui.querySelectorAll('.vdock button').forEach(b=>b.classList.toggle('on',b.dataset.vtab===tab));};
@@ -941,6 +950,9 @@ aiT=function(o,dt){
   else if(t==='delete'){close();$('bd').click();}
  }));
  $v('vClose').addEventListener('click',close);
+ $v('vGear').addEventListener('click',()=> $v('vMenu').classList.toggle('show'));
+ $v('vMenu').addEventListener('click',e=>{const b=e.target.closest('[data-cmd]');if(!b)return;$ (b.dataset.cmd).click();$v('vMenu').classList.remove('show')});
+
  $v('vWallet').addEventListener('click',showWallet);
  $v('vPlus').addEventListener('click',()=>$('bz').click());
  $v('vMinus').addEventListener('click',()=>$('bm').click());
