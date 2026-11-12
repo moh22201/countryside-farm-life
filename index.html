@@ -854,7 +854,8 @@ aiT=function(o,dt){
  const style=document.createElement('style');
  style.textContent=`
  .hud.top,.hud.bot{display:none!important}
- #villageUI{position:fixed;inset:0;z-index:50;pointer-events:none;direction:rtl;font-family:system-ui,"Segoe UI",Tahoma,sans-serif;color:var(--ink)}
+ canvas#c{position:fixed!important;inset:0!important;z-index:1!important;display:block!important;visibility:visible!important;opacity:1!important;pointer-events:auto!important;width:100%!important;height:100%!important}
+ #villageUI{position:fixed;inset:0;z-index:2;pointer-events:none;background:transparent;direction:rtl;font-family:system-ui,"Segoe UI",Tahoma,sans-serif;color:var(--ink)}
  #villageUI button{all:unset;box-sizing:border-box;cursor:pointer;pointer-events:auto;display:flex;align-items:center;justify-content:center;gap:6px;min-height:40px;padding:0 12px;border-radius:13px;background:var(--card);color:inherit;box-shadow:0 3px 12px rgba(0,0,0,.17);font-size:14px;line-height:1.2}
  #villageUI button:active{transform:scale(.97)}
  #villageUI .vtop{position:absolute;top:calc(9px + env(safe-area-inset-top,0px));left:10px;right:10px;display:flex;align-items:center;gap:7px;pointer-events:none}
