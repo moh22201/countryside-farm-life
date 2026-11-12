@@ -465,6 +465,8 @@ function aiH(w,dt){w.walk=false;if(!w.steps){w.steps=plan(w);w.tm=0;if(!w.steps)
  if(w.steps&&!w.steps.length)fin(w)}
 function plan(w){const L=a=>nearest(a,w),act=(...r)=>objs.filter(o=>r.includes(o.role)&&o.act!==false&&o.inv),stk=r=>objs.filter(q=>ACC[q.role]&&q.role!='wh'&&q.act!==false&&q.inv&&(q.inv[r]||0)>0);
  if(w.role=='animal'){
+  /* إصلاح حالة احتياجات الحظيرة القديمة: إذا بقيت need مفعّلة دون تعيين ماء أو علف، أعد إنشاء الاحتياجين كي لا يتوقف العامل بلا مهمة. */
+  act('pen').forEach(p=>{if(p.need&&!p.nw&&!(p.nf>0)){p.nw=1;p.nf=FEED[ITEMS[p.ci][2]]||1}});
   const feedMill=L(act('proc').filter(o=>ITEMS[o.ci][2]=='Feed Mill'));
   const pf=L(act('pen').filter(p=>p.nf>0&&!CL.has('f'+oid(p))));
   if(pf&&feedMill&&feedMill.ores=='feed'&&feedMill.out>0){const k='f'+oid(pf);cl(k);w.ks=[k];return[{go:()=>ft(feedMill)},{d:.8,st:'take',fn:()=>{const a=Math.min(feedMill.out||0,pf.nf);if(a<1||feedMill.ores!='feed')return false;feedMill.out-=a;w.n=a;w.car='feed'}},{go:()=>ft(pf)},{d:1.5,st:'feed',fn:()=>{pf.nf=Math.max(0,pf.nf-w.n);w.car=null;penDone(pf)}}]}
