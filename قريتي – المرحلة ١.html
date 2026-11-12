@@ -477,8 +477,9 @@ function plan(w){const L=a=>nearest(a,w),act=(...r)=>objs.filter(o=>r.includes(o
   ]}
  }
  if(w.role=='hand'){
-   const bt=L(objs.filter(o=>o.role=='prod'&&ITEMS[o.ci][2]=='Wind Turbine'&&o.out>0&&o.ores=='bat'&&!CL.has('b'+oid(o))&&dst('bat',1,o)));
-   if(bt){const k='b'+oid(bt),D=dst('bat',1,bt);cl(k);w.ks=[k];return[
+   const bt=L(objs.filter(o=>o.role=='prod'&&ITEMS[o.ci][2]=='Wind Turbine'&&o.out>0&&o.ores=='bat'&&!CL.has('b'+oid(o))));
+   const D=bt&&L(objs.filter(o=>o.role=='wh'&&o.inv&&o.cap&&tot(o)<o.cap));
+   if(bt&&D){const k='b'+oid(bt);cl(k);w.ks=[k];return[
     {go:()=>ft(bt)},
     {d:.8,st:'take',fn:()=>{const n=Math.min(1,bt.out||0);if(n<1||bt.ores!='bat')return false;bt.out-=n;if(bt.out<=0)bt.out=0;w.n=n;w.car='bat'}},
     {go:()=>ft(D)},
