@@ -13,16 +13,16 @@ canvas{position:fixed;inset:0;width:100%;height:100%;touch-action:none;display:b
 .bot{bottom:calc(10px + env(safe-area-inset-bottom,0px))}
 .card{background:var(--card);border-radius:14px;padding:8px 12px;font-size:13px;box-shadow:0 2px 10px rgba(0,0,0,.18);backdrop-filter:blur(6px)}
 .card b{font-size:15px}
-.btns{display:flex;gap:6px;pointer-events:auto}
+.btns{display:flex;gap:6px;pointer-events:auto;flex-wrap:wrap;justify-content:flex-end;max-width:176px}
 button{all:unset;cursor:pointer;width:38px;height:38px;border-radius:12px;background:var(--card);text-align:center;line-height:38px;font-size:18px;box-shadow:0 2px 8px rgba(0,0,0,.2)}
 button.on{outline:2px solid #4caf50}#menu{display:none;pointer-events:auto;gap:6px;flex-wrap:wrap;justify-content:center}#menu.show{display:flex}#menu button{width:auto;padding:0 10px;font-size:14px}#cat{display:flex;gap:6px;overflow-x:auto;pointer-events:auto;scrollbar-width:none;padding:6px}#cat button{flex:0 0 auto;width:46px;height:46px;line-height:46px;font-size:24px;box-shadow:none;background:rgba(127,127,127,.14)}#pan{display:none;pointer-events:auto;max-height:30vh;overflow-y:auto;padding:8px}#pan.show{display:block}#det{font-size:13px;margin-bottom:6px;min-height:18px}#items{display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:8px}.it{background:rgba(127,127,127,.12);border-radius:12px;text-align:center;font-size:11px;padding:4px 2px;cursor:pointer;border:2px solid transparent}.it.on{border-color:#4caf50}.it img{width:100%;display:block}
 </style></head><body>
 <canvas id="c"></canvas>
 <div class="hud top"><div class="card"><b>🏡 قريتي — المرحلة ٢</b><br><span id="cnt"></span><br><span id="res">🪵 0 · 🌾 0</span></div>
-<div class="btns"><button id="bg" title="الشبكة">▦</button><button id="bz" title="تقريب">＋</button><button id="bm" title="تبعيد">－</button><button id="bc" title="توسيط">◎</button></div></div>
+<div class="btns"><button id="bs" title="حفظ">💾</button><button id="br" title="بداية جديدة">🔄</button><button id="bd" title="حذف">🗑️</button><button id="bg" title="الشبكة">▦</button><button id="bz" title="تقريب">＋</button><button id="bm" title="تبعيد">－</button><button id="bc" title="توسيط">◎</button></div></div>
 <div class="hud bot" style="flex-direction:column;align-items:stretch"><div class="card" id="info">اختر منشأة من الأسفل ثم المس الأرض · المس مبنى لنقله · اسحب للتحريك</div><div class="card" id="pan"><div id="det"></div><div id="items"></div></div><div class="card" id="cat"></div></div>
 <script>
-const W=40,H=25,TW=64,TH=32,$=id=>document.getElementById(id);
+const W=50,H=40,TW=64,TH=32,$=id=>document.getElementById(id);
 const cv=$('c'),ctx=cv.getContext('2d');
 let cw,ch,dpr,cam={x:0,y:0,s:1},grid=false,sel=null;
 const P=(x,y,z=0)=>[(x-y)*TW/2,(x+y)*TH/2-z];
@@ -39,10 +39,10 @@ const NAMES=['متاح للبناء ✓','طريق','بركة ماء','مبنى'
 const objs=[];
 [[22,5,1.7],[33,6,2.3],[6,15,2],[32,16,1.8],[16,13,1.4]].forEach(([cx,cy,r])=>{
  for(let x=0;x<W;x++)for(let y=0;y<H;y++)if(Math.hypot(x+.5-cx,y+.5-cy)<r+(hs(x,y,3)-.5)*.9)T[x][y]=2});
-for(let x=15;x<=24;x++)T[x][1]=1; // طريق أفقي من 10 مربعات أسفل شاحنة البيع
+for(let x=6;x<=15;x++)T[x][4]=1;
 
 for(let x=0;x<W;x++)for(let y=0;y<H;y++){
- if(T[x][y])continue;
+ if(x>=40||y>=25||T[x][y])continue;
  const base=x>=2&&x<=19&&y<=9;
  if(base)continue;
  const p=y>=20?.8:y>=18?.3:(x<3||x>36||y<2)?.35:.12;
@@ -54,7 +54,6 @@ for(let x=0;x<W;x++)for(let y=0;y<H;y++){
 objs.push({k:'house',x:7,y:2,fw:2,fd:2,mv:1,c:[243,228,196],rc:[196,72,52],door:[.4,.62],wins:[[.08,.28],[.72,.92]],bw:[.3,.7],beam:1,shut:1,flower:1});
 objs.push({k:'house',x:10,y:2,fw:2,fd:2,mv:1,c:[160,110,68],rc:[58,112,86],door:[.1,.32],wins:[[.46,.66],[.76,.94]],bw:[.3,.7],log:1,shut:0});
 objs.push({k:'silo',x:13,y:2,fw:2,fd:2,mv:1});
-objs.push({k:'cat',ci:ITEMS.findIndex(d=>d[1]=='شاحنة البيع'),role:'saleTruck',x:19,y:0,fw:2,fd:1,mv:0,nocc:1});
 const OBJ=Array.from({length:W},()=>Array(H).fill(null));let placing=null,mov=null,wood=0,crop=0,bat=0,money=1000000;
 const dep=o=>o.x+o.y+((o.fw||0)+(o.fd||0))/2-(o.role=='field'?.6:0);
 function occ(o,on){if(o.nocc)return;for(let i=0;i<(o.fw||1);i++)for(let j=0;j<(o.fd||1);j++){const x=o.x+i,y=o.y+j;OBJ[x][y]=on?o:null;T[x][y]=on?(o.role=='field'?6:3):0}}
@@ -79,7 +78,7 @@ function tile(x,y,t){
   ctx.strokeStyle='rgba(255,255,255,.4)';ctx.lineWidth=1.5;ctx.beginPath();
   const k=Math.sin(t/800+x*1.3+y*.7);ctx.ellipse(cx+k*5,cy+(h-.5)*6,8+h*5,2.5+k*.6,0,0,6.3);ctx.stroke();
   return}
- if(v==1){
+ if(v==1){roadTile(x,y,sq,h);return}if(false){
   poly(sq,R(ROAD,.96+h*.08));
   if(!isR(x,y-1))poly([[x,y],[x+1,y],[x+1,y+.1],[x,y+.1]],R(ROAD,.8));
   if(!isR(x,y+1))poly([[x,y+1],[x+1,y+1],[x+1,y+.9],[x,y+.9]],R(ROAD,.8));
@@ -249,7 +248,7 @@ function store(o){const x0=o.x,y0=o.y,X1=x0+1,Y1=y0+1,H=26,Rh=16,ym=y0+.5,C=[168
  seg([x0-.12,ym,H+Rh],[X1+.12,ym,H+Rh],R(RC,.5),3)}
 const DRAW={tree,rock,hay,logs,house,silo,worker,field,well,store,log:logObj,cat:catDraw,veh:vehDraw};
 const SZ={B:2,Y:2,E:2,M:2,D:2,S:2},WS={};
-const RL={'Well':'well','Water Square':'well','Silo':'silo','Wood Shed':'store','Wind Turbine':'turb','Worker House':'whouse','Lumberjack House':'lhouse','Farm House':'fhouse','Storehouse':'depot','Warehouse':'depot','Farm Tractor':'tractor'},ROLE=d=>RL[d[2]]||(d[3]=='F'?'field':d[3]=='P'?'pen':null);
+const RL={'Well':'well','Silo':'silo','Wood Shed':'store','Wind Turbine':'turb','Worker House':'whouse','Lumberjack House':'lhouse','Farm House':'fhouse','Storehouse':'depot','Warehouse':'depot','Farm Tractor':'tractor'},ROLE=d=>roleOf(d);
 function wicon(i){if(WS[i])return WS[i];const d=ITEMS[i],c=document.createElement('canvas');c.width=120;c.height=90;gx=c.getContext('2d');NG=d[3]=='H'?2:true;NB=true;try{K[d[3]](d[4],d[5],d[6],d[7])}catch(e){}NG=false;NB=false;return WS[i]=c}
 const bub=(x,y,s,t)=>{const b=Math.sin(t/300)*2;ell(x,y+b,s.length>2?15:10,10,'rgba(255,255,255,.92)');ctx.font='12px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle='#000';ctx.fillText(s,x,y+b+1)};
 const DK=t=>Math.max(0,Math.sin(t/19099))*.3,once=f=>{let v;return()=>v||(v=f())},stor=(...r)=>{for(const k of r){const s=find(k)[0];if(s)return s}return null},ft=o=>({x:o.x+o.fw/2,y:o.y+o.fd+.35}),ct=o=>({x:o.x+.5,y:o.y+.5});
@@ -280,10 +279,10 @@ function aiT(o,dt){o.walk=false;o.tm=(o.tm||0)+dt;
  else if(o.st=='harv'){o.walk=true;const s=Math.sin(o.tm*3)*.32;o.x=o.tg.x+.5+s;o.y=o.tg.y+.5+s;o.fx=Math.cos(o.tm*3)>0?1:-1;if(o.tm>2.2){o.tg.st=0;o.tg.t=0;o.tg.rs=0;o.car=1;o.st='toS'}}
  else if(o.st=='toS'){const s=stor('silo','depot');if(s&&mv(s.x+s.fw/2,s.y+s.fd+.5)){o.st='drop';o.tm=0}}
  else if(o.st=='drop'){if(o.tm>.6){crop+=2;o.car=0;o.st='idle'}}}
-function vehDraw(o,t){const [sx,sy]=P(o.x,o.y),k=.62,f=o.fx||1,b=o.walk?Math.sin(t/55):0;ell(sx+5,sy+3,26,9,'rgba(0,0,0,.22)');ctx.save();ctx.translate(sx,sy+b);ctx.scale(f*k,k);ctx.drawImage(wicon(o.ci),-60,-64,120,90);ctx.restore();
+function vehDraw(o,t){const [sx,sy]=P(o.x,o.y),k=o.role=='truck'?.85:.65,f=o.fx||1,b=o.walk?Math.sin(t/55):0;ell(sx+5,sy+3,26,9,'rgba(0,0,0,.22)');ctx.save();ctx.translate(sx,sy+b);ctx.scale(f*k,k);ctx.drawImage(wicon(o.ci),-60,-64,120,90);ctx.restore();
  if(o.car)[[-10,-22],[-3,-26]].forEach(([u,v])=>ell(sx+u*f,sy+v,5,4,'#e3b93c'));
  if(o.walk){for(let i=0;i<3;i++){const ph=(t/450+i/3)%1;ell(sx-f*11,sy-14-ph*22,2+ph*4,2+ph*4,'rgba(90,90,90,'+.5*(1-ph)+')')}if(DK(t)>.05)GLOW.push([sx+f*22,sy-8,28])}}
-function catDraw(o,t){const z=o.fw,[sx,sy]=P(o.x+z/2,o.y+z/2),k=.8*z,d=ITEMS[o.ci],rl=o.role;
+function catDraw(o,t){const z=o.fw,[sx,sy]=P(o.x+z/2,o.y+z/2),d=ITEMS[o.ci],k=.8*z*({'Windmill':1.5,'Wind Turbine':1.5,'Wind Pump':1.25}[d[2]]||1),rl=o.role;
  if(rl=='field'&&o.st<2){field(o,t);if(o.st==0)bub(sx,sy-26,'💧',t);return}
  ell(sx+9*k,sy+4*k,40*k,16*k,'rgba(0,0,0,.2)');ctx.drawImage(wicon(o.ci),sx-60*k,sy-64*k,120*k,90*k);
  const X=u=>sx+(u-60)*k,Y=v=>sy+(v-64)*k;
@@ -300,9 +299,9 @@ function catDraw(o,t){const z=o.fw,[sx,sy]=P(o.x+z/2,o.y+z/2),k=.8*z,d=ITEMS[o.c
 function frame(t){const dt=Math.min(.05,(t-(frame.l||t))/1000);frame.l=t;update(dt);
  ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,cv.width,cv.height);
  ctx.setTransform(dpr*cam.s,0,0,dpr*cam.s,dpr*cam.x,dpr*cam.y);
- for(let y=0;y<H;y++)for(let x=0;x<W;x++)tile(x,y,t);
+ {const m=90*cam.s;for(let y=0;y<H;y++)for(let x=0;x<W;x++){const sx=cam.x+(x-y)*TW/2*cam.s,sy=cam.y+(x+y+1)*TH/2*cam.s;if(sx<-m||sx>cw+m||sy<-m*1.5||sy>ch+m*2)continue;tile(x,y,t)}};
  if(grid){ctx.strokeStyle='rgba(255,255,255,.28)';ctx.lineWidth=1;for(let y=0;y<H;y++)for(let x=0;x<W;x++)poly([[x,y],[x+1,y],[x+1,y+1],[x,y+1]],null,'rgba(255,255,255,.28)')}
- objs.forEach(o=>o.d=dep(o));objs.sort((a,b)=>a.d-b.d);objs.forEach(o=>DRAW[o.k](o,t));lighting(t);if(mov)poly([[mov.x,mov.y],[mov.x+mov.fw,mov.y],[mov.x+mov.fw,mov.y+mov.fd],[mov.x,mov.y+mov.fd]],'rgba(255,220,60,.45)','#fff',2);
+ objs.forEach(o=>o.d=dep(o));objs.sort((a,b)=>a.d-b.d);objs.forEach(o=>{if(vis(o))DRAW[o.k](o,t)});lighting(t);if(mov)poly([[mov.x,mov.y],[mov.x+mov.fw,mov.y],[mov.x+mov.fw,mov.y+mov.fd],[mov.x,mov.y+mov.fd]],'rgba(255,220,60,.45)','#fff',2);
  if(sel){const v=T[sel.x][sel.y];poly([[sel.x,sel.y],[sel.x+1,sel.y],[sel.x+1,sel.y+1],[sel.x,sel.y+1]],v?'rgba(255,80,80,.38)':'rgba(90,255,110,.42)','#fff',2)}
  requestAnimationFrame(frame);
 }
@@ -310,12 +309,12 @@ function frame(t){const dt=Math.min(.05,(t-(frame.l||t))/1000);frame.l=t;update(
 /* ---------- camera & input ---------- */
 function rs(){dpr=Math.min(devicePixelRatio||1,2);cw=innerWidth;ch=innerHeight;cv.width=cw*dpr;cv.height=ch*dpr}
 function center(){const [px,py]=P(20,12.5);cam.s=Math.min(1.1,cw/520);cam.x=cw/2-px*cam.s;cam.y=ch*.46-py*cam.s}
-function zoom(f,cx=cw/2,cy=ch/2){const n=Math.max(.3,Math.min(2.2,cam.s*f)),k=n/cam.s;cam.x=cx-(cx-cam.x)*k;cam.y=cy-(cy-cam.y)*k;cam.s=n}
+function zoom(f,cx=cw/2,cy=ch/2){const n=Math.max(.15,Math.min(2.2,cam.s*f)),k=n/cam.s;cam.x=cx-(cx-cam.x)*k;cam.y=cy-(cy-cam.y)*k;cam.s=n}
 function pick(px,py){const wx=(px-cam.x)/cam.s,wy=(py-cam.y)/cam.s,gx=(wy/(TH/2)+wx/(TW/2))/2,gy=(wy/(TH/2)-wx/(TW/2))/2,x=Math.floor(gx),y=Math.floor(gy);return x>=0&&y>=0&&x<W&&y<H?{x,y}:null}
 const ptrs=new Map();let moved=0,pd=0;
 cv.addEventListener('pointerdown',e=>{cv.setPointerCapture(e.pointerId);ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});moved=0;if(ptrs.size==2){const [a,b]=[...ptrs.values()];pd=Math.hypot(a.x-b.x,a.y-b.y)}});
 cv.addEventListener('pointermove',e=>{const p=ptrs.get(e.pointerId);if(!p)return;
- if(ptrs.size==1){cam.x+=e.clientX-p.x;cam.y+=e.clientY-p.y;moved+=Math.abs(e.clientX-p.x)+Math.abs(e.clientY-p.y)}
+ if(ptrs.size==1&&isRd()){paint(e.clientX,e.clientY);moved=99}else if(ptrs.size==1){cam.x+=e.clientX-p.x;cam.y+=e.clientY-p.y;moved+=Math.abs(e.clientX-p.x)+Math.abs(e.clientY-p.y)}
  p.x=e.clientX;p.y=e.clientY;
  if(ptrs.size==2){const [a,b]=[...ptrs.values()],d=Math.hypot(a.x-b.x,a.y-b.y);if(pd)zoom(d/pd,(a.x+b.x)/2,(a.y+b.y)/2);pd=d;moved=99}});
 const up=e=>{if(ptrs.has(e.pointerId)&&ptrs.size==1&&moved<8)tap(e.clientX,e.clientY);ptrs.delete(e.pointerId);pd=0};
@@ -324,9 +323,9 @@ cv.addEventListener('wheel',e=>{e.preventDefault();zoom(e.deltaY<0?1.12:.89,e.cl
 function pickObj(px,py){for(const z of[0,20,40,62]){const p=pick(px,py+z*cam.s);if(p&&OBJ[p.x][p.y])return OBJ[p.x][p.y]}return null}
 function fits(o,x,y){for(let i=0;i<(o.fw||1);i++)for(let j=0;j<(o.fd||1);j++){const a=x+i,b=y+j;if(a<0||b<0||a>=W||b>=H)return false;if(T[a][b]!=0&&OBJ[a][b]!==o)return false}return true}
 function tap(px,py){const p=pick(px,py),info=s=>$('info').textContent=s;
- if(placing){if(!p)return;const d=ITEMS[placing-1],z=SZ[d[3]]||1,o={k:'cat',ci:placing-1,role:ROLE(d),x:p.x,y:p.y,fw:z,fd:z,mv:1,st:0,t:0};if(o.role=='tractor'){delete o.fw;delete o.fd;o.k='veh';o.x+=.5;o.y+=.5;o.hx=o.x;o.hy=o.y;o.nocc=1;o.mv=0;o.st='idle';o.fx=1}if(!fits(o,p.x,p.y))return info('المربع مشغول');objs.push(o);occ(o,1);return info('تم البناء ✓ — اضغط مربعاً آخر أو أغلق القائمة')}
+ if(delMode){doDel(px,py,p);return}if(placing){if(!p)return;const d=ITEMS[placing-1];if(d[2]=='Paved Road'||d[2]=='Dirt Road'){roadAt(p.x,p.y);return}const z=SZ[d[3]]||1,o={k:'cat',ci:placing-1,role:ROLE(d),x:p.x,y:p.y,fw:z,fd:z,mv:1,st:0,t:0};if(o.role=='tractor'||o.role=='truck'){delete o.fw;delete o.fd;o.k='veh';o.x+=.5;o.y+=.5;o.hx=o.x;o.hy=o.y;o.nocc=1;o.mv=0;o.st='idle';o.fx=1}if(!fits(o,p.x,p.y))return info('المربع مشغول');objs.push(o);occ(o,1);return info('تم البناء ✓ — اضغط مربعاً آخر أو أغلق القائمة')}
  if(mov){if(p&&OBJ[p.x][p.y]===mov){mov=null;return info('أُلغي التحديد')}if(p&&fits(mov,p.x,p.y)){occ(mov,0);mov.x=p.x;mov.y=p.y;occ(mov,1);mov=null;return info('تم النقل ✓')}return info('لا يتسع هنا — اختر مكاناً فارغاً')}
- const o=pickObj(px,py);if(o&&o.mv){mov=o;sel=null;return info('حُدّد للنقل — اضغط مربعاً فارغاً (يصبح الزاوية العلوية)')}
+ const o=pickObj(px,py);if(o&&o.mv){mov=o;sel=null;return info(descr(o)+' | '+'حُدّد للنقل — اضغط مربعاً فارغاً (يصبح الزاوية العلوية)')}
  sel=p;info(p?`المربع (${p.x+1}، ${p.y+1}) — ${NAMES[T[p.x][p.y]]}`:'خارج الأرض')}
 ($('bb')||{}).onclick=()=>{const m=$('menu');m.classList.toggle('show');if(!m.classList.contains('show')){placing=null;[...m.children].forEach(c=>c.classList.remove('on'))}};
 ($('menu')||{}).onclick=e=>{const b=e.target.dataset.b;if(!b)return;placing=placing==b?null:b;mov=null;[...$('menu').children].forEach(c=>c.classList.toggle('on',c.dataset.b==placing));$('info').textContent=placing?'اضغط مربعاً فارغاً للبناء':'🔨 اختر ما تريد بناءه'};
@@ -395,10 +394,10 @@ D(a,b,c,f){GND('#4aa0d4','#2a6f9a');FP([[30,76],[36,79],[88,53],[82,50]],a);for(
 H(a,b,c,f){GND('#9a9aa0','#6a6a70');if(f=='f'){BX(52,76,12,12,a);LN(40,62,40,48,b,2);LN(64,62,64,48,b,2);LN(38,48,66,48,b,2);LN(80,82,80,44,'#555555',4);FP([[80,80],[98,88],[98,90],[80,82]],'#777777');BX(94,84,6,8,'#c9a46a');EL(44,82,6,6,c);EL(64,86,6,6,c)}else{BX(48,76,12,14,a);BX(70,74,10,24,a);FP([[62,50],[78,56],[78,64],[62,58]],'#bfe3f4');EL(74,84,12,12,c);EL(74,84,5,5,b);EL(44,86,7,7,c);LN(42,62,42,46,'#555555',3);EL(42,44,2.5,2.5,'#bbbbbb')}},
 N(a,b){GND();[[60,82,11],[86,86,7]].forEach(([x,y,s])=>{BX(x,y,s,s*.8,a);BX(x,y-s*.8,s,s*.8,'#e8b020');BX(x,y-s*1.6,s,s*.8,a);RF(x,y-s*2.4,s+1,s*.7,b)});[[34,70],[44,60],[70,56],[28,86],[96,70]].forEach(([x,y])=>{EL(x,y,2.6,2,'#f2c030');EL(x,y,.9,2,'#222222')});[[28,78],[96,80]].forEach(([x,y])=>{LN(x,y,x,y-7,'#3a8a2a',1.5);EL(x,y-8,3,3,'#e870a8')})},
 Z(a,b,c,f){GND('#4aa0d4','#2a6f9a');if(f=='n'){[[44,60],[76,60],[44,76],[76,76]].forEach(([x,y])=>{gx.beginPath();gx.ellipse(x,y,15,7.5,0,0,7);gx.strokeStyle=SH(a);gx.lineWidth=3;gx.stroke();gx.beginPath();gx.ellipse(x,y,12,6,0,0,7);gx.strokeStyle='rgba(255,255,255,.35)';gx.lineWidth=1;gx.stroke();EL(x-3,y,4,2,c);FP([[x+1,y],[x+6,y-2],[x+6,y+2]],c)});BX(60,69,7,3,'#8a5a32')}else{FP([[30,76],[36,79],[70,62],[64,59]],a);LN(62,62,90,34,'#7a5230',2);LN(90,34,90,62,'rgba(255,255,255,.8)',1);EL(90,64,2.5,2.5,'#d94a3a');EL(76,74,6,3,c);FP([[82,74],[88,71],[88,77]],c)}}};
-const CATS=[['🌾','الزراعة والحقول'],['💧','الموارد والمياه والأخشاب'],['📦','التخزين'],['🍞','التصنيع الغذائي'],['🐑','تربية الحيوانات'],['🍯','النحل والعسل والسيراميك'],['⛏️','التعدين والمواد الخام'],['🏭','الصناعة الثقيلة'],['⚡','الطاقة'],['🚚','التجارة والنقل'],['👷','البناء والعمال']];
+const CATS=[['🌾','الزراعة والحقول'],['💧','الموارد والمياه والأخشاب'],['📦','التخزين'],['🍞','التصنيع الغذائي'],['🐑','تربية الحيوانات'],['🍯','النحل والعسل والسيراميك'],['⛏️','التعدين والمواد الخام'],['🏭','الصناعة الثقيلة'],['⚡','الطاقة'],['🎁','التعبئة والتغليف'],['🚚','التجارة والنقل'],['👷','البناء والعمال'],['🧙','التصنيع المتخصص'],['🎣','الصيد والمنتجات البحرية'],['🛍️','التجارة والخدمات الإضافية']];
 const SO='#8a5c34',ITEMS=[
 [0,'حقل القطن','Cotton Field','F',SO,'#4f9a3f','#ffffff','p','🧶'],[0,'حقل قصب السكر','Sugarcane Field','F',SO,'#7cc04a','#d9e87a','t','🎋'],[0,'حقل القمح','Wheat Field','F',SO,'#e3b93c','#f2d570','t','🌾'],[0,'مزرعة الأشجار','Tree Farm','O','#6b4527','#2f8a4a','#4aa35a','p','🌲'],[0,'مزرعة أشجار البلوط','Oak Tree Farm','O','#6b4527','#3f7a2f','#5a9a3f','o','🌳'],[0,'حقل الملح','Salt Field','F','#9a8a74','#d8d4cc','#ffffff','c','🧂'],[0,'حقل النعناع','Peppermint Field','F',SO,'#2e9a5a','#d9f2e1','l','🌿'],[0,'مزرعة القرع','Pumpkin Patch','F',SO,'#4a8a3a','#f08a26','g','🎃'],[0,'مزرعة الفراولة','Strawberry Field','F',SO,'#3f8f3f','#e0344a','b','🍓'],[0,'مزرعة الكاكاو','Cocoa Tree','O','#6b4527','#2f7a3a','#7a4524','k','🍫'],[0,'مزرعة التفاح','Apple Tree','O','#6b4527','#3f9a3f','#e03a3a','r','🍎'],[0,'مزرعة التوت الأزرق','Blueberry Field','F',SO,'#3f7f4a','#3a4fc0','b','🫐'],[0,'حقل الخس','Lettuce Field','F',SO,'#7cc84a','#a8e070','l','🥬'],[0,'مزرعة الذرة','Corn Field','F',SO,'#5aa03a','#f2c936','t','🌽'],[0,'مزرعة فول الصويا','Soybean Field','F',SO,'#6aaa44','#d8c070','b','🫘'],[0,'مزرعة الطماطم','Tomato Farm','F',SO,'#3f8f3f','#e8352a','b','🍅'],[0,'حقل الفانيليا','Vanilla Bean Field','F',SO,'#4f8a3a','#5a3a1f','b','🌼'],[0,'كرم عنب كابيرنيه','Cabernet Vines','V','#6b4527','#3f8a3a','#5a1a4a','','🍇'],[0,'كرم عنب شاردونيه','Chardonnay Vines','V','#6b4527','#6aa83a','#d8e070','','🥂'],[0,'كرم عنب بينو نوار','Pinot Noir Vines','V','#6b4527','#4a8a3a','#7a2a5a','','🍷'],[0,'مزرعة الخيزران','Bamboo Farm','O','#5a8a3a','#7acb5a','#c4e08a','b','🎍'],
-[1,'مربع الماء','Water Square','U','#a7d8e8','#4a9fc4','#d8f4ff','w','💧'],[1,'مضخة الرياح','Wind Pump','W','#cfd6dc','#3a8fc0','#e8edf0','p','🌬️'],[1,'مضخة المياه','Water Pump','U','#4a8fc0','#c4513a','#7a8a96','p','🚰'],[1,'منشأة المياه','Water Facility','T','#8fb8d8','#4a8fc0','#cfe6f4','w','💦'],[1,'منزل المزارع','Farm House','B','#f3e4c4','#c4483a','#6b4527','c','🏡'],[1,'منزل الحطاب','Lumberjack House','B','#a06c44','#3a7056','#e4c08a','cL','🪓'],[1,'الجرار الزراعي','Farm Tractor','H','#3f9a4a','#e8c030','#222222','t','🚜'],[1,'ساحة الأخشاب','Lumber Yard','Y','#b08050','#6b4527','#e4c08a','l','🪵'],
+[1,'البئر','Well','U','#a7a39b','#c4513a','#2e6f94','w','💧'],[1,'مضخة الرياح','Wind Pump','W','#cfd6dc','#3a8fc0','#e8edf0','p','🌬️'],[1,'مضخة المياه','Water Pump','U','#4a8fc0','#c4513a','#7a8a96','p','🚰'],[1,'منشأة المياه','Water Facility','T','#8fb8d8','#4a8fc0','#cfe6f4','w','💦'],[1,'منزل المزارع','Farm House','B','#f3e4c4','#c4483a','#6b4527','c','🏡'],[1,'منزل الحطاب','Lumberjack House','B','#a06c44','#3a7056','#e4c08a','cL','🪓'],[1,'الجرار الزراعي','Farm Tractor','H','#3f9a4a','#e8c030','#222222','t','🚜'],[1,'ساحة الأخشاب','Lumber Yard','Y','#b08050','#6b4527','#e4c08a','l','🪵'],
 [2,'مخزن الخشب','Wood Shed','B','#a87848','#6e4a34','#e4c08a','L','🛖'],[2,'صومعة الحبوب','Silo','S','#d6ba8e','#c64a34','#5d5048','','🌾'],[2,'مخزن البضائع','Storehouse','B','#c9a46a','#7a4a34','#e4d0a0','Wx','🏚️'],[2,'المستودع','Warehouse','B','#b8c0c8','#6a7a8a','#f2c030','Wr','🏢'],[2,'مخزن المنتجات الغذائية','Pantry','B','#f2e6d0','#4a8a5a','#d94a3a','a','🥫'],[2,'مخزن الوقود','Fuel Storage','T','#d6552e','#f2c030','#555555','f','⛽'],
 [3,'المخبزة','Bakery','B','#e8c9a0','#b5452f','#d9a55a','ca','🥖'],[3,'مصنع الكعك','Cakery','B','#f8d8e8','#e86aa0','#e86aa0','a','🎂'],[3,'مصنع الحلوى','Candy Shop','B','#fdf2f8','#f06aa8','#4ac8e8','a','🍬'],[3,'مصنع الشوكولاتة','Chocolate Shop','B','#7a4a30','#4a2a1c','#d9a55a','c','🍩'],[3,'طاحونة الحبوب','Windmill','W','#f0e4cc','#a0522d','#e8d8b0','m','⚙️'],[3,'مصنع الأعلاف','Feed Mill','B','#c9a46a','#a0522d','#d6ba8e','S','🐄'],[3,'مصنع النبيذ','Winery','B','#c9b08a','#8a3a3a','#5a1a4a','cB','🍾'],[3,'المقهى','Cafe','B','#f4e4d0','#3a7a8a','#e8553a','a','☕'],
 [4,'حظيرة الدجاج','Chicken Coop','P','#9ac85a','#ffd54a','#8a5a32','c','🐔'],[4,'حظيرة الأغنام','Sheep Pen','P','#8cc850','#f4f1ea','#8a5a32','s','🐑'],[4,'حظيرة الحليب','Milk Barn','B','#c4483a','#7a2a22','#f4f1ea','Wk','🥛'],[4,'منزل البط','Duck House','P','#8fc85a','#ffffff','#8a5a32','d','🦆'],[4,'حوض الأعلاف','Trough','P','#9ac85a','#6b7a8a','#8a5a32','t','🥣'],[4,'المرعى','Pasture','P','#6fb040','#f4f1ea','#8a5a32','g','🐄'],
@@ -406,181 +405,234 @@ const SO='#8a5c34',ITEMS=[
 [6,'منجم الحديد','Iron Mine','M','#8a8f98','#b5552a','#8a5a32','','⛓️'],[6,'منجم الرمل والسيليكا','Sand Mine','M','#d8c088','#f0dca0','#8a5a32','','🏖️'],[6,'المنجم السطحي','Shallow Mine','M','#a89a88','#6a6a70','#8a5a32','p','⛏️'],
 [7,'مصنع الأخشاب','Lumber Mill','Y','#b08050','#5a4a3a','#6a6a6a','m','🪵'],[7,'مصنع الأقمشة','Fabric Plant','Y','#e8e0f0','#7a5ac0','#8a8a9a','f','🧵'],[7,'مصنع الزجاج','Glass Factory','Y','#cfe0e8','#4a90b8','#8a8a9a','g','🔮'],[7,'مصنع الفولاذ','Steel Mill','Y','#6a6e78','#3a3e48','#e8683a','s','🔩'],[7,'المصفاة النفطية','Refinery','Y','#b8bcc4','#e0e4ea','#e8683a','r','🛢️'],[7,'مضخة النفط','Oil Pump','E','#444444','#d6552e','#222222','o','🔻'],
 [8,'محطة الطاقة','Power Plant','E','#a8aeb8','#d6552e','#f2c030','p','⚡'],[8,'محطة الطاقة النووية','Nuclear Power','E','#d8dce0','#c0c4c8','#e8f0a0','n','☢️'],[8,'توربين الرياح','Wind Turbine','W','#f4f6f8','#d0d4d8','#cc3333','t','🌀'],
-
-
-[9,'شاحنة البيع','Sale Truck','H','#d7dce2','#d84a32','#f2c030','t','🚚'],
-[10,'منزل البنّاء','Builder House','B','#d8b480','#8a5a3a','#f2b82e','cs','🔨'],[10,'منزل العمال','Worker House','B','#c8d0d8','#5a6a8a','#f2b82e','h','👷'],
-
-
-
-];
+[9,'مصنع الصناديق والطرود','Boxing Facility','Y','#c4a070','#7a8a98','#c9a46a','b','🎁'],
+[10,'مركز التجارة البري','Trade Depot','B','#8a98a8','#4a5a70','#e8a838','Wx','🚛'],[10,'رصيف التجارة البحري','Trade Dock','D','#8a5a32','#cc4a3a','#e4c08a','c','⚓'],[10,'الرافعة الشوكية','Forklift','H','#f2b82e','#e8c030','#222222','f','🏗️'],
+[11,'منزل البنّاء','Builder House','B','#d8b480','#8a5a3a','#f2b82e','cs','🔨'],[11,'منزل العمال','Worker House','B','#c8d0d8','#5a6a8a','#f2b82e','h','👷'],
+[12,'ورشة الساحر','Wizard\u0027s Workshop','B','#6a5ab0','#4a2a8a','#f2d84a','T','🧙'],
+[13,'منطقة الصيد','Fishing Spot','Z','#8a5a32','#4aa0d4','#ff8a5a','f','🎣'],[13,'مزرعة السلمون','Salmon Farm','Z','#cfd6dc','#4aa0d4','#ff7a5a','n','🐟'],
+[14,'متجر الفطر','Mushroom Stand','B','#a87848','#e8553a','#f4f1ea','m','🍄'],[14,'مرآب المركبات','Twin\u0027s Garage','B','#9aa8b8','#4a5a70','#e8553a','g','🚗'],[14,'متجر الفن والزخرفة','Art and Deco Shop','B','#f2e6e0','#8a4aa8','#e8b830','f','🎨'],[14,'مخزن المربى','Jam Storage','B','#e8d0c0','#a8344a','#c0405a','j','🫙']];
+for(let i=ITEMS.length-1;i>=0;i--){const d=ITEMS[i];if([9,12,14].includes(d[0])||['Trade Depot','Trade Dock','Forklift'].includes(d[2]))ITEMS.splice(i,1)}
+ITEMS.push([10,'شاحنة البيع','Sales Truck','H','#d6552e','#f4f1ea','#222222','k','🚚'],[10,'طريق معبد','Paved Road','Q','#a8a8ae','#8a8a90','','','🛣️']);
 const ICO={};
 function icon(i){if(ICO[i])return ICO[i];const d=ITEMS[i],c=document.createElement('canvas');c.width=120;c.height=90;gx=c.getContext('2d');try{K[d[3]](d[4],d[5],d[6],d[7])}catch(e){console.error(d[2],e)}gx.beginPath();gx.arc(16,16,12,0,7);gx.fillStyle='rgba(255,255,255,.85)';gx.fill();gx.font='17px sans-serif';gx.textAlign='center';gx.textBaseline='middle';gx.fillStyle='#000';gx.fillText(d[8],16,17);return ICO[i]=c.toDataURL()}
 let cc=-1;
-$('cat').innerHTML=CATS.map((c,i)=>`<button data-c='${i}' title='${c[1]}'>${c[0]}</button>`).join('');
+$('cat').innerHTML=CATS.map((c,i)=>!ITEMS.some(d=>d[0]==i)?'':`<button data-c='${i}' title='${c[1]}'>${c[0]}</button>`).join('');
 function showCat(){const pn=$('pan');placing=null;[...$('cat').children].forEach((b,i)=>b.classList.toggle('on',i==cc));if(cc<0){pn.classList.remove('show');return}
  const ix=ITEMS.map((d,i)=>i).filter(i=>ITEMS[i][0]==cc);$('det').textContent=`${CATS[cc][0]} ${CATS[cc][1]} · ${ix.length} منشأة`;
  $('items').innerHTML=ix.map(i=>`<div class='it' data-i='${i}'><img src='${icon(i)}'><div>${ITEMS[i][1]}</div></div>`).join('');pn.classList.add('show');pn.scrollTop=0}
 $('cat').onclick=e=>{const b=e.target.closest('button');if(!b)return;const c=+b.dataset.c;cc=cc==c?-1:c;showCat()};
-$('items').onclick=e=>{const it=e.target.closest('.it');if(!it)return;const ii=+it.dataset.i+1;if(ITEMS[ii-1][1]=='شاحنة البيع'){$('info').textContent='شاحنة البيع ثابتة في منتصف حدود المدينة ولا يمكن إنشاء شاحنة إضافية';return}placing=placing==ii?null:ii;mov=null;$('info').textContent=placing?'المس الأرض لوضع: '+ITEMS[ii-1][1]+' (بلا حدّ)':'أُلغي الوضع';[...$('items').children].forEach(x=>x.classList.toggle('on',!!placing&&x===it));const d=ITEMS[+it.dataset.i];$('det').textContent=`${d[8]} ${d[1]} — ${d[2]}`};
+$('items').onclick=e=>{const it=e.target.closest('.it');if(!it)return;const ii=+it.dataset.i+1;delMode=false;$('bd').classList.remove('on');placing=placing==ii?null:ii;mov=null;$('info').textContent=placing?'المس الأرض لوضع: '+ITEMS[ii-1][1]+' (بلا حدّ)':'أُلغي الوضع';[...$('items').children].forEach(x=>x.classList.toggle('on',!!placing&&x===it));const d=ITEMS[+it.dataset.i];$('det').textContent=`${d[8]} ${d[1]} — ${d[2]}`};
+/* ===== الاقتصاد وسلسلة الإنتاج ===== */
+const RS={wood:['wood','🪵'],plank:['goods','📏'],wheat:['crop','🌾'],corn:['crop','🌽'],cotton:['crop','☁️'],sugar:['crop','🎋'],soy:['crop','🫘'],salt:['crop','🧂'],mint:['crop','🌿'],pumpkin:['crop','🎃'],strawberry:['crop','🍓'],blueberry:['crop','🫐'],lettuce:['crop','🥬'],tomato:['crop','🍅'],vanilla:['crop','🌼'],clover:['crop','☘️'],clay:['crop','🟤'],cocoa:['crop','🍫'],apple:['crop','🍎'],bamboo:['crop','🎍'],grape:['crop','🍇'],feed:['crop','🥣'],flour:['crop','🥡'],egg:['food','🥚'],milk:['food','🥛'],honey:['food','🍯'],bread:['food','🥖'],cake:['food','🎂'],candy:['food','🍬'],choco:['food','🍫'],wine:['food','🍷'],meal:['food','☕'],jam:['food','🫙'],wool:['goods','🧶'],fabric:['goods','🧵'],pot:['goods','🏺'],ore:['goods','⛓️'],sand:['goods','🏖️'],glass:['goods','🔮'],steel:['goods','🔩'],bat:['goods','🔋'],oil:['fuel','🛢️'],fuel:['fuel','⛽']};
+const ACC={store:['wood'],silo:['crop'],pantry:['food'],fuelst:['fuel'],depot:['crop','food','goods','wood','fuel']},STO={store:1,silo:1,depot:1,pantry:1,fuelst:1},HS={whouse:1,lhouse:1,fhouse:1},NEED=['well','store','silo','depot','pantry','fuelst','proc','prod'];
+const RC={'Windmill':{in:{wheat:1},out:'flour'},'Bakery':{in:{flour:1},out:'bread'},'Cakery':{in:{flour:1,egg:1},out:'cake'},'Candy Shop':{in:{sugar:1},out:'candy'},'Chocolate Shop':{in:{cocoa:1,sugar:1},out:'choco'},'Feed Mill':{in:{corn:1},out:'feed'},'Winery':{in:{grape:2},out:'wine'},'Cafe':{in:{bread:1,milk:1},out:'meal'},'Lumber Mill':{in:{wood:2},out:'plank'},'Fabric Plant':{in:{cotton:2},out:'fabric'},'Glass Factory':{in:{sand:2,fuel:1},out:'glass'},'Steel Mill':{in:{ore:2,fuel:1},out:'steel'},'Refinery':{in:{oil:2},out:'fuel'},'Pottery Shop':{in:{clay:2},out:'pot'},'Beekeeper House':{in:{honey:2},out:'jam'},'Power Plant':{in:{fuel:1},out:'bat'}};
+const PR={'Beehive':{out:'honey'},'Iron Mine':{out:'ore'},'Sand Mine':{out:'sand'},'Shallow Mine':{out:'ore'},'Oil Pump':{out:'oil'},'Wind Turbine':{out:'bat',t:60}};
+const PNM={'Chicken Coop':'egg','Duck House':'egg','Sheep Pen':'wool','Milk Barn':'milk','Pasture':'wool'};
+const FO={'Cotton Field':'cotton','Sugarcane Field':'sugar','Wheat Field':'wheat','Tree Farm':'wood','Oak Tree Farm':'wood','Salt Field':'salt','Peppermint Field':'mint','Pumpkin Patch':'pumpkin','Strawberry Field':'strawberry','Cocoa Tree':'cocoa','Apple Tree':'apple','Blueberry Field':'blueberry','Lettuce Field':'lettuce','Corn Field':'corn','Soybean Field':'soy','Tomato Farm':'tomato','Vanilla Bean Field':'vanilla','Cabernet Vines':'grape','Chardonnay Vines':'grape','Pinot Noir Vines':'grape','Bamboo Farm':'bamboo','Wild Clover':'clover','Clay Field':'clay'};
+let UID=0;const CL=new Set(),oid=o=>o.uid||(o.uid=++UID),cl=k=>{CL.add(k)},rls=ks=>ks.forEach(k=>CL.delete(k)),tot=o=>Object.values(o.inv).reduce((a,b)=>a+b,0);
+function roleOf(d){const n=d[2];if(n=='Farm Tractor')return'tractor';if(n=='Sales Truck')return'truck';const m={'Silo':'silo','Wood Shed':'store','Storehouse':'depot','Warehouse':'depot','Pantry':'pantry','Fuel Storage':'fuelst','Worker House':'whouse','Lumberjack House':'lhouse','Farm House':'fhouse','Well':'well','Water Pump':'well','Wind Pump':'well','Water Facility':'well'};if(m[n])return m[n];if(FO[n])return'field';if(PNM[n])return'pen';if(RC[n])return'proc';if(PR[n])return'prod';return null}
+function give(s,r,n){if(!s||!s.inv)return;s.inv[r]=(s.inv[r]||0)+Math.max(0,Math.min(n,s.cap-tot(s)))}
+function dst(r,n,p){const g=RS[r][0];let b=null,bd=1e9;objs.forEach(o=>{if(!ACC[o.role]||o.act===false||!o.inv||!ACC[o.role].includes(g)||tot(o)+(n||1)>o.cap)return;const s=Math.hypot(o.x-p.x,o.y-p.y)+(o.role=='depot'?1000:0);if(s<bd){bd=s;b=o}});return b}
+function onRoad(o){const w=o.fw||1,h=o.fd||1;for(let i=-1;i<=w;i++)for(let j=-1;j<=h;j++){const ix=i>=0&&i<w,jx=j>=0&&j<h;if(ix&&jx)continue;if(!ix&&!jx)continue;const x=o.x+i,y=o.y+j;if(x>=0&&y>=0&&x<W&&y<H&&T[x][y]==1)return true}return false}
+function roadAt(x,y){if((T[x][y]==0&&!OBJ[x][y])||(T[x][y]==1&&RT[x][y]!=(ITEMS[placing-1][2]=='Dirt Road'?1:0))){T[x][y]=1;RT[x][y]=ITEMS[placing-1][2]=='Dirt Road'?1:0;$('info').textContent='تم بناء طريق معبد ✓'}}
+const isRd=()=>placing&&ITEMS[placing-1]&&/Road/.test(ITEMS[placing-1][2]),paint=(px,py)=>{const p=pick(px,py);if(p)roadAt(p.x,p.y)};
+function descr(o){const d=ITEMS[o.ci];if(!d)return'';let s=d[1];if(NEED.includes(o.role)&&o.act===false)s+=' ⛔ لا يعمل (يحتاج طريقاً أمامه)';if(o.inv){const v=Object.entries(o.inv).filter(a=>a[1]>0).map(a=>RS[a[0]][1]+a[1]).join(' ');if(o.cap)s+=' | '+tot(o)+'/'+o.cap+' '+v;else if(v)s+=' | '+v}if(o.role=='pen'&&(o.nw||o.nf>0))s+=' | يحتاج: '+(o.nw?'💧 ':'')+(o.nf>0?'🌾×'+o.nf:'');if(o.out)s+=' | ناتج: '+RS[o.ores][1]+'×'+o.out;return s}
+K.Q=function(a){GND();FP([[60,48],[96,66],[60,84],[24,66]],a);const A=[24,66],B=[60,48],C=[96,66],D=[60,84];for(let i=1;i<4;i++){const t=i/4;LN(A[0]+(B[0]-A[0])*t,A[1]+(B[1]-A[1])*t,D[0]+(C[0]-D[0])*t,D[1]+(C[1]-D[1])*t,'#76767c',1.2);LN(A[0]+(D[0]-A[0])*t,A[1]+(D[1]-A[1])*t,B[0]+(C[0]-B[0])*t,B[1]+(C[1]-B[1])*t,'#76767c',1.2)}};
+const H0=K.H;K.H=function(a,b,c,f){if(f!='k')return H0(a,b,c,f);GND('#9a9aa0','#6a6a70');BX(74,76,14,22,b);BX(46,78,11,18,a);FP([[37,64],[44,67.5],[44,74],[37,70.5]],'#bfe3f4');EL(36,84,5,5,c);EL(56,88,5,5,c);EL(72,90,5,5,c);EL(90,82,5,5,c);LN(60,52,88,40,'#8a8f98',1)};
+function drive(o,tx,ty,dt,sp){const dx=tx-o.x,dy=ty-o.y,l=Math.hypot(dx,dy);if(l<.1)return true;const s=Math.min(l,(sp||2.4)*dt);o.x+=dx/l*s;o.y+=dy/l*s;o.walk=true;o.fx=dx-dy>=0?1:-1;return false}
+function update(dt){[...objs].forEach(o=>{if(o.k=='worker')(o.role=='wood'?aiW:aiH)(o,dt);if(HS[o.role]&&o.mv&&!o.sp&&onRoad(o)){o.sp=1;spawnFor(o)}tick(o,dt)});hud()}
+function hud(){const s={};objs.forEach(o=>{if(o.inv&&STO[o.role])for(const k in o.inv)s[k]=(s[k]||0)+o.inv[k]});const g=x=>Object.keys(s).filter(k=>RS[k][0]==x).reduce((a,k)=>a+s[k],0);const t='🪵 '+g('wood')+' · 🌾 '+g('crop')+' · 🍞 '+g('food')+' · ⚙️ '+(g('goods')-(s.bat||0))+' · 🔋 '+(s.bat||0)+' · 🛢️ '+g('fuel')+' · 💰 '+money.toLocaleString();if($('res').textContent!=t)$('res').textContent=t}
+function spawnFor(o){const r={whouse:'hand',lhouse:'wood',fhouse:'hand'}[o.role];if(!r)return;const d=fr(o);objs.push({k:'worker',role:r,home:o,x:d.x,y:d.y,st:'idle',tm:0,car:null,fx:1,mvg:0,walk:false})}
+function tick(o,dt){const r=o.role;if(!r)return;if(o.k=='veh'){(r=='truck'?aiK:aiT)(o,dt);return}if(!o.mv)return;
+ if(o.inv==null){o.inv={};o.out=0;o.pg=0;if(STO[r])o.cap=100}
+ o.act=NEED.includes(r)?onRoad(o):true;if(!o.act)return;const n=ITEMS[o.ci][2];
+ if(r=='field'){if(o.st==1){o.t+=dt;if(o.t>=10){o.st=2;o.out=4;o.ores=FO[n]}}}
+ else if(r=='pen'){if(o.nw||o.nf>0)o.need=1;if(!o.need){o.tf=(o.tf==null?30:o.tf)+dt;if(o.tf>=40){o.need=1;o.nw=1;o.nf=FEED[n]||1}}}
+ else if(r=='prod'){if(o.out<10){o.pg+=dt;const p=PR[n];if(o.pg>=(p.t||20)){o.pg=0;o.out++;o.ores=p.out}}}
+ else if(r=='proc'){const rc=RC[n];if(!o.run){if(o.out<10&&Object.keys(rc.in).every(k=>(o.inv[k]||0)>=rc.in[k])){for(const k in rc.in)o.inv[k]-=rc.in[k];o.run=1;o.pg=0}}else{o.pg+=dt;if(o.pg>=30){o.run=0;o.out++;o.ores=rc.out}}}}
+function wsrc(w){const ws=objs.filter(o=>o.role=='well'&&o.act!==false);return nearest(ws.length?ws.map(o=>({x:o.x+.5,y:o.y+1.35})):SHORE,w)}
+function fin(w){rls(w.ks||[]);w.ks=[];w.steps=null;w.st='idle';w.car=null}
+function aiH(w,dt){w.walk=false;if(!w.steps){w.steps=plan(w);w.tm=0;if(!w.steps){const h=fr(w.home);go(w,h.x,h.y,dt);return}}
+ const s=w.steps[0];if(!s){fin(w);return}
+ if(s.go){const p=s.go();if(!p){fin(w);return}if(go(w,p.x,p.y,dt)){w.steps.shift();w.tm=0}}
+ else{w.st=s.st;w.tm+=dt;if(w.tm>=s.d){if(s.fn&&s.fn()===false){fin(w);return}w.steps.shift();w.tm=0;w.st='idle'}}
+ if(w.steps&&!w.steps.length)fin(w)}
+function plan(w){const L=a=>nearest(a,w),act=(...r)=>objs.filter(o=>r.includes(o.role)&&o.act!==false&&o.inv),stk=r=>objs.filter(q=>ACC[q.role]&&q.role!='wh'&&q.act!==false&&q.inv&&(q.inv[r]||0)>0);
+ const co=L(act('field','pen','prod','proc').filter(o=>o.out>=1&&(o.role!='field'||o.st==2)&&!CL.has('c'+oid(o))&&dst(o.ores,o.out,w)));
+ if(co){const k='c'+oid(co),f=co.role=='field';cl(k);w.ks=[k];let D;return[{go:()=>f?ct(co):ft(co)},{d:1.2,st:f?'harv':'take',fn:()=>{if(co.out<1)return false;w.n=co.out;w.car=co.ores;co.out=0;if(f){co.st=0;co.t=0}}},{go:()=>(D=D||dst(w.car,w.n,w))&&ft(D)},{d:.6,st:'drop',fn:()=>{if(D)give(D,w.car,w.n);w.car=null}}]}
+ const C=[];act('proc').forEach(p=>{const rc=RC[ITEMS[p.ci][2]];for(const r in rc.in){const need=Math.min(6,rc.in[r]*3-(p.inv[r]||0)),k='d'+oid(p)+r;if(need>0&&!CL.has(k)){const s=nearest(stk(r),p);if(s)C.push({p,r,s,need,k,x:p.x,y:p.y})}}});
+ const c=L(C);
+ if(c){cl(c.k);w.ks=[c.k];return[{go:()=>ft(c.s)},{d:.8,st:'take',fn:()=>{const a=Math.min(c.s.inv[c.r]||0,c.need);if(a<1)return false;c.s.inv[c.r]-=a;w.n=a;w.car=c.r}},{go:()=>ft(c.p)},{d:.8,st:'drop',fn:()=>{c.p.inv[c.r]=(c.p.inv[c.r]||0)+w.n;w.car=null}}]}
+ const fu=L(act('silo','store','depot','pantry','fuelst').filter(s=>tot(s)>=s.cap&&!CL.has('t'+oid(s))&&objs.some(h=>h.role=='wh'&&h.act!==false&&h.inv&&tot(h)<h.cap)));
+ if(fu){let br=null;for(const k in fu.inv)if(fu.inv[k]>0&&(!br||fu.inv[k]>fu.inv[br]))br=k;const wh=nearest(objs.filter(h=>h.role=='wh'&&h.act!==false&&h.inv&&tot(h)<h.cap),fu);if(br&&wh){const k='t'+oid(fu);cl(k);w.ks=[k];return[{go:()=>ft(fu)},{d:1,st:'take',fn:()=>{const a=Math.min(10,fu.inv[br]||0,wh.cap-tot(wh));if(a<1)return false;fu.inv[br]-=a;w.n=a;w.car=br}},{go:()=>ft(wh)},{d:.8,st:'drop',fn:()=>{give(wh,w.car,w.n);w.car=null}}]}}
+ const pf=L(act('pen').filter(p=>p.nf&&!CL.has('f'+oid(p)))),fs=['feed','corn'].find(r=>stk(r).length);
+ if(pf&&fs){const k='f'+oid(pf),s=nearest(stk(fs),w);cl(k);w.ks=[k];return[{go:()=>ft(s)},{d:.8,st:'take',fn:()=>{const a=Math.min(s.inv[fs]||0,pf.nf);if(a<1)return false;s.inv[fs]-=a;w.n=a;w.car='feed'}},{go:()=>ft(pf)},{d:1.5,st:'feed',fn:()=>{pf.nf=Math.max(0,pf.nf-w.n);w.car=null;penDone(pf)}}]}
+ const ws=wsrc(w),pw=L(act('pen').filter(p=>p.nw&&!CL.has('p'+oid(p))));
+ if(pw&&ws){const k='p'+oid(pw);cl(k);w.ks=[k];return[{go:once(()=>wsrc(w))},{d:1.2,st:'fill',fn:()=>{w.car='bucket'}},{go:()=>ft(pw)},{d:1.5,st:'water',fn:()=>{pw.nw=0;w.car=null;penDone(pw)}}]}
+ const fl=L(act('field').filter(f=>f.st==0&&!CL.has('w'+oid(f))));
+ if(fl&&ws){const k='w'+oid(fl);cl(k);w.ks=[k];return[{go:once(()=>wsrc(w))},{d:1.2,st:'fill',fn:()=>{w.car='bucket'}},{go:()=>ct(fl)},{d:1.5,st:'water',fn:()=>{if(fl.st!=0)return false;fl.st=1;fl.t=0;w.car=null}}]}
+ return null}
+function aiW(w,dt){w.walk=false;w.tm+=dt;
+ switch(w.st){
+ case'idle':{const b=nearest(objs.filter(o=>o.k=='tree'&&!o.res),w);if(b&&dst('wood',1,w)){b.res=1;w.tg=b;w.st='toTree'}else{const h=fr(w.home);go(w,h.x,h.y,dt)}break}
+ case'toTree':if(go(w,w.tg.x+.3,w.tg.y+.3,dt)){w.fx=(w.tg.x-w.x)-(w.tg.y-w.y)>=0?1:-1;w.st='chop';w.tm=0}break;
+ case'chop':w.tg.shake=1;if(w.tm>4){const g=w.tg,tx=Math.floor(g.x),ty=Math.floor(g.y);objs.splice(objs.indexOf(g),1);if(!objs.some(o=>o.k=='tree'&&Math.floor(o.x)==tx&&Math.floor(o.y)==ty))T[tx][ty]=0;w.log={k:'log',x:g.x,y:g.y};objs.push(w.log);w.st='pick';w.tm=0}break;
+ case'pick':if(w.tm>.8){objs.splice(objs.indexOf(w.log),1);w.car='log';w.st='toStore';w.ds=null}break;
+ case'toStore':{w.ds=w.ds||dst('wood',1,w);if(w.ds&&go(w,w.ds.x+w.ds.fw/2,w.ds.y+w.ds.fd+.4,dt)){w.st='drop';w.tm=0}break}
+ case'drop':if(w.tm>.6){give(w.ds,'wood',1);w.car=null;w.st='idle'}break}}
+function aiT(o,dt){o.walk=false;o.tm=(o.tm||0)+dt;
+ if(o.st=='idle'){const f=nearest(objs.filter(q=>q.role=='field'&&q.act!==false&&q.st==2&&q.out>=1&&!CL.has('c'+oid(q))&&dst(q.ores,q.out,o)),o);if(f){o.k0='c'+oid(f);cl(o.k0);o.tg=f;o.st='toF'}else drive(o,o.hx,o.hy,dt)}
+ else if(o.st=='toF'){if(drive(o,o.tg.x+.5,o.tg.y+.5,dt)){o.st='harv';o.tm=0}}
+ else if(o.st=='harv'){o.walk=true;const s=Math.sin(o.tm*3)*.32;o.x=o.tg.x+.5+s;o.y=o.tg.y+.5+s;o.fx=Math.cos(o.tm*3)>0?1:-1;if(o.tm>2.2){const f=o.tg;if(f.st==2&&f.out>=1){o.n=f.out;o.res=f.ores;f.out=0;f.st=0;f.t=0;o.car=1;o.D=null;o.st='toS'}else{rls([o.k0]);o.st='idle'}}}
+ else if(o.st=='toS'){o.D=o.D||dst(o.res,o.n,o);if(o.D&&drive(o,o.D.x+o.D.fw/2,o.D.y+o.D.fd+.5,dt)){o.st='drop';o.tm=0}}
+ else if(o.st=='drop'){if(o.tm>.6){give(o.D,o.res,o.n);o.car=0;rls([o.k0]);o.st='idle'}}}
+const sellKeys=q=>Object.keys(q.inv).filter(k=>q.inv[k]>0&&['food','goods'].includes(RS[k][0]));
+function aiK(o,dt){o.walk=false;o.tm=(o.tm||0)+dt;const sl=()=>objs.filter(q=>ACC[q.role]&&q.act!==false&&q.inv&&sellKeys(q).length),ex=[W+3,o.hy];
+ if(o.st=='idle'){o.cargo=o.cargo||0;const m=sl();if(m.reduce((a,q)=>a+sellKeys(q).reduce((b,k)=>b+q.inv[k],0),0)>=10){o.tg=nearest(m,o);o.st='toS'}else drive(o,o.hx,o.hy,dt)}
+ else if(o.st=='toS'){if(!o.tg||!sl().includes(o.tg)){o.st=o.cargo?'leave':'idle';return}if(drive(o,o.tg.x+o.tg.fw/2,o.tg.y+o.tg.fd+.5,dt)){o.st='load';o.tm=0}}
+ else if(o.st=='load'){if(o.tm>1){const s=o.tg;sellKeys(s).forEach(k=>{const a=Math.min(s.inv[k],30-o.cargo);s.inv[k]-=a;o.cargo+=a});o.car=o.cargo>0;const m=sl();if(o.cargo<30&&m.length){o.tg=nearest(m,o);o.st='toS'}else o.st=o.cargo?'leave':'idle'}}
+ else if(o.st=='leave'){if(drive(o,ex[0],ex[1],dt,3)){o.away=1;o.tm=0;o.st='away'}}
+ else if(o.st=='away'){if(o.tm>50){o.away=0;o.st='back'}}
+ else if(o.st=='back'){if(drive(o,o.hx,o.hy,dt,3)){money+=o.cargo*10;o.cargo=0;o.car=false;o.st='idle'}}}
+function ovl(o,t){const r=o.role;if(!r||!o.fw)return;const z=o.fw,[sx,sy]=P(o.x+z/2,o.y+z/2),k=.8*z*({'Windmill':1.5,'Wind Turbine':1.5,'Wind Pump':1.25}[ITEMS[o.ci][2]]||1);
+ if(NEED.includes(r)&&o.act===false){bub(sx,sy-58*k,'🛣️',t);return}
+ if(o.out>=1&&(r!='field'||o.st==2))bub(sx,sy-64*k,RS[o.ores][1]+o.out,t);
+ if(STO[r]&&o.inv&&o.cap){const n=tot(o)/o.cap;ctx.fillStyle='rgba(0,0,0,.45)';ctx.fillRect(sx-14,sy+8*k,28,4);ctx.fillStyle=n>.9?'#e5534b':'#3fb950';ctx.fillRect(sx-14,sy+8*k,28*n,4)}
+ if(r=='proc'&&o.run){ctx.fillStyle='rgba(0,0,0,.45)';ctx.fillRect(sx-14,sy+8*k,28,4);ctx.fillStyle='#f2c030';ctx.fillRect(sx-14,sy+8*k,28*o.pg/30,4)}}
+const cd0=catDraw,vd0=vehDraw,wk0=worker;
+DRAW.cat=(o,t)=>{if(o.act===false)ctx.globalAlpha=.55;cd0(o,t);ctx.globalAlpha=1;ovl(o,t)};
+DRAW.veh=(o,t)=>{if(!o.away)vd0(o,t)};
+DRAW.worker=(o,t)=>{wk0(o,t);if(o.car&&RS[o.car]){const [sx,sy]=P(o.x,o.y);ctx.font='13px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle='#000';ctx.fillText(RS[o.car][1]+(o.n>1?o.n:''),sx,sy-44)}};
+let delMode=false;
+function doDel(px,py,p){const info=s=>$('info').textContent=s,wx=(px-cam.x)/cam.s,wy=(py-cam.y)/cam.s;let v=null,bd=40;objs.forEach(q=>{if(q.k=='veh'&&!q.away){const [sx,sy]=P(q.x,q.y),d=Math.hypot(sx-wx,sy-16-wy);if(d<bd){bd=d;v=q}}});
+ const o=v||pickObj(px,py);
+ if(o){const nm=ITEMS[o.ci]?ITEMS[o.ci][1]:'';if(o.k!='veh')occ(o,0);objs.splice(objs.indexOf(o),1);objs.filter(q=>q.k=='worker'&&q.home===o).forEach(q=>{if(q.tg&&q.tg.k=='tree')q.tg.res=0;objs.splice(objs.indexOf(q),1)});
+  CL.clear();mov=null;objs.forEach(q=>{if(q.k=='worker'&&q.role!='wood')fin(q);if(q.k=='veh'){q.st='idle';q.car=0}});info('تم حذف: '+nm)}
+ else if(p&&T[p.x][p.y]==1){T[p.x][p.y]=0;info('تم حذف الطريق')}
+ else info('لا يوجد شيء للحذف هنا')}
+$('bd').onclick=e=>{delMode=!delMode;placing=null;mov=null;e.currentTarget.classList.toggle('on',delMode);[...$('items').children].forEach(x=>x.classList.remove('on'));$('info').textContent=delMode?'وضع الحذف: المس منشأة أو طريقاً لحذفه':'تم إلغاء وضع الحذف'};
+/* ===== طرق وشاحنة ===== */
+const RT=Array.from({length:W},()=>new Int8Array(H));
+{const r=ITEMS.find(d=>d[2]=='Paved Road');r[1]='طريق معبد (أسفلت)';r[4]='#2c2c32';ITEMS.push([10,'طريق ترابي','Dirt Road','Q','#b8864e','','','d','🟫'])}
+function roadTile(x,y,sq,h){const hx=isR(x-1,y)||isR(x+1,y),hy=isR(x,y-1)||isR(x,y+1),ax=hx||!hy,ay=hy;
+ if(RT[x][y]){poly(sq,R([178,136,86],.94+h*.12));const tr=u=>{if(ax)seg([x,y+u],[x+1,y+u],R([140,100,60]),2);if(ay)seg([x+u,y],[x+u,y+1],R([140,100,60]),2)};tr(.34);tr(.66);for(let i=0;i<4;i++){const q=P(x+hs(x,y,i)*.8+.1,y+hs(x,y,i+7)*.8+.1);ell(q[0],q[1],2.2,1.2,R([120,88,56],.8+i*.1))}if(!isR(x,y-1))poly([[x,y],[x+1,y],[x+1,y+.08],[x,y+.08]],R([120,88,56]));if(!isR(x,y+1))poly([[x,y+1],[x+1,y+1],[x+1,y+.92],[x,y+.92]],R([120,88,56]));return}
+ poly(sq,R([44,44,50],.95+h*.06));
+ if(ax){seg([x+.15,y+.5],[x+.4,y+.5],'#f5f5f5',2);seg([x+.6,y+.5],[x+.85,y+.5],'#f5f5f5',2)}
+ if(ay){seg([x+.5,y+.15],[x+.5,y+.4],'#f5f5f5',2);seg([x+.5,y+.6],[x+.5,y+.85],'#f5f5f5',2)}
+ if(!hy){seg([x,y+.08],[x+1,y+.08],'rgba(255,255,255,.55)',1.2);seg([x,y+.92],[x+1,y+.92],'rgba(255,255,255,.55)',1.2)}
+ else if(!hx){seg([x+.08,y],[x+.08,y+1],'rgba(255,255,255,.55)',1.2);seg([x+.92,y],[x+.92,y+1],'rgba(255,255,255,.55)',1.2)}}
+K.Q=function(a,b,c,f){GND();const A=[24,66],B=[60,48],C=[96,66],D=[60,84],L=u=>[[A[0]+(B[0]-A[0])*u,A[1]+(B[1]-A[1])*u],[D[0]+(C[0]-D[0])*u,D[1]+(C[1]-D[1])*u]];FP([B,C,D,A],a);
+ if(f=='d'){[.3,.7].forEach(u=>{const l=L(u);LN(l[0][0],l[0][1],l[1][0],l[1][1],'#8a6238',3)});[[44,64],[70,66],[58,72],[80,70],[52,58]].forEach(([x,y])=>EL(x,y,3,1.6,'#9a7444'))}
+ else{[.1,.9].forEach(u=>{const l=L(u);LN(l[0][0],l[0][1],l[1][0],l[1][1],'rgba(255,255,255,.6)',1.5)});const l=L(.5);for(let i=0;i<3;i++){const t0=.1+i*.32,t1=t0+.18;LN(l[0][0]+(l[1][0]-l[0][0])*t0,l[0][1]+(l[1][1]-l[0][1])*t0,l[0][0]+(l[1][0]-l[0][0])*t1,l[0][1]+(l[1][1]-l[0][1])*t1,'#f5f5f5',3)}}};
+K.H=function(a,b,c,f){if(f!='k')return H0(a,b,c,f);GND('#9a9aa0','#6a6a70');
+ const Pq=(u,v,z)=>[60+(u-v)*40,64+(u+v)*20-z],BY=(u0,u1,v0,v1,z0,z1,col)=>{FP([Pq(u0,v0,z1),Pq(u1,v0,z1),Pq(u1,v1,z1),Pq(u0,v1,z1)],SH(col,1.15));FP([Pq(u0,v1,z0),Pq(u1,v1,z0),Pq(u1,v1,z1),Pq(u0,v1,z1)],SH(col,1));FP([Pq(u1,v0,z0),Pq(u1,v1,z0),Pq(u1,v1,z1),Pq(u1,v0,z1)],SH(col,.72))};
+ BY(-.6,.58,-.26,.26,5,10,'#3a3a40');BY(-.58,.1,-.26,.26,10,40,b);BY(.14,.56,-.26,.26,10,30,a);
+ FP([Pq(.56,-.2,19),Pq(.56,.2,19),Pq(.56,.2,27),Pq(.56,-.2,27)],'#bfe3f4');FP([Pq(.2,.26,19),Pq(.5,.26,19),Pq(.5,.26,27),Pq(.2,.26,27)],'#a9d3ea');FP([Pq(-.58,.26,20),Pq(.1,.26,20),Pq(.1,.26,26),Pq(-.58,.26,26)],SH(a,1));
+ [-.17,.17].forEach(v=>EL(...Pq(.56,v,12),3,2.2,'#ffe9a0'));[-.42,-.05,.38].forEach(u=>{const q=Pq(u,.26,6);EL(q[0],q[1],8,8,'#1d1d1f');EL(q[0],q[1],3.5,3.5,'#9aa0a8')})};
+/* ===== حفظ التقدم ===== */
+const SK='village_save_v1';let noSave=false;
+function save(manual){if(noSave)return;try{const pl=objs.filter(o=>o.k=='cat'||o.k=='veh'),F=['k','role','x','y','fw','fd','mv','st','t','out','ores','inv','cap','pg','run','nw','nf','tw','tf','need','oq','sp','hx','hy','nocc','fx','cargo','away'];
+ const s={v:1,W,H,m:money,rd:[],tr:[],pl:pl.map(o=>{const r={nm:ITEMS[o.ci][2]};F.forEach(k=>{if(o[k]!==undefined)r[k]=o[k]});return r}),wk:objs.filter(o=>o.k=='worker').map(w=>({role:w.role,x:w.x,y:w.y,hi:pl.indexOf(w.home),hm:[w.home.x,w.home.y,w.home.fw,w.home.fd]}))};
+ for(let x=0;x<W;x++)for(let y=0;y<H;y++)if(T[x][y]==1)s.rd.push([x,y,RT[x][y]]);
+ objs.forEach(o=>{if(o.k=='tree')s.tr.push([+o.x.toFixed(2),+o.y.toFixed(2),+o.s.toFixed(2),o.pine?1:0,+o.v.toFixed(2)])});
+ localStorage.setItem(SK,JSON.stringify(s));if(manual)$('info').textContent='💾 تم حفظ التقدم'}catch(e){if(manual)$('info').textContent='تعذّر الحفظ في هذا المتصفح'}}
+function load(){let s=null;try{s=JSON.parse(localStorage.getItem(SK))}catch(e){}if(!s||s.v!=1)return;
+ const ow=s.W||40,oh=s.H||25;window.LF=ow==W&&oh==H;for(let x=0;x<ow;x++)for(let y=0;y<oh;y++){if(T[x][y]==1||T[x][y]==4)T[x][y]=0}
+ s.rd.forEach(([x,y,t])=>{T[x][y]=1;RT[x][y]=t});
+ for(let i=objs.length-1;i>=0;i--){const k=objs[i].k;if((k=='tree'&&objs[i].x<ow&&objs[i].y<oh)||k=='worker'||k=='cat'||k=='veh')objs.splice(i,1)}
+ s.tr.forEach(([x,y,sc,p,v])=>{objs.push({k:'tree',x,y,s:sc,pine:!!p,v});T[Math.floor(x)][Math.floor(y)]=4});
+ const pl=s.pl.map(r=>{const ci=ITEMS.findIndex(d=>d[2]==r.nm);if(ci<0)return null;const o=Object.assign({},r,{ci});delete o.nm;o.role=roleOf(ITEMS[ci]);if(o.k=='veh'){o.st='idle';o.away=0;o.car=0;o.tm=0;if(o.cargo){money+=o.cargo*10;o.cargo=0}}objs.push(o);if(o.k=='cat')occ(o,1);return o});
+ money=s.m;
+ s.wk.forEach(r=>{const home=pl[r.hi]||{x:r.hm[0],y:r.hm[1],fw:r.hm[2],fd:r.hm[3]};objs.push({k:'worker',role:r.role,home,x:r.x,y:r.y,st:'idle',tm:0,car:null,fx:1,mvg:0,walk:false})});
+ $('info').textContent='✅ تم استرجاع التقدم المحفوظ'}
+let rq=0;$('bs').onclick=()=>save(true);
+$('br').onclick=()=>{if(Date.now()<rq){noSave=true;try{localStorage.removeItem(SK)}catch(e){}location.reload();return}rq=Date.now()+4000;$('info').textContent='⚠️ اضغط 🔄 مرة ثانية خلال 4 ثوانٍ لمسح التقدم والبدء من جديد'};
+load();setInterval(()=>save(),5000);addEventListener('pagehide',()=>save());document.addEventListener('visibilitychange',()=>{if(document.hidden)save()});
+/* ===== دفعات البيع ===== */
+const SB={flour:50,milk:20,wool:10,egg:20,wheat:50,corn:50,wood:50,sugar:30,cotton:30,soy:30,glass:10,steel:10,fabric:10,pot:10,bat:10,cake:10,choco:10,wine:10,meal:10,jam:10,honey:10,ore:20,sand:20,plank:20,oil:20,fuel:20},PRCg={crop:5,food:10,goods:15,fuel:8,wood:4};
+const sb=r=>SB[r]||20,price=r=>PRCg[RS[r][0]]||5;
+function lots(){const tt={},st=objs.filter(q=>ACC[q.role]&&q.act!==false&&q.inv);st.forEach(q=>{for(const k in q.inv)tt[k]=(tt[k]||0)+q.inv[k]});const L=[];for(const r in tt)if(tt[r]>=sb(r))L.push({r,n:sb(r)});
+ if(!L.length)st.forEach(q=>{if(tot(q)>=q.cap){let br=null;for(const k in q.inv)if(!br||q.inv[k]>q.inv[br])br=k;if(br&&!L.some(l=>l.r==br))L.push({r:br,n:Math.min(tt[br],sb(br))})}});return L}
+function pickups(L,o){const out=[];L.forEach(l=>{let n=l.n;objs.filter(q=>ACC[q.role]&&q.act!==false&&q.inv&&(q.inv[l.r]||0)>0).sort((a,b)=>Math.hypot(a.x-o.x,a.y-o.y)-Math.hypot(b.x-o.x,b.y-o.y)).forEach(q=>{if(n>0){const a=Math.min(n,q.inv[l.r]);out.push({q,r:l.r,n:a});n-=a}})});return out}
+function aiK(o,dt){o.walk=false;o.tm=(o.tm||0)+dt;const ex=[W+3,o.hy],info=s=>$('info').textContent=s;
+ if(o.st=='idle'){o.cargo=o.cargo||0;const L=lots();if(L.length){o.pk=pickups(L,o);o.cargo=0;o.val=0;o.st='next';info('🚚 الشاحنة تبيع: '+L.map(l=>RS[l.r][1]+l.n).join(' '))}else drive(o,o.hx,o.hy,dt)}
+ else if(o.st=='next'){const p=o.pk&&o.pk.shift();if(!p){o.st=o.cargo?'leave':'idle';return}o.cur=p;o.st='toS'}
+ else if(o.st=='toS'){const p=o.cur;if(drive(o,p.q.x+p.q.fw/2,p.q.y+p.q.fd+.5,dt)){o.st='load';o.tm=0}}
+ else if(o.st=='load'){if(o.tm>.8){const p=o.cur,a=Math.min(p.n,p.q.inv[p.r]||0);p.q.inv[p.r]-=a;o.cargo+=a;o.val+=a*price(p.r);o.car=o.cargo>0;o.st='next'}}
+ else if(o.st=='leave'){if(drive(o,ex[0],ex[1],dt,3)){o.away=1;o.tm=0;o.st='away'}}
+ else if(o.st=='away'){if(o.tm>50){o.away=0;o.st='back'}}
+ else if(o.st=='back'){if(drive(o,o.hx,o.hy,dt,3)){money+=o.val;info('💰 عادت الشاحنة: باعت '+o.cargo+' وحدة بـ '+o.val);o.cargo=0;o.val=0;o.car=false;o.st='idle'}}}
+/* ===== سلوك الشاحنة على الطريق ===== */
+const asph=(x,y)=>x>=0&&y>=0&&x<W&&y<H&&T[x][y]==1&&RT[x][y]==0,brd=(x,y)=>x==0||y==0||x==W-1||y==H-1,touch=(x,y,q)=>{const ix=x>=q.x&&x<q.x+q.fw,iy=y>=q.y&&y<q.y+q.fd;return(ix&&(y==q.y-1||y==q.y+q.fd))||(iy&&(x==q.x-1||x==q.x+q.fw))};
+function bfs(sx,sy,goal){const q=[[sx,sy]],par={},k=(x,y)=>x*100+y;par[k(sx,sy)]=null;let h=0;while(h<q.length){const [x,y]=q[h++];if(goal(x,y)){const p=[];let c=[x,y];while(c){p.unshift(c);c=par[k(c[0],c[1])]}return p}for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){const nx=x+dx,ny=y+dy;if(!asph(nx,ny)||par[k(nx,ny)]!==undefined)continue;par[k(nx,ny)]=[x,y];q.push([nx,ny])}}return null}
+function follow(o,dt,sp){const t=o.path[o.pi];if(!t)return true;if(drive(o,t[0]+.5,t[1]+.5,dt,sp))o.pi++;return o.pi>=o.path.length}
+function aiK(o,dt){o.walk=false;o.tm=(o.tm||0)+dt;const info=s=>{if((o.mt||0)<performance.now()){o.mt=performance.now()+8000;$('info').textContent=s}},tx=Math.floor(o.x),ty=Math.floor(o.y);
+ if(o.st=='idle'){
+  if(!asph(tx,ty)){let b=null,bd=1e9;for(let x=0;x<W;x++)for(let y=0;y<H;y++)if(asph(x,y)){const d=Math.hypot(x+.5-o.x,y+.5-o.y);if(d<bd){bd=d;b=[x,y]}}if(!b){info('🚚 ابنِ طريقاً معبداً (أسفلت) للشاحنة');return}o.x=b[0]+.5;o.y=b[1]+.5;o.hx=o.x;o.hy=o.y;return}
+  if(o.cd>0){o.cd-=dt;return}
+  const L=lots();if(!L.length)return;
+  if(!bfs(tx,ty,brd)){info('🚚 الطريق المعبد لا يصل إلى حافة المدينة');o.cd=5;return}
+  o.pk=pickups(L,o);o.cargo=0;o.val=0;o.st='next';info('🚚 الشاحنة تبيع: '+L.map(l=>RS[l.r][1]+l.n).join(' '))}
+ else if(o.st=='next'){const p=o.pk.shift();if(!p){if(o.cargo){o.st='leave';o.path=null}else{o.st='idle';o.cd=5;info('🚚 المخازن غير متصلة بطريق معبد')}return}const pa=bfs(tx,ty,(x,y)=>touch(x,y,p.q));if(!pa)return;o.cur=p;o.path=pa;o.pi=0;o.st='toS'}
+ else if(o.st=='toS'){if(follow(o,dt)){o.st='load';o.tm=0}}
+ else if(o.st=='load'){if(o.tm>.8){const p=o.cur,a=Math.min(p.n,p.q.inv[p.r]||0);p.q.inv[p.r]-=a;o.cargo+=a;o.val+=a*price(p.r);o.car=o.cargo>0;o.st='next'}}
+ else if(o.st=='leave'){if(!o.path){const pa=bfs(tx,ty,brd);if(!pa){info('🚚 لا يوجد طريق معبد إلى حافة المدينة');return}o.path=pa;o.pi=0}
+  if(follow(o,dt,3)){const e=o.path[o.path.length-1],ox=e[0]==0?-1:e[0]==W-1?1:0,oy=e[1]==0?-1:e[1]==H-1?1:0;o.ex=e;o.xt=[e[0]+.5+ox*2.5,e[1]+.5+oy*2.5];o.st='exit'}}
+ else if(o.st=='exit'){if(drive(o,o.xt[0],o.xt[1],dt,3)){o.away=1;o.tm=0;o.st='away';o.path=null}}
+ else if(o.st=='away'){if(o.tm>50){o.away=0;o.x=o.xt[0];o.y=o.xt[1];o.st='back';o.path=null}}
+ else if(o.st=='back'){if(!o.path){if(drive(o,o.ex[0]+.5,o.ex[1]+.5,dt,3)){const hx=Math.floor(o.hx),hy=Math.floor(o.hy);o.path=bfs(o.ex[0],o.ex[1],(x,y)=>x==hx&&y==hy)||[[hx,hy]];o.pi=0}}
+  else if(follow(o,dt,3)){money+=o.val;info('💰 عادت الشاحنة: باعت '+o.cargo+' وحدة بـ '+o.val);o.cargo=0;o.val=0;o.car=false;o.st='idle'}}}
+/* ===== احتياجات الحيوانات ===== */
+const FEED={'Chicken Coop':1,'Duck House':2,'Sheep Pen':3,'Milk Barn':4,'Pasture':3};
+function penDone(p){if(p.nw||p.nf>0)return;p.out=Math.min(10,(p.out||0)+1);p.ores=PNM[ITEMS[p.ci][2]];p.need=0;p.tf=0}
+const cd1=DRAW.cat;DRAW.cat=(o,t)=>{cd1(o,t);if(o.role=='pen'&&o.nf>0){const z=o.fw,[sx,sy]=P(o.x+z/2,o.y+z/2),k=.8*z;ctx.font='bold 11px sans-serif';ctx.textAlign='left';ctx.textBaseline='middle';ctx.fillStyle='#000';ctx.fillText('×'+o.nf,sx+(o.nw?20:12),sy-48*k)}};
+/* ===== أولويات التخزين ===== */
+ACC.wh=['crop','food','goods','wood','fuel'];STO.wh=1;NEED.push('wh');
+const RK={silo:0,store:0,pantry:0,fuelst:0,depot:1,wh:2};
+function roleOf(d){const n=d[2];if(n=='Farm Tractor')return'tractor';if(n=='Sales Truck')return'truck';const m={'Silo':'silo','Wood Shed':'store','Storehouse':'depot','Warehouse':'wh','Pantry':'pantry','Fuel Storage':'fuelst','Worker House':'whouse','Lumberjack House':'lhouse','Farm House':'fhouse','Well':'well','Water Pump':'well','Wind Pump':'well','Water Facility':'well'};if(m[n])return m[n];if(FO[n])return'field';if(PNM[n])return'pen';if(RC[n])return'proc';if(PR[n])return'prod';return null}
+function give(s,r,n){if(!s||!s.inv)return;const sp=s.cap?s.cap-tot(s):10-(s.inv[r]||0);s.inv[r]=(s.inv[r]||0)+Math.max(0,Math.min(n,sp))}
+function dst(r,n,p){const g=RS[r][0];let b=null,bd=1e9;n=n||1;
+ objs.forEach(o=>{if(o.role!='proc'||o.act===false||!o.inv)return;const rc=RC[ITEMS[o.ci][2]];if(!rc.in[r]||(o.inv[r]||0)+n>10)return;const s=Math.hypot(o.x-p.x,o.y-p.y);if(s<bd){bd=s;b=o}});
+ if(b)return b;bd=1e9;
+ objs.forEach(o=>{if(!ACC[o.role]||o.act===false||!o.inv||!ACC[o.role].includes(g)||tot(o)+n>o.cap)return;const s=Math.hypot(o.x-p.x,o.y-p.y)+(RK[o.role]||0)*1000;if(s<bd){bd=s;b=o}});
+ if(b)return b;bd=1e9;
+ objs.forEach(o=>{if(!ACC[o.role]||o.act===false||!o.inv||tot(o)+n>o.cap)return;const s=Math.hypot(o.x-p.x,o.y-p.y)+(RK[o.role]||0)*1000;if(s<bd){bd=s;b=o}});return b}
+/* ===== توسعة الأرض إلى 2000 مربع ===== */
+function vis(o){const sx=cam.x+(o.x-o.y)*32*cam.s,sy=cam.y+(o.x+o.y+(o.fw||0))*16*cam.s,m=240*cam.s;return sx>-m&&sx<cw+m&&sy>-m&&sy<ch+m*1.6}
+function genNew(){const inNew=(x,y)=>x>=40||y>=25;
+ [[44,8,2.3],[46,22,2],[12,30,2.2],[28,31,2.4],[44,32,1.8]].forEach(([cx,cy,r])=>{for(let x=0;x<W;x++)for(let y=0;y<H;y++)if(inNew(x,y)&&Math.hypot(x+.5-cx,y+.5-cy)<r+(hs(x,y,3)-.5)*.9)T[x][y]=2});
+ for(let x=0;x<W;x++)for(let y=0;y<H;y++){if(!inNew(x,y)||T[x][y])continue;
+  if(y<35&&hs(x,y,11)<.04){T[x][y]=5;objs.push({k:'rock',x:x+.5,y:y+.5,s:.8+hs(x,y,12)*.5});continue}
+  if(window.LF)continue;
+  const p=y>=35?.8:y>=33?.3:(x>46||y>38)?.35:.1;
+  if(rnd()<p){T[x][y]=4;objs.push({k:'tree',x:x+.5+(rnd()-.5)*.45,y:y+.5+(rnd()-.5)*.45,s:.8+rnd()*.4,pine:rnd()>.45,v:rnd()});if(y>=35&&rnd()<.4)objs.push({k:'tree',x:x+.5+(rnd()-.5)*.8,y:y+.5+(rnd()-.5)*.8,s:.7+rnd()*.4,pine:rnd()>.4,v:rnd()})}}
+ SHORE.length=0;for(let x=0;x<W;x++)for(let y=0;y<H;y++)if(T[x][y]<2&&[[1,0],[-1,0],[0,1],[0,-1]].some(([a,b])=>x+a>=0&&y+b>=0&&x+a<W&&y+b<H&&T[x+a][y+b]==2))SHORE.push({x:x+.5,y:y+.5});
+ let f=0;for(let x=0;x<W;x++)for(let y=0;y<H;y++)if(T[x][y]==0)f++;$('cnt').textContent=W*H+' مربع ('+W+'×'+H+') · متاح: '+f}
+genNew();
+/* ===== ترتيب الحبوب والتخزين والطحن والبيع ===== */
+RC['Windmill']={in:{wheat:10},out:'flour',outs:[['flour',1],['feed',2]]};
+const FOV=new Set(Object.values(FO)),CAP={silo:100,store:100,depot:100,pantry:100,fuelst:100,wh:100};
+const RAWC=['wheat','corn','cotton','sugar','soy','salt','mint','pumpkin','strawberry','blueberry','lettuce','tomato','vanilla','clover','cocoa','apple','bamboo','grape','feed'];
+const SG={silo:RAWC,store:['wood'],depot:['flour','plank','wool','fabric','pot','ore','sand','glass','steel','bat','clay'],pantry:['flour','egg','milk','honey','bread','cake','candy','choco','wine','meal','jam'],fuelst:['oil','fuel']};
+function dst(r,n,p){let b=null,bd=1e9;n=n||1;
+ if(FOV.has(r))objs.forEach(o=>{if(o.role!='proc'||o.act===false||!o.inv)return;const rc=RC[ITEMS[o.ci][2]];if(!rc.in[r]||(o.inv[r]||0)+n>10)return;const s=Math.hypot(o.x-p.x,o.y-p.y);if(s<bd){bd=s;b=o}});
+ if(b)return b;bd=1e9;
+ objs.forEach(o=>{const t=SG[o.role];if(!t||o.act===false||!o.inv||!t.includes(r)||tot(o)+n>o.cap)return;const s=Math.hypot(o.x-p.x,o.y-p.y)+(RK[o.role]||0)*1000;if(s<bd){bd=s;b=o}});return b}
+function lots(){const st=objs.filter(q=>q.role=='wh'&&q.act!==false&&q.inv),tt={};st.forEach(q=>{for(const k in q.inv)tt[k]=(tt[k]||0)+q.inv[k]});const L=[];for(const r in tt)if(tt[r]>=sb(r))L.push({r,n:sb(r)});
+ if(!L.length)st.forEach(q=>{if(tot(q)>=q.cap*.8){let br=null;for(const k in q.inv)if(!br||q.inv[k]>q.inv[br])br=k;if(br)L.push({r:br,n:Math.min(tt[br],sb(br))})}});return L}
+function pickups(L,o){const out=[];L.forEach(l=>{let n=l.n;objs.filter(q=>q.role=='wh'&&q.act!==false&&q.inv&&(q.inv[l.r]||0)>0).sort((a,b)=>Math.hypot(a.x-o.x,a.y-o.y)-Math.hypot(b.x-o.x,b.y-o.y)).forEach(q=>{if(n>0){const a=Math.min(n,q.inv[l.r]);out.push({q,r:l.r,n:a});n-=a}})});return out}
+function tick(o,dt){const r=o.role;if(!r)return;if(o.k=='veh'){(r=='truck'?aiK:aiT)(o,dt);return}if(!o.mv)return;
+ if(o.inv==null){o.inv={};o.out=0;o.pg=0;if(STO[r])o.cap=CAP[r]||100}
+ o.act=NEED.includes(r)?onRoad(o):true;if(!o.act)return;const n=ITEMS[o.ci][2];
+ if(!(o.out>=1)&&o.oq&&o.oq.length){const q=o.oq.shift();o.out=q.n;o.ores=q.r}
+ if(r=='field'){if(o.st==1){o.t+=dt;if(o.t>=10){o.st=2;o.out=1;o.ores=FO[n]}}}
+ else if(r=='pen'){if(o.nw||o.nf>0)o.need=1;if(!o.need){o.tf=(o.tf==null?30:o.tf)+dt;if(o.tf>=40){o.need=1;o.nw=1;o.nf=FEED[n]||1}}}
+ else if(r=='prod'){if(o.out<10){o.pg+=dt;const p=PR[n];if(o.pg>=(p.t||20)){o.pg=0;o.out++;o.ores=p.out}}}
+ else if(r=='proc'){const rc=RC[n];if(!o.run){if(o.out<10&&(o.oq||[]).length<4&&Object.keys(rc.in).every(k=>(o.inv[k]||0)>=rc.in[k])){for(const k in rc.in)o.inv[k]-=rc.in[k];o.run=1;o.pg=0}}else{o.pg+=dt;if(o.pg>=30){o.run=0;(rc.outs||[[rc.out,1]]).forEach(([rr,nn])=>{if(o.out>=1&&o.ores==rr)o.out+=nn;else if(!(o.out>=1)){o.out=nn;o.ores=rr}else(o.oq=o.oq||[]).push({r:rr,n:nn})})}}}}
+function descr(o){const d=ITEMS[o.ci];if(!d)return'';let s=d[1];if(NEED.includes(o.role)&&o.act===false)s+=' ⛔ لا يعمل (يحتاج طريقاً أمامه)';
+ if(o.inv){const v=Object.entries(o.inv).filter(a=>a[1]>0).map(a=>RS[a[0]][1]+a[1]).join(' ');if(o.cap)s+=' | '+tot(o)+'/'+o.cap+' '+v;else if(v)s+=' | '+v}
+ if(SG[o.role])s+=' | يخزّن: '+SG[o.role].map(r=>RS[r][1]).join('');else if(o.role=='wh')s+=' | مستودع البيع (يبيع منه الشاحنة فقط)';
+ if(o.role=='pen'&&(o.nw||o.nf>0))s+=' | يحتاج: '+(o.nw?'💧 ':'')+(o.nf>0?'🌾×'+o.nf:'');
+ if(o.out>=1){s+=' | ناتج: '+RS[o.ores][1]+'×'+o.out;if(!dst(o.ores,o.out,o))s+=' (لا يوجد مخزن مناسب)'}return s}
 addEventListener('resize',()=>{rs()});rs();center();requestAnimationFrame(frame);
-</script>
-<style>
-#ecoPanel{position:fixed;z-index:20;top:58px;right:10px;width:min(360px,calc(100vw - 20px));max-height:62vh;overflow:auto;background:rgba(255,255,255,.96);color:#263426;border:1px solid #9aaf91;border-radius:14px;padding:10px;box-shadow:0 5px 24px #0004;display:none;font-size:13px}
-#ecoPanel.open{display:block}#ecoPanel h3{margin:4px 0 8px;font-size:15px}#ecoPanel .erow{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:6px 0}
-#ecoPanel button{width:auto;height:auto;line-height:1.3;padding:7px 9px;font-size:12px;background:#e9f0e5;box-shadow:none;border:1px solid #b5c5ac;border-radius:8px}
-#ecoPanel button:disabled{opacity:.4}#ecoPanel select,#ecoPanel input{max-width:100%;padding:6px;border:1px solid #aab9a2;border-radius:7px;background:white;color:#222}
-#ecoPanel .stats{display:grid;grid-template-columns:1fr 1fr;gap:5px}.ecoStat{background:#eef3e9;border-radius:8px;padding:7px}
-#ecoPanel .small{font-size:11px;opacity:.8}#ecoPanel .log{max-height:90px;overflow:auto;background:#f3f5f1;border-radius:8px;padding:6px}
-#ecoToggle{position:fixed;z-index:21;top:58px;left:10px;width:auto;height:auto;padding:9px 12px;font-size:13px;background:#fff}
-</style>
-<button id="ecoToggle">📊 الاقتصاد</button>
-<div id="ecoPanel">
- <h3>اقتصاد قريتي — حساب الاختبار</h3>
- <div class="stats">
-  <div class="ecoStat">💰 الرصيد<br><b id="ecoMoney">1,000,000$</b></div>
-  <div class="ecoStat">🧪 وضع الحساب<br><b>تجريبي</b></div>
-  <div class="ecoStat">📦 المخزون العام<br><b id="ecoStock">0 / 1000</b></div>
-  <div class="ecoStat">👷 العمال النشطون<br><b id="ecoWorkers">0</b></div>
- </div>
- <div class="erow"><button id="ecoTabOverview">نظرة عامة</button><button id="ecoTabInventory">المخزون</button><button id="ecoTabSales">البيع</button><button id="ecoTabTest">الاختبار</button></div>
- <div id="ecoContent"></div>
- <div class="erow"><button id="ecoReset">إعادة ضبط الحساب التجريبي</button><span class="small">إعادة الضبط لا تمسح القرية أو المنشآت.</span></div>
-</div>
-<script>
-(function(){
-const $e=id=>document.getElementById(id), panel=$e('ecoPanel');
-const E={money:1000000,initial:1000000,inventory:{},capacity:1000,log:[],elapsed:0,wageClock:0,lastUI:0,activeWorkers:0,sales:0,production:{},mode:'overview'};
-const price={
-'حقل القمح':50,'منجم الحديد':1200,'مصنع الفولاذ':3000,'توربين الرياح':1500,'محطة الطاقة':5000,
-'مربع الماء':300,'مضخة المياه':500,'حظيرة الدجاج':700,'حظيرة الأبقار':1500,'حظيرة الأغنام':1200,
-'مضخة النفط':2000,'المصفاة النفطية':5000,'الجرار الزراعي':10000,'الدراجة الرباعية ATV':5000,
-'صومعة الحبوب':400,'طاحونة الحبوب':500,'المخبزة':800,'مصنع الأعلاف':900,'مصنع الأخشاب':1200,
-'مصنع الأقمشة':1500,'مصنع النبيذ':1800,'المقهى':2000,'مصنع الكعك':2200,'مصنع الحلوى':2500,
-'مصنع الشوكولاتة':3000,'مصنع الزجاج':3500,'المستودع':0,'مخزن البضائع':0,'مخزن المنتجات الغذائية':0
-};
-const englishPrice={'Wheat Field':50,'Iron Mine':1200,'Steel Mill':3000,'Wind Turbine':1500,'Power Plant':5000,'Water Pump':500,'Chicken Coop':700,'Milk Barn':1500,'Sheep Pen':1200,'Oil Pump':2000,'Refinery':5000,'Farm Tractor':10000,'Silo':400,'Windmill':500,'Bakery':800,'Feed Mill':900,'Lumber Mill':1200,'Fabric Plant':1500,'Winery':1800,'Cafe':2000,'Cakery':2200,'Candy Shop':2500,'Chocolate Shop':3000,'Glass Factory':3500};
-const names={wheat:'قمح',flour:'طحين',iron:'خام الحديد',steel:'الفولاذ',battery:'بطارية',wood:'خشب',plank:'لوح خشب',egg:'بيض',milk:'حليب',wool:'صوف',feed:'علف',oil:'نفط خام',fuel:'وقود',water:'ماء',bread:'خبز'};
-const sell={flour:550,iron:15,steel:150,battery:20,egg:20,milk:35,wool:45,feed:10,fuel:50,bread:400,plank:100};
-const wage={farm:5,wood:5,animal:6,industry:7,builder:8};
-const say=s=>{E.log.unshift(new Date().toLocaleTimeString('ar-DZ')+' — '+s);E.log=E.log.slice(0,30)};
-const sum=()=>Object.values(E.inventory).reduce((a,b)=>a+b,0);
-const add=(k,n)=>{n=Math.max(0,Math.floor(n));if(!n)return 0;const room=Math.max(0,E.capacity-sum()),q=Math.min(n,room);E.inventory[k]=(E.inventory[k]||0)+q;if(q<n)say('المخزن ممتلئ؛ تعذر تخزين '+names[k]);return q};
-const take=(k,n)=>{const q=Math.min(E.inventory[k]||0,n);E.inventory[k]=(E.inventory[k]||0)-q;return q};
-const all=(...ks)=>ks.reduce((a,k)=>a+(E.inventory[k]||0),0);
-const title=d=>d&&d[1]||'';
-function itemCost(index){const d=ITEMS[index],ar=d[1],en=d[2];return price[ar]??englishPrice[en]??null}
-function getItems(){return objs.filter(o=>o.k==='cat')}
-function has(name){return getItems().some(o=>ITEMS[o.ci][1]===name||ITEMS[o.ci][2]===name)}
-function getWorkers(){return objs.filter(o=>o.k==='worker')}
-function activeCount(){return getWorkers().filter(w=>w.walk||!['idle','rest'].includes(w.st)).length}
-function uiStats(){if(!$e('ecoMoney'))return;$e('ecoMoney').textContent=Math.floor(E.money).toLocaleString('en-US')+'$';$e('ecoStock').textContent=sum()+' / '+E.capacity;$e('ecoWorkers').textContent=getWorkers().length+' ('+activeCount()+' يعملون)'}
-function draw(){
- uiStats();const c=$e('ecoContent');if(!c)return;
- if(E.mode==='overview'){
- c.innerHTML='<h3>حالة القرية</h3><p>المنشآت: '+getItems().length+' · العمال: '+getWorkers().length+' · إجمالي المبيعات: '+E.sales.toFixed(2)+'$</p><p>رصيد الاختبار مستقل عن أي حساب لاعب حقيقي. الإنتاج يتوقف عند امتلاء المخزون أو غياب المدخلات.</p><h3>سجل العمليات</h3><div class="log">'+(E.log.slice(0,12).map(x=>'<div>'+x+'</div>').join('')||'لا توجد عمليات بعد')+'</div>';
- }else if(E.mode==='inventory'){
- c.innerHTML='<h3>المخزون المتاح</h3>'+(Object.keys(names).map(k=>'<div class="erow"><span>'+names[k]+'</span><b style="margin-right:auto">'+(E.inventory[k]||0)+'</b></div>').join(''))+'<p class="small">سعة المستودع العام: '+E.capacity+' وحدة. الماء مورد تشغيلي ولا يدخل في البيع.</p>';
- }else if(E.mode==='sales'){
- c.innerHTML='<h3>بيع المنتجات من المستودع العام</h3><div class="erow"><select id="ecoSellItem">'+Object.keys(sell).map(k=>'<option value="'+k+'">'+names[k]+' — '+sell[k]+'$ / وحدة</option>').join('')+'</select><input id="ecoSellQty" type="number" min="1" value="10" style="width:75px"><button id="ecoSell">بيع الكمية</button></div><p>البيع يخصم الكمية من المخزون ويضيف قيمة البيع إلى الرصيد التجريبي.</p>';
- }else{
- c.innerHTML='<h3>أدوات الاختبار</h3><p>إعادة ضبط الرصيد: مليون دولار. المخزون والقرية لا يتغيران.</p><div class="erow"><button id="ecoAddTest">إضافة 10,000$ للاختبار</button><button id="ecoClearStock">تفريغ مخزون الاختبار</button></div><p class="small">أسعار العناصر غير المعتمدة لا تُخمن؛ يظهر تنبيه عند محاولة شرائها.</p>';
- }
- const sellBtn=$e('ecoSell');if(sellBtn)sellBtn.onclick=()=>{const k=$e('ecoSellItem').value,n=Math.max(1,Math.floor(+$e('ecoSellQty').value||1)),q=take(k,n);if(!q){say('لا توجد كمية كافية للبيع');}else{const v=q*sell[k];E.money+=v;E.sales+=v;say('بيع '+q+' '+names[k]+' بقيمة '+v+'$');}draw()};
- const addBtn=$e('ecoAddTest');if(addBtn)addBtn.onclick=()=>{E.money+=10000;say('إضافة رصيد اختبار 10,000$');draw()};
- const clear=$e('ecoClearStock');if(clear)clear.onclick=()=>{E.inventory={};say('تم تفريغ مخزون الاختبار');draw()};
-}
-$e('ecoToggle').onclick=()=>panel.classList.toggle('open');
-['Overview','Inventory','Sales','Test'].forEach(n=>$e('ecoTab'+n).onclick=()=>{E.mode=n.toLowerCase();draw()});
-$e('ecoReset').onclick=()=>{E.money=E.initial;E.sales=0;say('إعادة ضبط رصيد الحساب التجريبي إلى مليون دولار');draw()};
-function attachInitialAssets(){
- // Preserve existing visual scene; add the starter farm's working entities only when absent.
- if(!objs.some(o=>o.k==='cat'&&ITEMS[o.ci][2]==='Farm House')){
-  const ix=ITEMS.findIndex(d=>d[2]==='Farm House'),o={k:'cat',ci:ix,role:ROLE(ITEMS[ix]),x:7,y:2,fw:2,fd:2,mv:1,st:0,t:0,starter:true,sp:1};objs.push(o);occ(o,1);
- }
- if(!objs.some(o=>o.k==='cat'&&ITEMS[o.ci][2]==='Wheat Field')){
-  const ix=ITEMS.findIndex(d=>d[2]==='Wheat Field'),o={k:'cat',ci:ix,role:'field',x:8,y:6,fw:1,fd:1,mv:1,st:1,t:0};objs.push(o);occ(o,1);say('إضافة حقل القمح التجريبي الأول');
- }
- if(!objs.some(o=>o.k==='cat'&&ITEMS[o.ci][2]==='Silo')){
-  const ix=ITEMS.findIndex(d=>d[2]==='Silo'),o={k:'cat',ci:ix,role:'silo',x:11,y:6,fw:2,fd:2,mv:1,st:0,t:0};if(fits(o,o.x,o.y)){objs.push(o);occ(o,1)}
- }
-}
-function chargeBuild(o){
- const d=ITEMS[o.ci],cost=itemCost(o.ci);
- if(cost===null){say('لم يُعتمد سعر شراء '+d[1]+' بعد؛ لم يتم البناء');return false}
- if(E.money<cost){say('الرصيد غير كافٍ لشراء '+d[1]);return false}
- E.money-=cost;o.purchaseCost=cost;
- say('شراء '+d[1]+' مقابل '+cost+'$');return true;
-}
-const oldTap=tap;
-tap=function(px,py){
- if(placing){
-  const p=pick(px,py);if(!p)return;
-  const d=ITEMS[placing-1],z=SZ[d[3]]||1,o={k:'cat',ci:placing-1,role:ROLE(d),x:p.x,y:p.y,fw:z,fd:z,mv:1,st:0,t:0};
-  if(o.role==='tractor'){delete o.fw;delete o.fd;o.k='veh';o.x+=.5;o.y+=.5;o.hx=o.x;o.hy=o.y;o.nocc=1;o.mv=0;o.st='idle';o.fx=1}
-  if(!fits(o,p.x,p.y))return $('info').textContent='المربع مشغول';
-  if(!chargeBuild(o))return $('info').textContent='لم يتم البناء — راجع السعر أو الرصيد';
-  objs.push(o);occ(o,1);return $('info').textContent='تم الشراء والبناء ✓ — '+d[1];
- }
- return oldTap(px,py);
-};
-// Grid-based worker routing: workers avoid water, buildings, fields, trees and rocks.
-const baseGo=go;
-const routeCache=new Map();
-function walkable(x,y){return x>=0&&y>=0&&x<W&&y<H&&![2,3,4,5,6].includes(T[x][y])}
-function route(fromX,fromY,toX,toY){
- let sx=Math.max(0,Math.min(W-1,Math.floor(fromX))),sy=Math.max(0,Math.min(H-1,Math.floor(fromY)));
- let tx=Math.max(0,Math.min(W-1,Math.floor(toX))),ty=Math.max(0,Math.min(H-1,Math.floor(toY)));
- const key=[sx,sy,tx,ty].join(':');if(routeCache.has(key))return routeCache.get(key);
- const goals=[];if(walkable(tx,ty))goals.push([tx,ty]);
- else for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]])if(walkable(tx+dx,ty+dy))goals.push([tx+dx,ty+dy]);
- if(!goals.length)return null;
- const goalSet=new Set(goals.map(p=>p.join(':'))),q=[[sx,sy]],prev=new Map(),seen=new Set([sx+':'+sy]);let end=null;
- while(q.length){const [x,y]=q.shift(),k=x+':'+y;if(goalSet.has(k)){end=[x,y];break}
- for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){const a=x+dx,b=y+dy,nk=a+':'+b;if(!walkable(a,b)||seen.has(nk))continue;seen.add(nk);prev.set(nk,k);q.push([a,b])}}
- if(!end){routeCache.set(key,null);return null}
- const path=[];let k=end.join(':');while(k){const [x,y]=k.split(':').map(Number);path.unshift([x+.5,y+.5]);if(k===sx+':'+sy)break;k=prev.get(k)}
- routeCache.set(key,path);if(routeCache.size>500)routeCache.clear();return path;
-}
-go=function(w,tx,ty,dt){
- if(!w.path||w.pathTargetX!==Math.floor(tx)||w.pathTargetY!==Math.floor(ty)||!w.path.length){
-  const p=route(w.x,w.y,tx,ty);w.path=p||[];w.pathTargetX=Math.floor(tx);w.pathTargetY=Math.floor(ty);
- }
- if(!w.path.length){w.walk=false;return Math.hypot(tx-w.x,ty-w.y)<.4}
- const [x,y]=w.path[0],dx=x-w.x,dy=y-w.y,l=Math.hypot(dx,dy);
- if(l<.12){w.path.shift();if(!w.path.length){w.walk=false;return true}}
- else{const s=Math.min(l,1.7*dt);w.x+=dx/l*s;w.y+=dy/l*s;w.mvg=(w.mvg||0)+dt*10;w.walk=true;w.fx=dx-dy>=0?1:-1}
- return false;
-};
-// Core passive production loops, using the approved recipes and storage limits.
-function production(dt){
- E.elapsed+=dt;E.wageClock+=dt;
- const farms=getItems().filter(o=>ITEMS[o.ci][2]==='Wheat Field');
- farms.forEach(f=>{f.grow=(f.grow||0)+dt;if(f.grow>=10){f.grow-=10;f.ready=(f.ready||0)+1}});
- // Existing farmer AI handles harvest and physical delivery; account for its delivered crop here.
- if(crop>0){const delivered=Math.min(crop,Math.max(0,E.capacity-sum()));if(delivered){crop-=delivered;add('wheat',delivered)}}
- // Iron mine: one raw iron every 30 seconds.
- getItems().filter(o=>ITEMS[o.ci][2]==='Iron Mine').forEach(o=>{o.prod=(o.prod||0)+dt;if(o.prod>=30){o.prod-=30;add('iron',1)}});
- // Wind turbine: one battery every minute.
- getItems().filter(o=>ITEMS[o.ci][2]==='Wind Turbine').forEach(o=>{o.prod=(o.prod||0)+dt;if(o.prod>=60){o.prod-=60;add('battery',1)}});
- // Oil pump: one crude oil each minute.
- getItems().filter(o=>ITEMS[o.ci][2]==='Oil Pump').forEach(o=>{o.prod=(o.prod||0)+dt;if(o.prod>=60){o.prod-=60;add('oil',1)}});
- // Mill and refinery recipes.
- getItems().filter(o=>ITEMS[o.ci][2]==='Steel Mill').forEach(o=>{o.prod=(o.prod||0)+dt;if(o.prod>=60&&all('iron')>=5){o.prod-=60;take('iron',5);add('steel',1)}});
- getItems().filter(o=>ITEMS[o.ci][2]==='Refinery').forEach(o=>{o.prod=(o.prod||0)+dt;if(o.prod>=300&&all('oil')>=5){o.prod-=300;take('oil',5);add('fuel',1)}});
- getItems().filter(o=>ITEMS[o.ci][2]==='Windmill').forEach(o=>{o.prod=(o.prod||0)+dt;if(o.prod>=10&&all('wheat')>=10){o.prod-=10;take('wheat',10);add('flour',1)}});
- // Approved wages are charged only for workers currently performing work.
- if(E.wageClock>=300){const cycles=Math.floor(E.wageClock/300);E.wageClock-=cycles*300;
-  const workers=getWorkers();workers.forEach(w=>{if(walkActive(w)){const role=w.role==='farm'?'farm':w.role==='wood'?'wood':w.role==='hand'?'industry':'industry';const v=wage[role]||7;E.money-=v*cycles;say('أجرة عامل '+role+' عن فترة عمل: '+v*cycles+'$');
-}});
- }
-}
-function walkActive(w){return !!(w.walk||!['idle','rest'].includes(w.st));}
-const oldUpdate=update;
-update=function(dt){oldUpdate(dt);production(dt);money=E.money;if(performance.now()-E.lastUI>700){E.lastUI=performance.now();uiStats()}};
-attachInitialAssets();
-say('بدأ الحساب التجريبي برصيد مليون دولار');
-draw();uiStats();
-})();
-</script>
-</body></html>
+</script></body></html>
