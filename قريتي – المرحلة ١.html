@@ -456,7 +456,7 @@ function tick(o,dt){const r=o.role;if(!r)return;if(o.k=='veh'){(r=='truck'?aiK:a
   else if(r=='pen'){if(o.nw||o.nf>0)o.need=1;if(!o.need){o.tf=(o.tf==null?30:o.tf)+dt;if(o.tf>=40){o.need=1;o.nw=1;o.nf=FEED[n]||1}}}
  else if(r=='prod'){if(o.out<10){o.pg+=dt;const p=PR[n];if(o.pg>=(p.t||20)){o.pg=0;o.out++;o.ores=p.out}}}
  else if(r=='proc'){const rc=RC[n];if(!o.run){if(o.out<10&&Object.keys(rc.in).every(k=>(o.inv[k]||0)>=rc.in[k])){for(const k in rc.in)o.inv[k]-=rc.in[k];o.run=1;o.pg=0}}else{o.pg+=dt;if(o.pg>=(rc.t||30)){o.run=0;o.out+=rc.qty||1;o.ores=rc.out}}}}
-function wsrc(w){const ws=objs.filter(o=>(o.role=='waterfield'||o.role=='well')&&o.act!==false);return nearest(ws.length?ws.map(o=>({x:o.x+.5,y:o.y+1.35})):SHORE,w)}
+function wsrc(w){const ws=objs.filter(o=>(o.role=='waterfield'||o.role=='well')&&o.mv&&o.act!==false).map(o=>({x:o.x+.5,y:o.y+1.35}));const shore=nearest(SHORE,w);if(shore)ws.push(shore);return nearest(ws,w)}
 function fin(w){rls(w.ks||[]);w.ks=[];w.steps=null;w.st='idle';w.car=null}
 function aiH(w,dt){w.walk=false;if(!w.steps){w.steps=plan(w);w.tm=0;if(!w.steps){const h=fr(w.home);go(w,h.x,h.y,dt);return}}
  const s=w.steps[0];if(!s){fin(w);return}
@@ -464,7 +464,7 @@ function aiH(w,dt){w.walk=false;if(!w.steps){w.steps=plan(w);w.tm=0;if(!w.steps)
  else{w.st=s.st;w.tm+=dt;if(w.tm>=s.d){if(s.fn&&s.fn()===false){fin(w);return}w.steps.shift();w.tm=0;w.st='idle'}}
  if(w.steps&&!w.steps.length)fin(w)}
 function plan(w){const L=a=>nearest(a,w),act=(...r)=>objs.filter(o=>r.includes(o.role)&&o.act!==false&&o.inv),stk=r=>objs.filter(q=>ACC[q.role]&&q.role!='wh'&&q.act!==false&&q.inv&&(q.inv[r]||0)>0);
- const whs=w.role=='hand'?act('wh'):[],whFree=whs.some(q=>q.cap-tot(q)>0);
+ const whs=w.role=='farm'?act('wh'):[],whFree=whs.some(q=>q.cap-tot(q)>0);
  /* عامل الصناعة لا يتوقف عن بقية المهام إذا امتلأ المستودع العام؛ يواصل نقل الخام والبطاريات إلى وجهاتها المتاحة. */
  const mills=(w.role=='farm'?act('proc'):[]).filter(q=>ITEMS[q.ci][2]=='Windmill'&&q.ores=='flour'&&q.out>=1&&!CL.has('m'+oid(q)));
  const mill=L(mills),wh=L(whs.filter(q=>q.cap-tot(q)>0));
@@ -525,10 +525,10 @@ function plan(w){const L=a=>nearest(a,w),act=(...r)=>objs.filter(o=>r.includes(o
 
  /* نقل القمح من الصومعة إلى طاحونة الحبوب عند وجود حاجة فعلية. */
  if(w.role=='farm'){
-  const windmill=L(act('proc').filter(p=>ITEMS[p.ci][2]=='Windmill'&&p.out<50));
+  const windmill=L(objs.filter(p=>p.role=='proc'&&p.mv&&p.inv&&ITEMS[p.ci][2]=='Windmill'&&p.out<50));
   if(windmill){
    const need=Math.max(0,(RC['Windmill'].in.wheat||0)-(windmill.inv.wheat||0));
-   const silo=L(objs.filter(q=>q.role=='silo'&&q.act!==false&&q.inv&&(q.inv.wheat||0)>0&&!CL.has('wheat-to-mill'+oid(q))));
+   const silo=L(objs.filter(q=>q.role=='silo'&&q.mv&&q.inv&&(q.inv.wheat||0)>0&&!CL.has('wheat-to-mill'+oid(q))));
    const amount=Math.min(need,silo?(silo.inv.wheat||0):0,Math.max(0,10-(windmill.inv.wheat||0)));
    if(need>0&&silo&&amount>0){
     const k='wheat-to-mill'+oid(silo);cl(k);w.ks=[k];
@@ -538,7 +538,7 @@ function plan(w){const L=a=>nearest(a,w),act=(...r)=>objs.filter(o=>r.includes(o
  }
  /* رعاية الحيوانات ضمن مهام الفلاح، بعد الحصاد ونقل المحاصيل. */
  if(w.role=='farm'){
-  const pens=act('pen');
+  const pens=objs.filter(p=>p.role=='pen'&&p.mv&&p.act!==false);
   const thirsty=L(pens.filter(p=>p.nw&&!CL.has('water-pen'+oid(p))));
   const water=wsrc(w)||SHORE[0];
   if(thirsty&&water){
@@ -691,7 +691,7 @@ const cd1=DRAW.cat;DRAW.cat=(o,t)=>{cd1(o,t);if(o.role=='pen'&&o.nf>0){const z=o
 /* ===== أولويات التخزين ===== */
 ACC.wh=['crop','food','goods','wood','fuel'];STO.wh=1;NEED.push('wh');
 const RK={silo:0,store:0,pantry:0,fuelst:0,depot:1,wh:2};
-function roleOf(d){const n=d[2];if(n=='Farm Tractor')return'tractor';if(n=='Sales Truck')return'truck';const m={'Silo':'silo','Wood Shed':'store','Storehouse':'depot','Warehouse':'wh','Pantry':'pantry','Fuel Storage':'fuelst','Worker House':'whouse','Lumberjack House':'lhouse','Farm House':'fhouse','Well':'well','Water Pump':'well','Wind Pump':'well','Water Facility':'well'};if(m[n])return m[n];if(FO[n])return'field';if(PNM[n])return'pen';if(RC[n])return'proc';if(PR[n])return'prod';return null}
+function roleOf(d){const n=d[2];if(n=='Farm Tractor')return'tractor';if(n=='Sales Truck')return'truck';const m={'Silo':'silo','Wood Shed':'store','Storehouse':'depot','Warehouse':'wh','Pantry':'pantry','Fuel Storage':'fuelst','Worker House':'whouse','Lumberjack House':'lhouse','Farm House':'fhouse','Well':'well','Water Field':'waterfield','Water Pump':'well','Wind Pump':'well','Water Facility':'well'};if(m[n])return m[n];if(FO[n])return'field';if(PNM[n])return'pen';if(RC[n])return'proc';if(PR[n])return'prod';return null}
 function give(s,r,n){if(!s||!s.inv)return;const sp=s.cap?s.cap-tot(s):10-(s.inv[r]||0);s.inv[r]=(s.inv[r]||0)+Math.max(0,Math.min(n,sp))}
 function dst(r,n,p){const g=RS[r][0];let b=null,bd=1e9;n=n||1;
  objs.forEach(o=>{if(o.role!='proc'||o.act===false||!o.inv)return;const rc=RC[ITEMS[o.ci][2]];if(!rc.in[r]||(o.inv[r]||0)+n>10)return;const s=Math.hypot(o.x-p.x,o.y-p.y);if(s<bd){bd=s;b=o}});
@@ -823,7 +823,7 @@ const cd1=DRAW.cat;DRAW.cat=(o,t)=>{cd1(o,t);if(o.role=='pen'&&o.nf>0){const z=o
 /* ===== أولويات التخزين ===== */
 ACC.wh=['crop','food','goods','wood','fuel'];STO.wh=1;NEED.push('wh');
 const RK={silo:0,store:0,pantry:0,fuelst:0,depot:1,wh:2};
-function roleOf(d){const n=d[2];if(n=='Farm Tractor')return'tractor';if(n=='Sales Truck')return'truck';const m={'Silo':'silo','Wood Shed':'store','Storehouse':'depot','Warehouse':'wh','Pantry':'pantry','Fuel Storage':'fuelst','Worker House':'whouse','Lumberjack House':'lhouse','Farm House':'fhouse','Well':'well','Water Pump':'well','Wind Pump':'well','Water Facility':'well'};if(m[n])return m[n];if(FO[n])return'field';if(PNM[n])return'pen';if(RC[n])return'proc';if(PR[n])return'prod';return null}
+function roleOf(d){const n=d[2];if(n=='Farm Tractor')return'tractor';if(n=='Sales Truck')return'truck';const m={'Silo':'silo','Wood Shed':'store','Storehouse':'depot','Warehouse':'wh','Pantry':'pantry','Fuel Storage':'fuelst','Worker House':'whouse','Lumberjack House':'lhouse','Farm House':'fhouse','Well':'well','Water Field':'waterfield','Water Pump':'well','Wind Pump':'well','Water Facility':'well'};if(m[n])return m[n];if(FO[n])return'field';if(PNM[n])return'pen';if(RC[n])return'proc';if(PR[n])return'prod';return null}
 function give(s,r,n){if(!s||!s.inv)return;const sp=s.cap?s.cap-tot(s):10-(s.inv[r]||0);s.inv[r]=(s.inv[r]||0)+Math.max(0,Math.min(n,sp))}
 function dst(r,n,p){const g=RS[r][0];let b=null,bd=1e9;n=n||1;
  objs.forEach(o=>{if(o.role!='proc'||o.act===false||!o.inv)return;const rc=RC[ITEMS[o.ci][2]];if(!rc.in[r]||(o.inv[r]||0)+n>10)return;const s=Math.hypot(o.x-p.x,o.y-p.y);if(s<bd){bd=s;b=o}});
@@ -957,7 +957,7 @@ const cd1=DRAW.cat;DRAW.cat=(o,t)=>{cd1(o,t);if(o.role=='pen'&&o.nf>0){const z=o
 /* ===== أولويات التخزين ===== */
 ACC.wh=['crop','food','goods','wood','fuel'];STO.wh=1;NEED.push('wh');
 const RK={silo:0,store:0,pantry:0,fuelst:0,depot:1,wh:2};
-function roleOf(d){const n=d[2];if(n=='Farm Tractor')return'tractor';if(n=='Sales Truck')return'truck';const m={'Silo':'silo','Wood Shed':'store','Storehouse':'depot','Warehouse':'wh','Pantry':'pantry','Fuel Storage':'fuelst','Worker House':'whouse','Lumberjack House':'lhouse','Farm House':'fhouse','Well':'well','Water Pump':'well','Wind Pump':'well','Water Facility':'well'};if(m[n])return m[n];if(FO[n])return'field';if(PNM[n])return'pen';if(RC[n])return'proc';if(PR[n])return'prod';return null}
+function roleOf(d){const n=d[2];if(n=='Farm Tractor')return'tractor';if(n=='Sales Truck')return'truck';const m={'Silo':'silo','Wood Shed':'store','Storehouse':'depot','Warehouse':'wh','Pantry':'pantry','Fuel Storage':'fuelst','Worker House':'whouse','Lumberjack House':'lhouse','Farm House':'fhouse','Well':'well','Water Field':'waterfield','Water Pump':'well','Wind Pump':'well','Water Facility':'well'};if(m[n])return m[n];if(FO[n])return'field';if(PNM[n])return'pen';if(RC[n])return'proc';if(PR[n])return'prod';return null}
 function give(s,r,n){if(!s||!s.inv)return;const sp=s.cap?s.cap-tot(s):10-(s.inv[r]||0);s.inv[r]=(s.inv[r]||0)+Math.max(0,Math.min(n,sp))}
 function dst(r,n,p){const g=RS[r][0];let b=null,bd=1e9;n=n||1;
  objs.forEach(o=>{if(o.role!='proc'||o.act===false||!o.inv)return;const rc=RC[ITEMS[o.ci][2]];if(!rc.in[r]||(o.inv[r]||0)+n>10)return;const s=Math.hypot(o.x-p.x,o.y-p.y);if(s<bd){bd=s;b=o}});
