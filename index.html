@@ -195,7 +195,7 @@ const find=k=>objs.filter(o=>(o.role||o.k)==k),nearest=(a,w)=>a.reduce((b,o)=>!b
 const fr=o=>({x:o.x+o.fw/2+.02,y:o.y+o.fd+.55});
 const src=w=>{const ws=find('well');return nearest(ws.length?ws.map(o=>({x:o.x+.5,y:o.y+1.35})):SHORE,w)};
 function go(w,tx,ty,dt){const dx=tx-w.x,dy=ty-w.y,l=Math.hypot(dx,dy);if(l<.07)return true;const s=Math.min(l,1.7*dt);w.x+=dx/l*s;w.y+=dy/l*s;w.mvg+=dt*10;w.walk=true;w.fx=dx-dy>=0?1:-1;return false}
-function goRoad(w,tx,ty,dt){
+function go(w,tx,ty,dt){
  const same=w.rdTarget&&Math.abs(w.rdTarget.x-tx)<.12&&Math.abs(w.rdTarget.y-ty)<.12;
  if(!same){w.rdTarget={x:tx,y:ty};w.rdPath=null;w.rdIndex=0;w.rdBlocked=false;w.rdWait=0}
  if(!w.rdPath){
@@ -274,9 +274,9 @@ let GLOW=[];
 function lighting(t){const dk=DK(t);ctx.save();ctx.setTransform(1,0,0,1,0,0);ctx.globalCompositeOperation='source-atop';const g=ctx.createLinearGradient(0,0,cv.width,cv.height);g.addColorStop(0,'rgba(255,240,200,.14)');g.addColorStop(1,'rgba(40,30,90,.14)');ctx.fillStyle=g;ctx.fillRect(0,0,cv.width,cv.height);if(dk>0){ctx.fillStyle='rgba(10,20,60,'+dk+')';ctx.fillRect(0,0,cv.width,cv.height)}ctx.globalCompositeOperation='lighter';ctx.setTransform(dpr*cam.s,0,0,dpr*cam.s,dpr*cam.x,dpr*cam.y);GLOW.forEach(([x,y,r])=>{const q=ctx.createRadialGradient(x,y,2,x,y,r);q.addColorStop(0,'rgba(255,200,100,'+Math.min(.7,dk*2.4)+')');q.addColorStop(1,'rgba(255,200,100,0)');ctx.fillStyle=q;ctx.beginPath();ctx.arc(x,y,r,0,7);ctx.fill()});GLOW=[];ctx.restore()}
 function spawnFor(o){const r={whouse:'hand',lhouse:'wood',fhouse:'farm'}[o.role];if(!r)return;const d=fr(o);objs.push({k:'worker',role:r,home:o,x:d.x,y:d.y,st:'idle',tm:0,car:null,fx:1,mvg:0,walk:false})}
 function tick(o,dt){if(o.role=='pen'){o.tw=(o.tw==null?12:o.tw)+dt;o.tf=(o.tf==null?18:o.tf)+dt;if(o.tw>20)o.nw=1;if(o.tf>28)o.nf=1}else if(o.role=='turb'){o.pt=(o.pt||0)+dt;if(o.pt>=60)o.bat=1}else if(o.k=='veh')aiT(o,dt)}
-function aiH(w,dt){w.walk=false;if(!w.steps){w.steps=taskH(w);w.tm=0;if(!w.steps){const h=fr(w.home);goRoad(w,h.x,h.y,dt);return}}
+function aiH(w,dt){w.walk=false;if(!w.steps){w.steps=taskH(w);w.tm=0;if(!w.steps){const h=fr(w.home);go(w,h.x,h.y,dt);return}}
  const s=w.steps[0];if(!s){w.steps=null;return}
- if(s.go){const p=s.go();if(!p||goRoad(w,p.x,p.y,dt)){w.steps.shift();w.tm=0}}else{w.st=s.st;w.tm+=dt;if(w.tm>=s.d){if(s.fn)s.fn();w.steps.shift();w.tm=0;w.st='idle'}}
+ if(s.go){const p=s.go();if(!p||go(w,p.x,p.y,dt)){w.steps.shift();w.tm=0}}else{w.st=s.st;w.tm+=dt;if(w.tm>=s.d){if(s.fn)s.fn();w.steps.shift();w.tm=0;w.st='idle'}}
  if(w.steps&&!w.steps.length)w.steps=null}
 function taskH(w){const n=a=>nearest(a,w),sk=stor('depot','silo'),sk2=stor('silo','depot'),ws=src(w),sf=once(()=>{const s=stor('silo','depot');return s&&ft(s)}),sd=once(()=>{const s=stor('depot','silo');return s&&ft(s)});
  const bt=n(find('turb').filter(o=>o.bat&&!o.rs));
@@ -470,9 +470,9 @@ function tick(o,dt){const r=o.role;if(!r)return;if(o.k=='veh'){(r=='truck'?aiK:a
  else if(r=='proc'){const rc=RC[n];if(!o.run){if(o.out<10&&Object.keys(rc.in).every(k=>(o.inv[k]||0)>=rc.in[k])){for(const k in rc.in)o.inv[k]-=rc.in[k];o.run=1;o.pg=0}}else{o.pg+=dt;if(o.pg>=30){o.run=0;o.out++;o.ores=rc.out}}}}
 function wsrc(w){const ws=objs.filter(o=>o.role=='well'&&o.act!==false);return nearest(ws.length?ws.map(o=>({x:o.x+.5,y:o.y+1.35})):SHORE,w)}
 function fin(w){rls(w.ks||[]);w.ks=[];w.steps=null;w.st='idle';w.car=null}
-function aiH(w,dt){w.walk=false;if(!w.steps){w.steps=plan(w);w.tm=0;if(!w.steps){const h=fr(w.home);goRoad(w,h.x,h.y,dt);return}}
+function aiH(w,dt){w.walk=false;if(!w.steps){w.steps=plan(w);w.tm=0;if(!w.steps){const h=fr(w.home);go(w,h.x,h.y,dt);return}}
  const s=w.steps[0];if(!s){fin(w);return}
- if(s.go){const p=s.go();if(!p){fin(w);return}if(goRoad(w,p.x,p.y,dt)){w.steps.shift();w.tm=0}}
+ if(s.go){const p=s.go();if(!p){fin(w);return}if(go(w,p.x,p.y,dt)){w.steps.shift();w.tm=0}}
  else{w.st=s.st;w.tm+=dt;if(w.tm>=s.d){if(s.fn&&s.fn()===false){fin(w);return}w.steps.shift();w.tm=0;w.st='idle'}}
  if(w.steps&&!w.steps.length)fin(w)}
 function plan(w){const L=a=>nearest(a,w),act=(...r)=>objs.filter(o=>r.includes(o.role)&&o.act!==false&&o.inv),stk=r=>objs.filter(q=>ACC[q.role]&&q.role!='wh'&&q.act!==false&&q.inv&&(q.inv[r]||0)>0);
@@ -500,16 +500,16 @@ function aiW(w,dt){w.walk=false;w.tm+=dt;
    if(d){lm.plankRes=1;w.mill=lm;w.ds=d;w.st='toMill';break}
   }
   const b=nearest(objs.filter(o=>o.k=='tree'&&!o.res),w);
-  if(b&&dst('wood',1,w)){b.res=1;w.tg=b;w.st='toTree'}else{const h=fr(w.home);goRoad(w,h.x,h.y,dt)}
+  if(b&&dst('wood',1,w)){b.res=1;w.tg=b;w.st='toTree'}else{const h=fr(w.home);go(w,h.x,h.y,dt)}
   break}
- case'toMill':if(!w.mill||w.mill.out<1||w.mill.ores!='plank'){if(w.mill)w.mill.plankRes=0;w.mill=null;w.ds=null;w.st='idle'}else if(goRoad(w,ft(w.mill).x,ft(w.mill).y,dt)){w.st='takePlank';w.tm=0}break;
+ case'toMill':if(!w.mill||w.mill.out<1||w.mill.ores!='plank'){if(w.mill)w.mill.plankRes=0;w.mill=null;w.ds=null;w.st='idle'}else if(go(w,ft(w.mill).x,ft(w.mill).y,dt)){w.st='takePlank';w.tm=0}break;
  case'takePlank':if(w.tm>.8){const a=Math.min(w.mill?.out||0,w.ds?Math.max(0,w.ds.cap-tot(w.ds)):0);if(a>0){w.mill.out-=a;w.n=a;w.car='plank';w.st='toDepot'}else{if(w.mill)w.mill.plankRes=0;w.mill=null;w.ds=null;w.st='idle'}}break;
- case'toDepot':if(w.ds&&goRoad(w,ft(w.ds).x,ft(w.ds).y,dt)){w.st='dropPlank';w.tm=0}break;
+ case'toDepot':if(w.ds&&go(w,ft(w.ds).x,ft(w.ds).y,dt)){w.st='dropPlank';w.tm=0}break;
  case'dropPlank':if(w.tm>.6){give(w.ds,'plank',w.n);if(w.mill)w.mill.plankRes=0;w.mill=null;w.ds=null;w.n=0;w.car=null;w.st='idle'}break;
- case'toTree':if(goRoad(w,w.tg.x+.3,w.tg.y+.3,dt)){w.fx=(w.tg.x-w.x)-(w.tg.y-w.y)>=0?1:-1;w.st='chop';w.tm=0}break;
+ case'toTree':if(go(w,w.tg.x+.3,w.tg.y+.3,dt)){w.fx=(w.tg.x-w.x)-(w.tg.y-w.y)>=0?1:-1;w.st='chop';w.tm=0}break;
  case'chop':w.tg.shake=1;if(w.tm>4){const g=w.tg,tx=Math.floor(g.x),ty=Math.floor(g.y);objs.splice(objs.indexOf(g),1);if(!objs.some(o=>o.k=='tree'&&Math.floor(o.x)==tx&&Math.floor(o.y)==ty))T[tx][ty]=0;w.log={k:'log',x:g.x,y:g.y};objs.push(w.log);w.st='pick';w.tm=0}break;
  case'pick':if(w.tm>.8){objs.splice(objs.indexOf(w.log),1);w.car='log';w.st='toStore';w.ds=null}break;
- case'toStore':{w.ds=w.ds||dst('wood',1,w);if(w.ds&&goRoad(w,w.ds.x+w.ds.fw/2,w.ds.y+w.ds.fd+.4,dt)){w.st='drop';w.tm=0}break}
+ case'toStore':{w.ds=w.ds||dst('wood',1,w);if(w.ds&&go(w,w.ds.x+w.ds.fw/2,w.ds.y+w.ds.fd+.4,dt)){w.st='drop';w.tm=0}break}
  case'drop':if(w.tm>.6){give(w.ds,'wood',1);w.car=null;w.st='idle'}break}}
 function aiT(o,dt){o.walk=false;o.tm=(o.tm||0)+dt;
  if(o.st=='idle'){const f=nearest(objs.filter(q=>q.role=='field'&&q.act!==false&&q.st==2&&q.out>=1&&!CL.has('c'+oid(q))&&dst(q.ores,q.out,o)),o);if(f){o.k0='c'+oid(f);cl(o.k0);o.tg=f;o.st='toF'}else drive(o,o.hx,o.hy,dt)}
