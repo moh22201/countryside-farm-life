@@ -195,7 +195,7 @@ const find=k=>objs.filter(o=>(o.role||o.k)==k),nearest=(a,w)=>a.reduce((b,o)=>!b
 const fr=o=>({x:o.x+o.fw/2+.02,y:o.y+o.fd+.55});
 const src=w=>{const ws=find('well');return nearest(ws.length?ws.map(o=>({x:o.x+.5,y:o.y+1.35})):SHORE,w)};
 function go(w,tx,ty,dt){const dx=tx-w.x,dy=ty-w.y,l=Math.hypot(dx,dy);if(l<.07)return true;const s=Math.min(l,1.7*dt);w.x+=dx/l*s;w.y+=dy/l*s;w.mvg+=dt*10;w.walk=true;w.fx=dx-dy>=0?1:-1;return false}
-function go(w,tx,ty,dt){
+function goRoad(w,tx,ty,dt){
  const same=w.rdTarget&&Math.abs(w.rdTarget.x-tx)<.12&&Math.abs(w.rdTarget.y-ty)<.12;
  if(!same){w.rdTarget={x:tx,y:ty};w.rdPath=null;w.rdIndex=0;w.rdBlocked=false;w.rdWait=0}
  if(!w.rdPath){
