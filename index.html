@@ -653,7 +653,7 @@ RC['Windmill']={in:{wheat:10,wood:1},out:'flour',t:10};
 RC['Lumber Mill']={in:{wood:5},out:'plank',qty:3,t:40};
 RC['Steel Mill']={in:{ore:5},out:'steel',t:60};
 PR['Iron Mine'].t=30;RC['Refinery']={in:{oil:5},out:'fuel',t:300};
-const FOV=new Set(Object.values(FO));FOV.add('ore');FOV.add('oil');const CAP={silo:100,store:500,depot:800,pantry:600,fuelst:100,wh:1000};
+const FOV=new Set(Object.values(FO));FOV.add('ore');FOV.add('oil');const CAP={silo:100,store:500,depot:800,pantry:600,fuelst:100,wh:2000};
 const RAWC=['wheat','corn','cotton','sugar','soy','salt','mint','pumpkin','strawberry','blueberry','lettuce','tomato','vanilla','clover','cocoa','apple','bamboo','grape','feed'];
 const SG={silo:RAWC,store:['wood','plank'],depot:['flour','wool','fabric','pot','ore','sand','glass','steel','bat','clay'],pantry:['flour','egg','milk','honey','bread','cake','candy','choco','wine','meal','jam'],fuelst:['oil','fuel']};
 function dst(r,n,p){let b=null,bd=1e9;n=n||1;
