@@ -489,6 +489,19 @@ function plan(w){const L=a=>nearest(a,w),act=(...r)=>objs.filter(o=>r.includes(o
     {go:()=>ft(D)},
     {d:.6,st:'drop',fn:()=>{give(D,'bat',w.n);w.car=null;w.n=0}}
    ]}
+   const feedMill=L(act('proc').filter(o=>ITEMS[o.ci][2]=='Feed Mill'));
+   if(feedMill){
+    const recipe=RC['Feed Mill'].in;
+    for(const r of ['corn','soy']){
+     const need=Math.max(0,(recipe[r]||0)-(feedMill.inv[r]||0));
+     const source=L(objs.filter(q=>q.role=='silo'&&q.act!==false&&q.inv&&(q.inv[r]||0)>0&&!CL.has('feed-in'+oid(q)+r)));
+     const amount=Math.min(need,source?(source.inv[r]||0):0,Math.max(0,100-tot(feedMill)-(feedMill.out||0)));
+     if(need>0&&source&&amount>0){
+      const k='feed-in'+oid(source)+r;cl(k);w.ks=[k];
+      return[{go:()=>ft(source)},{d:.8,st:'take',fn:()=>{const n=Math.min(amount,source.inv[r]||0);if(n<1)return false;source.inv[r]-=n;w.n=n;w.car=r}},{go:()=>ft(feedMill)},{d:.8,st:'drop',fn:()=>{give(feedMill,r,w.n);w.car=null;w.n=0}}]
+     }
+    }
+   }
   }
   /* حقل الماء يسقي حقلاً واحداً قريباً؛ الفلاح يسقي يدوياً بقية الحقول الجافة. */
  if(w.role=='farm'){
@@ -520,18 +533,6 @@ function plan(w){const L=a=>nearest(a,w),act=(...r)=>objs.filter(o=>r.includes(o
    cl(k);w.ks=[k];
    return[{go:()=>ft(mill)},{d:.8,st:'take',fn:()=>{const n=Math.min(amount,mill.out||0,readyPen.nf);if(n<1||mill.ores!='feed')return false;mill.out-=n;w.n=n;w.car='feed'}},{go:()=>ft(readyPen)},{d:1.5,st:'feed',fn:()=>{readyPen.nf=Math.max(0,readyPen.nf-w.n);w.car=null;w.n=0;penDone(readyPen)}}]
   }
-  if(mill){
-   const recipe=RC['Feed Mill'].in;
-   for(const r of ['corn','soy']){
-    const need=Math.max(0,(recipe[r]||0)-(mill.inv[r]||0));
-    const source=L(objs.filter(q=>q.role=='silo'&&q.act!==false&&q.inv&&(q.inv[r]||0)>0&&!CL.has('feed-in'+oid(q)+r)));
-    const amount=Math.min(need,source?(source.inv[r]||0):0,Math.max(0,100-tot(mill)-(mill.out||0)));
-    if(need>0&&source&&amount>0){
-     const k='feed-in'+oid(source)+r;cl(k);w.ks=[k];
-     return[{go:()=>ft(source)},{d:.8,st:'take',fn:()=>{const n=Math.min(amount,source.inv[r]||0);if(n<1)return false;source.inv[r]-=n;w.n=n;w.car=r}},{go:()=>ft(mill)},{d:.8,st:'drop',fn:()=>{give(mill,r,w.n);w.car=null;w.n=0}}]
-    }
-   }
-  }
   const thirsty=L(pens.filter(p=>p.nw&&!CL.has('water-pen'+oid(p)))),water=wsrc(w);
   if(thirsty&&water){
    const k='water-pen'+oid(thirsty);cl(k);w.ks=[k];
@@ -540,7 +541,7 @@ function plan(w){const L=a=>nearest(a,w),act=(...r)=>objs.filter(o=>r.includes(o
  }
 
  const millsNeed=act('proc').filter(p=>ITEMS[p.ci][2]=='Windmill'&&p.out<50&&(p.inv.wheat||0)<10);millsNeed.forEach(p=>objs.filter(q=>q.role=='silo'&&q.act!==false&&q.inv&&(q.inv.wheat||0)>0).forEach(q=>q.wheatFlow=1));
- const C=[];(w.role=='hand'?act('proc').filter(p=>['Refinery','Steel Mill'].includes(ITEMS[p.ci][2])):w.role=='farm'?act('proc').filter(p=>ITEMS[p.ci][2]=='Windmill'):[]).forEach(p=>{const rc=RC[ITEMS[p.ci][2]],outCap=ITEMS[p.ci][2]=='Windmill'?50:10;if(p.out>=outCap) return;for(const r in rc.in){const need=Math.min(6,rc.in[r]-(p.inv[r]||0)),k='d'+oid(p)+r;if(need>0&&!CL.has(k)){const sources=stk(r).filter(q=>(w.role!='farm'||r=='wheat')&&(w.role!='hand'||['oil','ore'].includes(r))&&(r!='wood'||q.role=='store')&&(r!='wheat'||q.role!='silo'||q.wheatFlow||tot(q)>=q.cap));const silo=sources.find(q=>q.role=='silo'&&r=='wheat');if(silo&&tot(silo)>=silo.cap)silo.wheatFlow=1;const src=nearest(sources,p);if(src)C.push({p,r,s:src,need,k,x:p.x,y:p.y})}}});
+ const C=[];(w.role=='hand'?act('proc').filter(p=>['Refinery','Steel Mill'].includes(ITEMS[p.ci][2])):w.role=='farm'?act('proc').filter(p=>ITEMS[p.ci][2]=='Windmill'):[]).forEach(p=>{const rc=RC[ITEMS[p.ci][2]],outCap=ITEMS[p.ci][2]=='Windmill'?50:10;if(p.out>=outCap) return;for(const r in rc.in){const need=Math.min(6,rc.in[r]-(p.inv[r]||0)),k='d'+oid(p)+r;if(need>0&&!CL.has(k)){const sources=stk(r).filter(q=>(w.role!='farm'||r=='wheat')&&(w.role!='hand'||['oil','ore'].includes(r))&&(r!='wood'||q.role=='store'));const silo=sources.find(q=>q.role=='silo'&&r=='wheat');if(silo&&tot(silo)>=silo.cap)silo.wheatFlow=1;const src=nearest(sources,p);if(src)C.push({p,r,s:src,need,k,x:p.x,y:p.y})}}});
  const c=L(C);
  if(c){cl(c.k);w.ks=[c.k];return[{go:()=>ft(c.s)},{d:.8,st:'take',fn:()=>{const a=Math.min(c.s.inv[c.r]||0,c.need);if(a<1)return false;c.s.inv[c.r]-=a;if(c.r=='wheat'&&c.s.role=='silo'&&!(c.s.inv.wheat>0))c.s.wheatFlow=0;w.n=a;w.car=c.r}},{go:()=>ft(c.p)},{d:.8,st:'drop',fn:()=>{c.p.inv[c.r]=(c.p.inv[c.r]||0)+w.n;w.car=null}}]}
  const fu=L((w.role=='hand'?act('store','depot','pantry','fuelst'):[]).filter(s=>tot(s)>=s.cap&&!CL.has('t'+oid(s))&&objs.some(h=>h.role=='wh'&&h.act!==false&&h.inv&&tot(h)<h.cap)));
