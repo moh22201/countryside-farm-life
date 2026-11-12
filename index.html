@@ -710,11 +710,16 @@ dst=function(r,n,p){
 const __planBeforeWorkerRouting=plan;
 plan=function(w){
  const hidden=[];
+ const hiddenBakeryOutputs=[];
  if(w.role=='farm'){
   objs.forEach(o=>{
    if(o.role=='field'&&FO[ITEMS[o.ci]?.[2]]=='wood'){
     hidden.push([o,o.act]);
     o.act=false;
+   }
+   if(o.role=='proc'&&ITEMS[o.ci]?.[2]=='Bakery'&&o.out>0){
+    hiddenBakeryOutputs.push([o,o.out]);
+    o.out=0;
    }
   });
  }
@@ -722,6 +727,7 @@ plan=function(w){
  try{tasks=__planBeforeWorkerRouting(w)}
  finally{
   hidden.forEach(([o,a])=>{if(a===undefined)delete o.act;else o.act=a});
+  hiddenBakeryOutputs.forEach(([o,n])=>{o.out=n});
  }
  if(tasks)return tasks;
 
