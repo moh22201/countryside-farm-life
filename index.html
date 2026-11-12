@@ -852,14 +852,14 @@ aiT=function(o,dt){
 /* ===== واجهة قريتي المحسّنة — طبقة عرض فقط، دون تعديل منطق اللعبة أو العمال ===== */
 (()=>{
  const style=document.createElement('style');
- style.textContent=\`
+ style.textContent=`
  .hud.top,.hud.bot{display:none!important}
  #villageUI{position:fixed;inset:0;z-index:50;pointer-events:none;direction:rtl;font-family:system-ui,"Segoe UI",Tahoma,sans-serif;color:var(--ink)}
  #villageUI button{all:unset;box-sizing:border-box;cursor:pointer;pointer-events:auto;display:flex;align-items:center;justify-content:center;gap:6px;min-height:40px;padding:0 12px;border-radius:13px;background:var(--card);color:inherit;box-shadow:0 3px 12px rgba(0,0,0,.17);font-size:14px;line-height:1.2}
  #villageUI button:active{transform:scale(.97)}
  #villageUI .vtop{position:absolute;top:calc(9px + env(safe-area-inset-top,0px));left:10px;right:10px;display:flex;align-items:center;gap:7px;pointer-events:none}
  #villageUI .vbrand,#villageUI .vbalance,#villageUI .vresources,#villageUI .vzoom,#villageUI .vdock,#villageUI .vsheet{pointer-events:auto;background:var(--card);backdrop-filter:blur(9px);box-shadow:0 3px 14px rgba(0,0,0,.16);border:1px solid rgba(255,255,255,.35)}
- #villageUI .vbrand{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:14px;min-width:0}
+ #villageUI .vbrand{pointer-events:auto;display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:14px;min-width:0}
  #villageUI .vavatar{width:37px;height:37px;border-radius:50%;background:#e5c77e;display:grid;place-items:center;font-size:22px}
  #villageUI .vbrand b{display:block;font-size:13px;white-space:nowrap}
  #villageUI .vbrand small{display:block;font-size:10px;opacity:.7}
@@ -891,7 +891,7 @@ aiT=function(o,dt){
  #villageUI .vstat{padding:10px;border-radius:12px;background:rgba(127,127,127,.11);font-size:12px}
  #villageUI .vstat b{display:block;font-size:17px;margin-top:3px}
  @media(min-width:700px){#villageUI .vsheet{left:auto;right:14px;width:min(440px,45vw);bottom:85px;max-height:70vh}#villageUI .vdock{left:50%;right:auto;transform:translateX(-50%);width:min(520px,70vw)}#villageUI .vresources{left:auto;width:min(440px,48vw)}}
- \`;
+ `;
  document.head.appendChild(style);
  const ui=document.createElement('div');ui.id='villageUI';
  ui.innerHTML='<div class="vtop"><div class="vbrand"><div class="vavatar">🏡</div><div><b>قريتي</b><small>حياتك في المزرعة</small></div></div><button class="vbalance" id="vWallet">💰 <span id="vMoney">—</span></button></div><div class="vresources"><div id="vResHost"></div></div><div class="vzoom"><button id="vPlus">＋</button><button id="vMinus">－</button><button id="vCenter">◎</button></div><div class="vsheet" id="vSheet"><div class="vhead"><span id="vTitle">الإنشاءات</span><button id="vClose">✕</button></div><div id="vContent"></div></div><div class="vdock"><button data-vtab="build">🏗️<small>البناء</small></button><button data-vtab="factory">🏭<small>المصانع</small></button><button data-vtab="truck">🚚<small>الشاحنة</small></button><button data-vtab="delete">🗑️<small>حذف</small></button></div>';
