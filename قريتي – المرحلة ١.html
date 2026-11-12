@@ -463,9 +463,9 @@ function plan(w){const L=a=>nearest(a,w),act=(...r)=>objs.filter(o=>r.includes(o
   if(penOut){const k='a'+oid(penOut);cl(k);w.ks=[k];let D;return[{go:()=>ft(penOut)},{d:.8,st:'take',fn:()=>{if(penOut.out<1)return false;w.n=penOut.out;w.car=penOut.ores;penOut.out=0}},{go:()=>(D=D||dst(w.car,w.n,w))&&ft(D)},{d:.8,st:'drop',fn:()=>{if(D)give(D,w.car,w.n);w.car=null}}]}
   return null;
  }
- const whs=act('wh'),whFree=whs.some(q=>q.cap-tot(q)>0);
- if(whs.length&&!whFree)return null;
- const mills=act('proc').filter(q=>ITEMS[q.ci][2]=='Windmill'&&q.ores=='flour'&&q.out>=50&&!CL.has('m'+oid(q)));
+ const whs=w.role=='hand'?act('wh'):[],whFree=whs.some(q=>q.cap-tot(q)>0);
+ if(w.role=='hand'&&whs.length&&!whFree)return null;
+ const mills=(w.role=='hand'?act('proc'):[]).filter(q=>ITEMS[q.ci][2]=='Windmill'&&q.ores=='flour'&&q.out>=50&&!CL.has('m'+oid(q)));
  const mill=L(mills),wh=L(whs.filter(q=>q.cap-tot(q)>0));
  if(mill&&wh){
   const n=Math.min(mill.out,wh.cap-tot(wh)),k='m'+oid(mill);
@@ -497,9 +497,9 @@ function plan(w){const L=a=>nearest(a,w),act=(...r)=>objs.filter(o=>r.includes(o
  if(c){cl(c.k);w.ks=[c.k];return[{go:()=>ft(c.s)},{d:.8,st:'take',fn:()=>{const a=Math.min(c.s.inv[c.r]||0,c.need);if(a<1)return false;c.s.inv[c.r]-=a;if(c.r=='wheat'&&c.s.role=='silo'&&!(c.s.inv.wheat>0))c.s.wheatFlow=0;w.n=a;w.car=c.r}},{go:()=>ft(c.p)},{d:.8,st:'drop',fn:()=>{c.p.inv[c.r]=(c.p.inv[c.r]||0)+w.n;w.car=null}}]}
  const fu=L((w.role=='hand'?act('store','depot','pantry','fuelst'):[]).filter(s=>tot(s)>=s.cap&&!CL.has('t'+oid(s))&&objs.some(h=>h.role=='wh'&&h.act!==false&&h.inv&&tot(h)<h.cap)));
  if(fu){let br=null;for(const k in fu.inv)if(fu.inv[k]>0&&(!br||fu.inv[k]>fu.inv[br]))br=k;const wh=nearest(objs.filter(h=>h.role=='wh'&&h.act!==false&&h.inv&&tot(h)<h.cap),fu);if(br&&wh){const k='t'+oid(fu);cl(k);w.ks=[k];return[{go:()=>ft(fu)},{d:1,st:'take',fn:()=>{const a=Math.min(10,fu.inv[br]||0,wh.cap-tot(wh));if(a<1)return false;fu.inv[br]-=a;w.n=a;w.car=br}},{go:()=>ft(wh)},{d:.8,st:'drop',fn:()=>{give(wh,w.car,w.n);w.car=null}}]}}
- const pf=L(act('pen').filter(p=>p.nf&&!CL.has('f'+oid(p)))),fs=['feed','corn'].find(r=>stk(r).length);
+ const pf=null,fs=null;
  if(pf&&fs){const k='f'+oid(pf),s=nearest(stk(fs),w);cl(k);w.ks=[k];return[{go:()=>ft(s)},{d:.8,st:'take',fn:()=>{const a=Math.min(s.inv[fs]||0,pf.nf);if(a<1)return false;s.inv[fs]-=a;w.n=a;w.car='feed'}},{go:()=>ft(pf)},{d:1.5,st:'feed',fn:()=>{pf.nf=Math.max(0,pf.nf-w.n);w.car=null;penDone(pf)}}]}
- const ws=wsrc(w),pw=L(act('pen').filter(p=>p.nw&&!CL.has('p'+oid(p))));
+ const ws=null,pw=null;
  if(pw&&ws){const k='p'+oid(pw);cl(k);w.ks=[k];return[{go:once(()=>wsrc(w))},{d:1.2,st:'fill',fn:()=>{w.car='bucket'}},{go:()=>ft(pw)},{d:1.5,st:'water',fn:()=>{pw.nw=0;w.car=null;penDone(pw)}}]}
  return null}
 function aiW(w,dt){w.walk=false;w.tm+=dt;
@@ -562,7 +562,7 @@ K.H=function(a,b,c,f){if(f!='k')return H0(a,b,c,f);GND('#9a9aa0','#6a6a70');
 /* ===== حفظ التقدم ===== */
 const SK='village_save_v1';let noSave=false;
 function save(manual){if(noSave)return;try{const pl=objs.filter(o=>o.k=='cat'||o.k=='veh'),F=['k','role','x','y','fw','fd','mv','st','t','out','ores','inv','cap','pg','run','nw','nf','tw','tf','need','oq','sp','hx','hy','nocc','fx','cargo','away','wheatFlow','wageSec'];
- const s={v:1,W,H,m:money,rd:[],tr:[],pl:pl.map(o=>{const r={nm:ITEMS[o.ci][2]};F.forEach(k=>{if(o[k]!==undefined)r[k]=o[k]});return r}),wk:objs.filter(o=>o.k=='worker').map(w=>({role:w.role,x:w.x,y:w.y,hi:pl.indexOf(w.home),hm:[w.home.x,w.home.y,w.home.fw,w.home.fd]}))};
+ const s={v:1,W,H,m:money,rd:[],tr:[],pl:pl.map(o=>{const r={nm:ITEMS[o.ci][2]};F.forEach(k=>{if(o[k]!==undefined)r[k]=o[k]});return r}),wk:objs.filter(o=>o.k=='worker').map(w=>({role:w.role,x:w.x,y:w.y,hi:pl.indexOf(w.home),hm:[w.home.x,w.home.y,w.home.fw,w.home.fd],wageSec:w.wageSec||0}))};
  for(let x=0;x<W;x++)for(let y=0;y<H;y++)if(T[x][y]==1)s.rd.push([x,y,RT[x][y]]);
  objs.forEach(o=>{if(o.k=='tree')s.tr.push([+o.x.toFixed(2),+o.y.toFixed(2),+o.s.toFixed(2),o.pine?1:0,+o.v.toFixed(2)])});
  localStorage.setItem(SK,JSON.stringify(s));if(manual)$('info').textContent='💾 تم حفظ التقدم'}catch(e){if(manual)$('info').textContent='تعذّر الحفظ في هذا المتصفح'}}
@@ -573,7 +573,7 @@ function load(){let s=null;try{s=JSON.parse(localStorage.getItem(SK))}catch(e){}
  s.tr.forEach(([x,y,sc,p,v])=>{objs.push({k:'tree',x,y,s:sc,pine:!!p,v});T[Math.floor(x)][Math.floor(y)]=4});
  const pl=s.pl.map(r=>{let ci=ITEMS.findIndex(d=>d[2]==r.nm);if(ci<0&&r.nm=='Well')ci=ITEMS.findIndex(d=>d[2]=='Water Field');if(ci<0)return null;const o=Object.assign({},r,{ci});delete o.nm;o.role=roleOf(ITEMS[ci]);if(o.k=='veh'){o.st='idle';o.away=0;o.car=0;o.tm=0;if(o.cargo){money+=o.cargo*10;o.cargo=0}}objs.push(o);if(o.k=='cat')occ(o,1);return o});
  money=s.m;
- s.wk.forEach(r=>{const home=pl[r.hi]||{x:r.hm[0],y:r.hm[1],fw:r.hm[2],fd:r.hm[3]};objs.push({k:'worker',role:r.role,home,x:r.x,y:r.y,st:'idle',tm:0,car:null,fx:1,mvg:0,walk:false})});
+ s.wk.forEach(r=>{const home=pl[r.hi]||{x:r.hm[0],y:r.hm[1],fw:r.hm[2],fd:r.hm[3]};objs.push({k:'worker',role:r.role=='hand'&&home.role=='fhouse'?'farm':r.role,home,x:r.x,y:r.y,st:'idle',tm:0,car:null,fx:1,mvg:0,walk:false,wageSec:r.wageSec||0})});
  $('info').textContent='✅ تم استرجاع التقدم المحفوظ'}
 let rq=0;$('bs').onclick=()=>save(true);
 $('br').onclick=()=>{if(Date.now()<rq){noSave=true;try{localStorage.removeItem(SK)}catch(e){}location.reload();return}rq=Date.now()+4000;$('info').textContent='⚠️ اضغط 🔄 مرة ثانية خلال 4 ثوانٍ لمسح التقدم والبدء من جديد'};
