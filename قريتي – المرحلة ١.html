@@ -316,7 +316,7 @@ cv.addEventListener('pointerup',up);cv.addEventListener('pointercancel',up);
 cv.addEventListener('wheel',e=>{e.preventDefault();zoom(e.deltaY<0?1.12:.89,e.clientX,e.clientY)},{passive:false});
 function pickObj(px,py){for(const z of[0,20,40,62]){const p=pick(px,py+z*cam.s);if(p&&OBJ[p.x][p.y])return OBJ[p.x][p.y]}return null}
 function fits(o,x,y){for(let i=0;i<(o.fw||1);i++)for(let j=0;j<(o.fd||1);j++){const a=x+i,b=y+j;if(a<0||b<0||a>=W||b>=H)return false;if(T[a][b]!=0&&OBJ[a][b]!==o)return false}return true}
-function tap(px,py){const p=pick(px,py),info=s=>$('info').textContent=s;
+function tap(px,py){const p=pick(px,py),info=s=>$('info').textContent=s;const truck=objs.find(q=>q.k=='veh'&&q.role=='truck'&&!q.away&&Math.hypot(cam.x+P(q.x,q.y)[0]*cam.s-px,cam.y+P(q.x,q.y)[1]*cam.s-py)<38*cam.s);if(truck){truck.sellRequest=1;info('🚚 تم تسجيل طلب البيع؛ ستنقل الشاحنة 20 وحدة من المستودع العام عند توفرها');return}
  if(delMode){doDel(px,py,p);return}if(placing){if(!p)return;const d=ITEMS[placing-1];if(d[2]=='Paved Road'||d[2]=='Dirt Road'){roadAt(p.x,p.y);return}const z=SZ[d[3]]||1,o={k:'cat',ci:placing-1,role:ROLE(d),x:p.x,y:p.y,fw:z,fd:z,mv:1,st:0,t:0};if(o.role=='tractor'||o.role=='truck'){delete o.fw;delete o.fd;o.k='veh';o.x+=.5;o.y+=.5;o.hx=o.x;o.hy=o.y;o.nocc=1;o.mv=0;o.st='idle';o.fx=1}if(!fits(o,p.x,p.y))return info('المربع مشغول');objs.push(o);occ(o,1);return info('تم البناء ✓ — اضغط مربعاً آخر أو أغلق القائمة')}
  if(mov){if(p&&OBJ[p.x][p.y]===mov){mov=null;return info('أُلغي التحديد')}if(p&&fits(mov,p.x,p.y)){occ(mov,0);mov.x=p.x;mov.y=p.y;occ(mov,1);mov=null;return info('تم النقل ✓')}return info('لا يتسع هنا — اختر مكاناً فارغاً')}
  const o=pickObj(px,py);if(o&&o.mv){mov=o;sel=null;return info(descr(o)+' | '+'حُدّد للنقل — اضغط مربعاً فارغاً (يصبح الزاوية العلوية)')}
@@ -482,7 +482,7 @@ function aiT(o,dt){o.walk=false;o.tm=(o.tm||0)+dt;
  else if(o.st=='drop'){if(o.tm>.6){give(o.D,o.res,o.n);o.car=0;rls([o.k0]);o.st='idle'}}}
 const sellKeys=q=>Object.keys(q.inv).filter(k=>q.inv[k]>0&&['food','goods'].includes(RS[k][0]));
 function aiK(o,dt){o.walk=false;o.tm=(o.tm||0)+dt;const sl=()=>objs.filter(q=>q.role=='wh'&&q.act!==false&&q.inv&&sellKeys(q).length),ex=[W+3,o.hy];
- if(o.st=='idle'){o.cargo=o.cargo||0;const m=sl();if(m.reduce((a,q)=>a+sellKeys(q).reduce((b,k)=>b+q.inv[k],0),0)>=20){o.tg=nearest(m,o);o.st='toS'}else drive(o,o.hx,o.hy,dt)}
+ if(o.st=='idle'){o.cargo=o.cargo||0;const m=sl();if(o.sellRequest&&m.reduce((a,q)=>a+sellKeys(q).reduce((b,k)=>b+q.inv[k],0),0)>=20){o.sellRequest=0;o.tg=nearest(m,o);o.st='toS'}else drive(o,o.hx,o.hy,dt)}
  else if(o.st=='toS'){if(!o.tg||!sl().includes(o.tg)){o.st=o.cargo?'leave':'idle';return}if(drive(o,o.tg.x+o.tg.fw/2,o.tg.y+o.tg.fd+.5,dt)){o.st='load';o.tm=0}}
  else if(o.st=='load'){if(o.tm>1){const s=o.tg;sellKeys(s).forEach(k=>{const a=Math.min(s.inv[k],20-o.cargo);s.inv[k]-=a;o.cargo+=a});o.car=o.cargo>0;const m=sl();if(o.cargo<20&&m.length){o.tg=nearest(m,o);o.st='toS'}else o.st=o.cargo?'leave':'idle'}}
  else if(o.st=='leave'){if(drive(o,ex[0],ex[1],dt,3)){o.away=1;o.tm=0;o.st='away'}}
