@@ -195,6 +195,24 @@ const find=k=>objs.filter(o=>(o.role||o.k)==k),nearest=(a,w)=>a.reduce((b,o)=>!b
 const fr=o=>({x:o.x+o.fw/2+.02,y:o.y+o.fd+.55});
 const src=w=>{const ws=find('well');return nearest(ws.length?ws.map(o=>({x:o.x+.5,y:o.y+1.35})):SHORE,w)};
 function go(w,tx,ty,dt){const dx=tx-w.x,dy=ty-w.y,l=Math.hypot(dx,dy);if(l<.07)return true;const s=Math.min(l,1.7*dt);w.x+=dx/l*s;w.y+=dy/l*s;w.mvg+=dt*10;w.walk=true;w.fx=dx-dy>=0?1:-1;return false}
+function goRoad(w,tx,ty,dt){
+ const same=w.rdTarget&&Math.abs(w.rdTarget.x-tx)<.12&&Math.abs(w.rdTarget.y-ty)<.12;
+ if(!same){w.rdTarget={x:tx,y:ty};w.rdPath=null;w.rdIndex=0;w.rdBlocked=false;w.rdWait=0}
+ if(!w.rdPath){
+  if(w.rdBlocked){w.rdWait=(w.rdWait||0)+dt;if(w.rdWait<1.5)return false;w.rdWait=0}
+  const near=(x,y)=>{let best=null,bd=36;for(let ix=Math.max(0,Math.floor(x)-6);ix<=Math.min(W-1,Math.floor(x)+6);ix++)for(let iy=Math.max(0,Math.floor(y)-6);iy<=Math.min(H-1,Math.floor(y)+6);iy++){if(T[ix][iy]!==1||RT[ix][iy]!==0)continue;const d=(ix+.5-x)**2+(iy+.5-y)**2;if(d<bd){bd=d;best={x:ix,y:iy}}}return best};
+  const a=near(w.x,w.y),b=near(tx,ty);
+  if(!a||!b){w.rdBlocked=true;return false}
+  const id=(x,y)=>x*H+y,from=id(a.x,a.y),to=id(b.x,b.y),prev=new Int32Array(W*H);prev.fill(-2);prev[from]=-1;
+  const queue=[from],dirs=[[1,0],[-1,0],[0,1],[0,-1]];let qi=0;
+  while(qi<queue.length&&prev[to]===-2){const v=queue[qi++],x=Math.floor(v/H),y=v%H;for(const d of dirs){const nx=x+d[0],ny=y+d[1];if(nx<0||ny<0||nx>=W||ny>=H||T[nx][ny]!==1||RT[nx][ny]!==0)continue;const ni=id(nx,ny);if(prev[ni]!==-2)continue;prev[ni]=v;queue.push(ni);if(ni===to)break}}
+  if(prev[to]===-2){w.rdBlocked=true;return false}
+  const route=[];for(let v=to;v!==-1;v=prev[v])route.push({x:Math.floor(v/H)+.5,y:(v%H)+.5});route.reverse();
+  w.rdPath=route;w.rdIndex=0;w.rdBlocked=false
+ }
+ while(w.rdIndex<w.rdPath.length){const p=w.rdPath[w.rdIndex];if(go(w,p.x,p.y,dt)){w.rdIndex++;continue}return false}
+ return true
+}
 function update(dt){[...objs].forEach(o=>{if(o.role=='field'&&o.st==1){o.t+=dt;if(o.t>=10)o.st=2}if(o.k=='worker')(o.role=='wood'?aiW:o.role=='hand'?aiH:aiF)(o,dt);if(o.mv&&!o.sp){o.sp=1;spawnFor(o)}tick(o,dt)});const s=`🪵 ${wood} · 🌾 ${crop} · 🔋 ${bat} · 💰 ${money.toLocaleString()}`;if($('res').textContent!=s)$('res').textContent=s}
 function aiW(w,dt){w.walk=false;w.tm+=dt;const st=find('store')[0];
  switch(w.st){
@@ -256,9 +274,9 @@ let GLOW=[];
 function lighting(t){const dk=DK(t);ctx.save();ctx.setTransform(1,0,0,1,0,0);ctx.globalCompositeOperation='source-atop';const g=ctx.createLinearGradient(0,0,cv.width,cv.height);g.addColorStop(0,'rgba(255,240,200,.14)');g.addColorStop(1,'rgba(40,30,90,.14)');ctx.fillStyle=g;ctx.fillRect(0,0,cv.width,cv.height);if(dk>0){ctx.fillStyle='rgba(10,20,60,'+dk+')';ctx.fillRect(0,0,cv.width,cv.height)}ctx.globalCompositeOperation='lighter';ctx.setTransform(dpr*cam.s,0,0,dpr*cam.s,dpr*cam.x,dpr*cam.y);GLOW.forEach(([x,y,r])=>{const q=ctx.createRadialGradient(x,y,2,x,y,r);q.addColorStop(0,'rgba(255,200,100,'+Math.min(.7,dk*2.4)+')');q.addColorStop(1,'rgba(255,200,100,0)');ctx.fillStyle=q;ctx.beginPath();ctx.arc(x,y,r,0,7);ctx.fill()});GLOW=[];ctx.restore()}
 function spawnFor(o){const r={whouse:'hand',lhouse:'wood',fhouse:'farm'}[o.role];if(!r)return;const d=fr(o);objs.push({k:'worker',role:r,home:o,x:d.x,y:d.y,st:'idle',tm:0,car:null,fx:1,mvg:0,walk:false})}
 function tick(o,dt){if(o.role=='pen'){o.tw=(o.tw==null?12:o.tw)+dt;o.tf=(o.tf==null?18:o.tf)+dt;if(o.tw>20)o.nw=1;if(o.tf>28)o.nf=1}else if(o.role=='turb'){o.pt=(o.pt||0)+dt;if(o.pt>=60)o.bat=1}else if(o.k=='veh')aiT(o,dt)}
-function aiH(w,dt){w.walk=false;if(!w.steps){w.steps=taskH(w);w.tm=0;if(!w.steps){const h=fr(w.home);go(w,h.x,h.y,dt);return}}
+function aiH(w,dt){w.walk=false;if(!w.steps){w.steps=taskH(w);w.tm=0;if(!w.steps){const h=fr(w.home);goRoad(w,h.x,h.y,dt);return}}
  const s=w.steps[0];if(!s){w.steps=null;return}
- if(s.go){const p=s.go();if(!p||go(w,p.x,p.y,dt)){w.steps.shift();w.tm=0}}else{w.st=s.st;w.tm+=dt;if(w.tm>=s.d){if(s.fn)s.fn();w.steps.shift();w.tm=0;w.st='idle'}}
+ if(s.go){const p=s.go();if(!p||goRoad(w,p.x,p.y,dt)){w.steps.shift();w.tm=0}}else{w.st=s.st;w.tm+=dt;if(w.tm>=s.d){if(s.fn)s.fn();w.steps.shift();w.tm=0;w.st='idle'}}
  if(w.steps&&!w.steps.length)w.steps=null}
 function taskH(w){const n=a=>nearest(a,w),sk=stor('depot','silo'),sk2=stor('silo','depot'),ws=src(w),sf=once(()=>{const s=stor('silo','depot');return s&&ft(s)}),sd=once(()=>{const s=stor('depot','silo');return s&&ft(s)});
  const bt=n(find('turb').filter(o=>o.bat&&!o.rs));
@@ -452,9 +470,9 @@ function tick(o,dt){const r=o.role;if(!r)return;if(o.k=='veh'){(r=='truck'?aiK:a
  else if(r=='proc'){const rc=RC[n];if(!o.run){if(o.out<10&&Object.keys(rc.in).every(k=>(o.inv[k]||0)>=rc.in[k])){for(const k in rc.in)o.inv[k]-=rc.in[k];o.run=1;o.pg=0}}else{o.pg+=dt;if(o.pg>=30){o.run=0;o.out++;o.ores=rc.out}}}}
 function wsrc(w){const ws=objs.filter(o=>o.role=='well'&&o.act!==false);return nearest(ws.length?ws.map(o=>({x:o.x+.5,y:o.y+1.35})):SHORE,w)}
 function fin(w){rls(w.ks||[]);w.ks=[];w.steps=null;w.st='idle';w.car=null}
-function aiH(w,dt){w.walk=false;if(!w.steps){w.steps=plan(w);w.tm=0;if(!w.steps){const h=fr(w.home);go(w,h.x,h.y,dt);return}}
+function aiH(w,dt){w.walk=false;if(!w.steps){w.steps=plan(w);w.tm=0;if(!w.steps){const h=fr(w.home);goRoad(w,h.x,h.y,dt);return}}
  const s=w.steps[0];if(!s){fin(w);return}
- if(s.go){const p=s.go();if(!p){fin(w);return}if(go(w,p.x,p.y,dt)){w.steps.shift();w.tm=0}}
+ if(s.go){const p=s.go();if(!p){fin(w);return}if(goRoad(w,p.x,p.y,dt)){w.steps.shift();w.tm=0}}
  else{w.st=s.st;w.tm+=dt;if(w.tm>=s.d){if(s.fn&&s.fn()===false){fin(w);return}w.steps.shift();w.tm=0;w.st='idle'}}
  if(w.steps&&!w.steps.length)fin(w)}
 function plan(w){const L=a=>nearest(a,w),act=(...r)=>objs.filter(o=>r.includes(o.role)&&o.act!==false&&o.inv),stk=r=>objs.filter(q=>ACC[q.role]&&q.role!='wh'&&q.act!==false&&q.inv&&(q.inv[r]||0)>0);
