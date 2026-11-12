@@ -695,6 +695,16 @@ addEventListener('resize',()=>{rs()});rs();center();requestAnimationFrame(frame)
 /* ===== إضافات توجيه وظائف العمال المعتمدة ===== */
 PREF.bread=['wh'];
 PREF.fabric=['wh'];
+/* مخرجات المخبزة والقماش والفولاذ والبطاريات لا تُحوّل إلى مخزن آخر عند امتلاء المستودع؛ تنتظر حتى تتوفر سعته. */
+const __dstBeforeWarehouseOnly=dst;
+const __warehouseOnlyProducts=new Set(['bread','fabric','steel','bat']);
+dst=function(r,n,p){
+ if(__warehouseOnlyProducts.has(r)){
+  return nearest(objs.filter(o=>o.role=='wh'&&o.act!==false&&o.inv&&o.cap-tot(o)>=(n||1)),p);
+ }
+ return __dstBeforeWarehouseOnly(r,n,p);
+};
+
 
 /* الفلاح لا يحصد خشب مزارع الأشجار؛ تبقى هذه المزارع ضمن اختصاص الحطّاب. */
 const __planBeforeWorkerRouting=plan;
