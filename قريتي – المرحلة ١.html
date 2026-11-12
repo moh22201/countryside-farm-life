@@ -655,8 +655,8 @@ RC['Steel Mill']={in:{ore:5},out:'steel',ic:{ore:100},oc:20};
 RC['Refinery']={in:{oil:1},out:'fuel',outs:[['fuel',2]],ic:{oil:100},oc:100};
 const icap=(rc,r)=>(rc.ic&&rc.ic[r])||rc.in[r]*3;
 const FARMN=new Set(['Windmill','Feed Mill','Bakery','Cakery','Candy Shop','Chocolate Shop','Winery','Cafe','Beekeeper House','Beehive']);
-const dom=o=>(o.role=='field'||o.role=='pen'||FARMN.has(ITEMS[o.ci][2]))?'farm':'hand';
-const DIRECT=new Set([...FOV,'ore','oil']),PREF={flour:['wh'],egg:['wh'],milk:['wh'],wool:['wh'],bat:['wh'],steel:['wh'],honey:['wh'],feed:['silo'],fuel:['fuelst'],wood:['store']};
+const dom=o=>(o.role=='field'&&!['Tree Farm','Oak Tree Farm'].includes(ITEMS[o.ci][2])||o.role=='pen'||FARMN.has(ITEMS[o.ci][2]))?'farm':'hand';
+const DIRECT=new Set([...FOV,'ore','oil','wood']),PREF={flour:['wh'],egg:['wh'],milk:['wh'],wool:['wh'],bat:['wh'],steel:['wh'],honey:['wh'],feed:['silo'],fuel:['fuelst'],wood:['store']};
 function give(s,r,n){if(!s||!s.inv)return;const sp=s.cap?s.cap-tot(s):icap(RC[ITEMS[s.ci][2]],r)-(s.inv[r]||0);s.inv[r]=(s.inv[r]||0)+Math.max(0,Math.min(n,sp))}
 function dst(r,n,p){let b=null,bd=1e9;n=n||1;
  if(DIRECT.has(r))objs.forEach(o=>{if(o.role!='proc'||o.act===false||!o.inv)return;const rc=RC[ITEMS[o.ci][2]];if(!rc.in[r]||(o.inv[r]||0)+n>icap(rc,r))return;const s=Math.hypot(o.x-p.x,o.y-p.y);if(s<bd){bd=s;b=o}});
@@ -687,7 +687,7 @@ function plan(w){const me=w.role=='farm'?'farm':'hand',L=a=>nearest(a,w),act=(..
  if(pf&&fs){const k='f'+oid(pf),s=nearest(stk(fs),w);cl(k);w.ks=[k];return[{go:()=>ft(s)},{d:.8,st:'take',fn:()=>{const a=Math.min(s.inv[fs]||0,pf.nf);if(a<1)return false;s.inv[fs]-=a;w.n=a;w.car='feed'}},{go:()=>ft(pf)},{d:1.5,st:'feed',fn:()=>{pf.nf=Math.max(0,pf.nf-w.n);w.car=null;penDone(pf)}}]}
  const ws=wsrc(w),pw=L(act('pen').filter(p=>p.nw&&!CL.has('p'+oid(p))));
  if(pw&&ws){const k='p'+oid(pw);cl(k);w.ks=[k];return[{go:once(()=>wsrc(w))},{d:1.2,st:'fill',fn:()=>{w.car='bucket'}},{go:()=>ft(pw)},{d:1.5,st:'water',fn:()=>{pw.nw=0;w.car=null;penDone(pw)}}]}
- const fl=L(act('field').filter(f=>f.st==0&&!CL.has('w'+oid(f))));
+ const fl=L(act('field').filter(f=>f.st==0&&!['Tree Farm','Oak Tree Farm'].includes(ITEMS[f.ci][2])&&!CL.has('w'+oid(f))));
  if(fl&&ws){const k='w'+oid(fl);cl(k);w.ks=[k];return[{go:once(()=>wsrc(w))},{d:1.2,st:'fill',fn:()=>{w.car='bucket'}},{go:()=>ct(fl)},{d:1.5,st:'water',fn:()=>{if(fl.st!=0)return false;fl.st=1;fl.t=0;w.car=null}}]}
  return null}
 addEventListener('resize',()=>{rs()});rs();center();requestAnimationFrame(frame);
