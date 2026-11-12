@@ -474,20 +474,7 @@ function plan(w){const L=a=>nearest(a,w),act=(...r)=>objs.filter(o=>r.includes(o
  return null}
 function aiW(w,dt){w.walk=false;w.tm+=dt;
  switch(w.st){
- case'idle':{
-  const mills=objs.filter(o=>o.role=='proc'&&o.act!==false&&ITEMS[o.ci][2]=='Lumber Mill'&&o.out>=1&&o.ores=='plank'&&!o.plankRes);
-  const lm=nearest(mills.filter(m=>objs.some(d=>(d.role=='depot'||d.role=='wh')&&d.act!==false&&d.inv&&d.cap>tot(d))),w);
-  if(lm){
-   const d=nearest(objs.filter(o=>(o.role=='depot'||o.role=='wh')&&o.act!==false&&o.inv&&o.cap>tot(o)),lm);
-   if(d){lm.plankRes=1;w.mill=lm;w.ds=d;w.st='toMill';break}
-  }
-  const b=nearest(objs.filter(o=>o.k=='tree'&&!o.res),w);
-  if(b&&dst('wood',1,w)){b.res=1;w.tg=b;w.st='toTree'}else{const h=fr(w.home);go(w,h.x,h.y,dt)}
-  break}
- case'toMill':if(!w.mill||w.mill.out<1||w.mill.ores!='plank'){if(w.mill)w.mill.plankRes=0;w.mill=null;w.ds=null;w.st='idle'}else if(go(w,ft(w.mill).x,ft(w.mill).y,dt)){w.st='takePlank';w.tm=0}break;
- case'takePlank':if(w.tm>.8){const a=Math.min(w.mill?.out||0,w.ds?Math.max(0,w.ds.cap-tot(w.ds)):0);if(a>0){w.mill.out-=a;w.n=a;w.car='plank';w.st='toDepot'}else{if(w.mill)w.mill.plankRes=0;w.mill=null;w.ds=null;w.st='idle'}}break;
- case'toDepot':if(w.ds&&go(w,ft(w.ds).x,ft(w.ds).y,dt)){w.st='dropPlank';w.tm=0}break;
- case'dropPlank':if(w.tm>.6){give(w.ds,'plank',w.n);if(w.mill)w.mill.plankRes=0;w.mill=null;w.ds=null;w.n=0;w.car=null;w.st='idle'}break;
+ case'idle':{const b=nearest(objs.filter(o=>o.k=='tree'&&!o.res),w);if(b&&dst('wood',1,w)){b.res=1;w.tg=b;w.st='toTree'}else{const h=fr(w.home);go(w,h.x,h.y,dt)}break}
  case'toTree':if(go(w,w.tg.x+.3,w.tg.y+.3,dt)){w.fx=(w.tg.x-w.x)-(w.tg.y-w.y)>=0?1:-1;w.st='chop';w.tm=0}break;
  case'chop':w.tg.shake=1;if(w.tm>4){const g=w.tg,tx=Math.floor(g.x),ty=Math.floor(g.y);objs.splice(objs.indexOf(g),1);if(!objs.some(o=>o.k=='tree'&&Math.floor(o.x)==tx&&Math.floor(o.y)==ty))T[tx][ty]=0;w.log={k:'log',x:g.x,y:g.y};objs.push(w.log);w.st='pick';w.tm=0}break;
  case'pick':if(w.tm>.8){objs.splice(objs.indexOf(w.log),1);w.car='log';w.st='toStore';w.ds=null}break;
@@ -545,7 +532,7 @@ K.H=function(a,b,c,f){if(f!='k')return H0(a,b,c,f);GND('#9a9aa0','#6a6a70');
 /* ===== حفظ التقدم ===== */
 const SK='village_save_v1';let noSave=false;
 function save(manual){if(noSave)return;try{const pl=objs.filter(o=>o.k=='cat'||o.k=='veh'),F=['k','role','x','y','fw','fd','mv','st','t','out','ores','inv','cap','pg','run','nw','nf','tw','tf','need','oq','sp','hx','hy','nocc','fx','cargo','away'];
- const s={v:1,W,H,m:money,rd:[],tr:[],pl:pl.map(o=>{const r={nm:ITEMS[o.ci][2]};F.forEach(k=>{if(o[k]!==undefined)r[k]=o[k]});return r}),wk:objs.filter(o=>o.k=='worker').map(w=>({role:w.role,x:w.x,y:w.y,hi:pl.indexOf(w.home),hm:[w.home.x,w.home.y,w.home.fw,w.home.fd]}))};
+ const s={v:1,W,H,m:money,rr:[...(window.RM||[])],rd:[],tr:[],pl:pl.map(o=>{const r={nm:ITEMS[o.ci][2]};F.forEach(k=>{if(o[k]!==undefined)r[k]=o[k]});return r}),wk:objs.filter(o=>o.k=='worker').map(w=>({role:w.role,x:w.x,y:w.y,hi:pl.indexOf(w.home),hm:[w.home.x,w.home.y,w.home.fw,w.home.fd]}))};
  for(let x=0;x<W;x++)for(let y=0;y<H;y++)if(T[x][y]==1)s.rd.push([x,y,RT[x][y]]);
  objs.forEach(o=>{if(o.k=='tree')s.tr.push([+o.x.toFixed(2),+o.y.toFixed(2),+o.s.toFixed(2),o.pine?1:0,+o.v.toFixed(2)])});
  localStorage.setItem(SK,JSON.stringify(s));if(manual)$('info').textContent='💾 تم حفظ التقدم'}catch(e){if(manual)$('info').textContent='تعذّر الحفظ في هذا المتصفح'}}
@@ -555,7 +542,7 @@ function load(){let s=null;try{s=JSON.parse(localStorage.getItem(SK))}catch(e){}
  for(let i=objs.length-1;i>=0;i--){const k=objs[i].k;if((k=='tree'&&objs[i].x<ow&&objs[i].y<oh)||k=='worker'||k=='cat'||k=='veh')objs.splice(i,1)}
  s.tr.forEach(([x,y,sc,p,v])=>{objs.push({k:'tree',x,y,s:sc,pine:!!p,v});T[Math.floor(x)][Math.floor(y)]=4});
  const pl=s.pl.map(r=>{const ci=ITEMS.findIndex(d=>d[2]==r.nm);if(ci<0)return null;const o=Object.assign({},r,{ci});delete o.nm;o.role=roleOf(ITEMS[ci]);if(o.k=='veh'){o.st='idle';o.away=0;o.car=0;o.tm=0;if(o.cargo){money+=o.cargo*10;o.cargo=0}}objs.push(o);if(o.k=='cat')occ(o,1);return o});
- money=s.m;
+ money=s.m;window.RM=new Set(s.rr||[]);
  s.wk.forEach(r=>{const home=pl[r.hi]||{x:r.hm[0],y:r.hm[1],fw:r.hm[2],fd:r.hm[3]};objs.push({k:'worker',role:(home.role=='fhouse'?'farm':home.role=='whouse'?'hand':r.role),home,x:r.x,y:r.y,st:'idle',tm:0,car:null,fx:1,mvg:0,walk:false})});
  $('info').textContent='✅ تم استرجاع التقدم المحفوظ'}
 let rq=0;$('bs').onclick=()=>save(true);
@@ -690,285 +677,103 @@ function plan(w){const me=w.role=='farm'?'farm':'hand',L=a=>nearest(a,w),act=(..
  const fl=L(act('field').filter(f=>f.st==0&&!CL.has('w'+oid(f))));
  if(fl&&ws){const k='w'+oid(fl);cl(k);w.ks=[k];return[{go:once(()=>wsrc(w))},{d:1.2,st:'fill',fn:()=>{w.car='bucket'}},{go:()=>ct(fl)},{d:1.5,st:'water',fn:()=>{if(fl.st!=0)return false;fl.st=1;fl.t=0;w.car=null}}]}
  return null}
+/* ===== الواجهة الاحترافية والمحفظة وأوامر البيع ===== */
+const RM=window.RM||(window.RM=new Set());
+function applyRM(){for(let i=objs.length-1;i>=0;i--){const o=objs[i];if(o.k=='rock'&&RM.has(Math.floor(o.x)+','+Math.floor(o.y))){T[Math.floor(o.x)][Math.floor(o.y)]=0;objs.splice(i,1)}}}
+const DELP={0:20,1:40,2:60,3:100,4:40,5:60,6:100,7:150,8:150,10:80,11:50},delP=o=>DELP[ITEMS[o.ci][0]]||50;
+const RN={wood:'خشب',plank:'ألواح',wheat:'قمح',corn:'ذرة',cotton:'قطن',sugar:'قصب سكر',soy:'فول صويا',salt:'ملح',mint:'نعناع',pumpkin:'قرع',strawberry:'فراولة',blueberry:'توت أزرق',lettuce:'خس',tomato:'طماطم',vanilla:'فانيليا',clover:'برسيم',clay:'طين',cocoa:'كاكاو',apple:'تفاح',bamboo:'خيزران',grape:'عنب',feed:'علف',flour:'دقيق',egg:'بيض',milk:'حليب',honey:'عسل',bread:'خبز',cake:'كعك',candy:'حلوى',choco:'شوكولاتة',wine:'نبيذ',meal:'وجبة',jam:'مربى',wool:'صوف',fabric:'قماش',pot:'فخار',ore:'خام حديد',sand:'رمل',glass:'زجاج',steel:'سبائك حديد',bat:'بطاريات',oil:'نفط',fuel:'وقود'};
+const UP={name:'اللاعب',av:'',tx:[],sold:0};
+try{Object.assign(UP,JSON.parse(localStorage.getItem('village_profile_v1')||'{}'))}catch(e){}
+const saveUP=()=>{try{localStorage.setItem('village_profile_v1',JSON.stringify(UP))}catch(e){}};
+const TO={},toast=s=>{$('info').textContent=s};let bcat=0,shKind=null,detObj=null;
+function delThing(o){if(o.k=='rock'){if(money<50){toast('رصيدك لا يكفي لإزالة الصخرة (50$)');return false}money-=50;const tx=Math.floor(o.x),ty=Math.floor(o.y);objs.splice(objs.indexOf(o),1);T[tx][ty]=0;RM.add(tx+','+ty);toast('تمت إزالة الصخرة (−50$) ولن تظهر مجدداً');return true}
+ const pr=delP(o);if(money<pr){toast('رصيدك لا يكفي للحذف ('+pr+'$)');return false}money-=pr;const nm=ITEMS[o.ci]?ITEMS[o.ci][1]:'';if(o.k!='veh')occ(o,0);objs.splice(objs.indexOf(o),1);objs.filter(q=>q.k=='worker'&&q.home===o).forEach(q=>{if(q.tg&&q.tg.k=='tree')q.tg.res=0;objs.splice(objs.indexOf(q),1)});CL.clear();mov=null;objs.forEach(q=>{if(q.k=='worker'&&q.role!='wood')fin(q);if(q.k=='veh'&&!q.away){q.st='idle';q.car=0}});toast('تم حذف: '+nm+' (−'+pr+'$)');return true}
+function pickVeh(px,py){const wx=(px-cam.x)/cam.s,wy=(py-cam.y)/cam.s;let v=null,bd=40;objs.forEach(q=>{if(q.k=='veh'&&!q.away){const [sx,sy]=P(q.x,q.y),d=Math.hypot(sx-wx,sy-16-wy);if(d<bd){bd=d;v=q}}});return v}
+function pickRock(px,py){for(const z of[0,12,26]){const p=pick(px,py+z*cam.s);if(p&&T[p.x][p.y]==5){const r=objs.find(o=>o.k=='rock'&&Math.floor(o.x)==p.x&&Math.floor(o.y)==p.y);if(r)return r}}return null}
+function doDel(px,py,p){const t=pickVeh(px,py)||pickObj(px,py)||pickRock(px,py);if(t){delThing(t);return}if(p&&T[p.x][p.y]==1){T[p.x][p.y]=0;toast('تم حذف الطريق');return}toast('لا يوجد شيء للحذف هنا')}
+function tap(px,py){const p=pick(px,py),info=toast;
+ if(delMode){doDel(px,py,p);return}
+ if(placing){if(!p)return;const d=ITEMS[placing-1];if(d[2]=='Paved Road'||d[2]=='Dirt Road'){roadAt(p.x,p.y);return}const z=SZ[d[3]]||1,o={k:'cat',ci:placing-1,role:ROLE(d),x:p.x,y:p.y,fw:z,fd:z,mv:1,st:0,t:0};if(o.role=='tractor'||o.role=='truck'){delete o.fw;delete o.fd;o.k='veh';o.x+=.5;o.y+=.5;o.hx=o.x;o.hy=o.y;o.nocc=1;o.mv=0;o.st='idle';o.fx=1}if(!fits(o,p.x,p.y))return info('المربع مشغول');objs.push(o);occ(o,1);return info('تم البناء ✓')}
+ if(mov){if(p&&OBJ[p.x][p.y]===mov){mov=null;return info('أُلغي النقل')}if(p&&fits(mov,p.x,p.y)){occ(mov,0);mov.x=p.x;mov.y=p.y;occ(mov,1);mov=null;return info('تم النقل ✓')}return info('لا يتسع هنا — اختر مكاناً فارغاً')}
+ const t=pickVeh(px,py)||pickObj(px,py)||pickRock(px,py);if(t&&(t.mv||t.k=='veh'||t.k=='rock')){detObj=t;showSheet('det');return}
+ sel=p;info(p?'المربع ('+(p.x+1)+'، '+(p.y+1)+') — '+NAMES[T[p.x][p.y]]:'خارج الأرض')}
+function whStock(){const s={};objs.forEach(o=>{if(o.role=='wh'&&o.inv)for(const k in o.inv)if(o.inv[k]>0)s[k]=(s[k]||0)+o.inv[k]});return s}
+const fuelHave=()=>objs.reduce((a,o)=>a+((o.inv&&(o.role=='fuelst'||o.role=='wh'||o.role=='depot'))?(o.inv.fuel||0):0),0);
+function sendTruck(){const tr=objs.find(o=>o.k=='veh'&&o.role=='truck'&&o.st=='idle'&&!o.away&&!o.order);if(!tr)return toast('لا توجد شاحنة متاحة — ابنِ شاحنة بيع من قسم التجارة والنقل');
+ const st=whStock(),order=Object.keys(TO).filter(k=>TO[k]>0&&(st[k]||0)>0).map(k=>({r:k,n:Math.min(20,TO[k],st[k])}));if(!order.length)return toast('اختر منتجات للبيع أولاً');
+ const fs=objs.filter(o=>o.inv&&(o.inv.fuel||0)>0&&(o.role=='fuelst'||o.role=='wh'||o.role=='depot')),have=fs.reduce((a,o)=>a+o.inv.fuel,0);if(have<10)return toast('الوقود غير كافٍ: الرحلة تحتاج 10 براميل (المتوفر '+have+')');
+ const tx=Math.floor(tr.x),ty=Math.floor(tr.y);if(!asph(tx,ty)||!bfs(tx,ty,brd))return toast('الشاحنة تحتاج طريقاً أسفلتياً يصل إلى حافة المدينة');
+ let need=10;fs.sort((a,b)=>(a.role=='fuelst'?0:1)-(b.role=='fuelst'?0:1)).forEach(o=>{const a=Math.min(need,o.inv.fuel);o.inv.fuel-=a;need-=a});
+ tr.order=order;toast('🚚 انطلقت الشاحنة: '+order.map(l=>RS[l.r][1]+l.n).join(' ')+' (−10 ⛽)')}
+function aiK(o,dt){o.walk=false;o.tm=(o.tm||0)+dt;const info=s=>{if((o.mt||0)<performance.now()){o.mt=performance.now()+8000;toast(s)}},tx=Math.floor(o.x),ty=Math.floor(o.y);
+ if(o.st=='idle'){
+  if(!asph(tx,ty)){let b=null,bd=1e9;for(let x=0;x<W;x++)for(let y=0;y<H;y++)if(asph(x,y)){const d=Math.hypot(x+.5-o.x,y+.5-o.y);if(d<bd){bd=d;b=[x,y]}}if(!b)return;o.x=b[0]+.5;o.y=b[1]+.5;o.hx=o.x;o.hy=o.y;return}
+  const L=o.order;if(!L||!L.length)return;o.pk=pickups(L,o);o.order=null;o.cargo=0;o.val=0;o.st='next'}
+ else if(o.st=='next'){const p=o.pk.shift();if(!p){if(o.cargo){o.st='leave';o.path=null}else{o.st='idle';o.cd=5;info('🚚 المستودع غير متصل بطريق أسفلتي أو فارغ')}return}const pa=bfs(tx,ty,(x,y)=>touch(x,y,p.q));if(!pa)return;o.cur=p;o.path=pa;o.pi=0;o.st='toS'}
+ else if(o.st=='toS'){if(follow(o,dt)){o.st='load';o.tm=0}}
+ else if(o.st=='load'){if(o.tm>.8){const p=o.cur,a=Math.min(p.n,p.q.inv[p.r]||0);p.q.inv[p.r]-=a;o.cargo+=a;o.val+=a*price(p.r);o.car=o.cargo>0;o.st='next'}}
+ else if(o.st=='leave'){if(!o.path){const pa=bfs(tx,ty,brd);if(!pa){info('🚚 لا يوجد طريق معبد إلى حافة المدينة');return}o.path=pa;o.pi=0}
+  if(follow(o,dt,3)){const e=o.path[o.path.length-1],ox=e[0]==0?-1:e[0]==W-1?1:0,oy=e[1]==0?-1:e[1]==H-1?1:0;o.ex=e;o.xt=[e[0]+.5+ox*2.5,e[1]+.5+oy*2.5];o.st='exit'}}
+ else if(o.st=='exit'){if(drive(o,o.xt[0],o.xt[1],dt,3)){o.away=1;o.tm=0;o.st='away';o.path=null}}
+ else if(o.st=='away'){if(o.tm>50){o.away=0;o.x=o.xt[0];o.y=o.xt[1];o.st='back';o.path=null}}
+ else if(o.st=='back'){if(!o.path){if(drive(o,o.ex[0]+.5,o.ex[1]+.5,dt,3)){const hx=Math.floor(o.hx),hy=Math.floor(o.hy);o.path=bfs(o.ex[0],o.ex[1],(x,y)=>x==hx&&y==hy)||[[hx,hy]];o.pi=0}}
+  else if(follow(o,dt,3)){money+=o.val;UP.sold=(UP.sold||0)+o.val;saveUP();info('💰 عادت الشاحنة: باعت '+o.cargo+' وحدة بـ '+o.val+'$');o.cargo=0;o.val=0;o.car=false;o.st='idle'}}}
+/* ----- الواجهة ----- */
+{const css=`.hud{display:none!important}#ui{position:fixed;inset:0;pointer-events:none;z-index:10}#ui .gl,#ui button,#ui input,#ui label,#res2{pointer-events:auto}.gl{background:var(--card);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);border:1px solid rgba(127,127,127,.2);box-shadow:0 4px 18px rgba(0,0,0,.2)}#tb{position:absolute;top:calc(8px + env(safe-area-inset-top,0px));left:8px;right:8px;display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:18px}#av{flex:0 0 auto;width:46px;height:46px;border-radius:50%;border:2px solid #4caf50;overflow:hidden;background:#dfe8d8;font-size:26px;line-height:42px;box-shadow:none}#av img,.bigav img{width:100%;height:100%;object-fit:cover;display:block}.who{flex:1;min-width:0;display:flex;flex-direction:column;line-height:1.25}.who b{font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.who small{font-size:11px;opacity:.7}#bal{flex:0 0 auto;width:auto;height:36px;padding:0 12px;border-radius:18px;background:linear-gradient(135deg,#f6cb45,#e8951a);color:#3a2600;font-weight:700;font-size:14px;line-height:36px;box-shadow:none}#gear{flex:0 0 auto;box-shadow:none;background:rgba(127,127,127,.15)}#res2{position:absolute;top:calc(70px + env(safe-area-inset-top,0px));left:8px;right:8px;display:flex;gap:6px;overflow-x:auto;scrollbar-width:none}.ch{flex:0 0 auto;padding:4px 10px;border-radius:14px;background:var(--card);font-size:12px;font-weight:600;box-shadow:0 1px 6px rgba(0,0,0,.18)}#zm{position:absolute;right:10px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:8px}#gm{position:absolute;top:calc(64px + env(safe-area-inset-top,0px));left:8px;display:none;flex-direction:column;gap:6px;padding:8px;border-radius:14px}#pbar{position:absolute;left:10px;right:10px;bottom:calc(88px + env(safe-area-inset-bottom,0px));display:none;align-items:center;gap:8px;padding:8px 12px;border-radius:14px;font-size:13px}#pbar span{flex:1}#dock{position:absolute;bottom:calc(10px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);display:flex;gap:6px;padding:8px;border-radius:22px;z-index:5}#dock button{width:64px;height:58px;border-radius:16px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:24px;line-height:1;box-shadow:none;background:rgba(127,127,127,.14)}#dock small{font-size:10px;margin-top:4px}#dock button.on{background:#4caf50;color:#fff}#sheet{position:absolute;left:0;right:0;bottom:calc(86px + env(safe-area-inset-bottom,0px));max-height:52vh;border-radius:22px 22px 0 0;display:none;flex-direction:column;z-index:4}#sheet.show{display:flex}#sh{display:flex;align-items:center;gap:8px;padding:12px 14px 6px;font-weight:700}#st{flex:1}#sx{width:34px;height:34px;line-height:34px;font-size:16px;box-shadow:none;background:rgba(127,127,127,.25)}#sb{overflow-y:auto;padding:4px 12px 14px;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}.g{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:8px}.cats{display:flex;gap:6px;overflow-x:auto;padding:2px 0 8px;position:sticky;top:0;background:var(--card);z-index:1;scrollbar-width:none}.cats button{width:auto;flex:0 0 auto;height:34px;padding:0 12px;border-radius:17px;font-size:13px;line-height:34px;box-shadow:none;background:rgba(127,127,127,.15)}.cats button.on{background:#4caf50;color:#fff}.row{display:flex;gap:10px;align-items:center;padding:8px;border-radius:12px;background:rgba(127,127,127,.1);margin-bottom:8px}.kv{display:flex;justify-content:space-between;gap:10px;padding:5px 2px;font-size:13px;border-bottom:1px solid rgba(127,127,127,.15)}.bar{height:8px;border-radius:4px;background:rgba(127,127,127,.25);overflow:hidden;margin:4px 0}.bar i{display:block;height:100%;background:#4caf50}.btn{width:auto;height:38px;padding:0 14px;border-radius:12px;background:#4caf50;color:#fff;font-size:14px;line-height:38px;font-weight:600;box-shadow:none}.btn.red{background:#e5534b}.btn.gray{background:rgba(127,127,127,.3);color:inherit}.tag{display:inline-block;padding:3px 10px;border-radius:10px;background:rgba(229,83,75,.18);font-size:12px;margin:2px 0 6px}.wal{text-align:center;padding:14px;border-radius:16px;background:linear-gradient(135deg,#2f6bd6,#7a4ad8);color:#fff;margin-bottom:10px}.wal .big{font-size:30px;font-weight:800}.bigav{width:90px;height:90px;border-radius:50%;overflow:hidden;margin:0 auto 8px;background:#dfe8d8;font-size:48px;line-height:90px;text-align:center;border:3px solid #4caf50}#sb input[type=text],#sb input[type=number]{flex:1;height:38px;border-radius:10px;border:1px solid rgba(127,127,127,.4);padding:0 10px;background:transparent;color:inherit;font-size:14px;min-width:0}#info{position:fixed;top:calc(108px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);max-width:92vw;z-index:40;pointer-events:none;opacity:0;transition:opacity .35s;text-align:center;font-size:13px}`;
+ const stl=document.createElement('style');stl.textContent=css;document.head.appendChild(stl)}
+const ui=document.createElement('div');ui.id='ui';
+ui.innerHTML=`<div id='tb' class='gl'><button id='av'></button><div class='who'><b id='pn'></b><small id='plv'></small></div><button id='bal'>💰 <span id='bv'></span></button><button id='gear'>⚙️</button></div><div id='res2'></div><div id='zm'><button class='gl' id='z1'>＋</button><button class='gl' id='z2'>－</button><button class='gl' id='z3'>◎</button></div><div id='gm' class='gl'><button class='btn gray' data-g='bs'>💾 حفظ</button><button class='btn gray' data-g='bg'>▦ الشبكة</button><button class='btn red' data-g='br'>🔄 بداية جديدة</button></div><div id='pbar' class='gl'><span id='pt'></span><button class='btn red' id='pe'>إنهاء</button></div><div id='sheet' class='gl'><div id='sh'><span id='st'></span><button id='sx'>✕</button></div><div id='sb'></div></div><div id='dock' class='gl'><button data-d='build'>🏗️<small>البناء</small></button><button data-d='fact'>🏭<small>المصانع</small></button><button data-d='truck'>🚚<small>الشاحنة</small></button><button data-d='del'>🗑️<small>حذف</small></button></div>`;
+document.body.appendChild(ui);document.body.appendChild($('info'));
+{let t;new MutationObserver(()=>{const i=$('info');i.style.opacity=1;clearTimeout(t);t=setTimeout(()=>{i.style.opacity=0},5000)}).observe($('info'),{childList:true,characterData:true,subtree:true})}
+const kv=(a,b)=>`<div class='kv'><span>${a}</span><b>${b}</b></div>`,bar=(v,m,c)=>`<div class='bar'><i style='width:${Math.max(0,Math.min(100,v/m*100))}%;${c?'background:'+c:''}'></i></div>`;
+function closeSheet(){shKind=null;$('sheet').classList.remove('show');[...document.querySelectorAll('#dock button')].forEach(b=>b.classList.remove('on'))}
+function showSheet(k){shKind=k;[...document.querySelectorAll('#dock button')].forEach(b=>b.classList.toggle('on',b.dataset.d==k));$('gm').style.display='none';render();$('sheet').classList.add('show');$('sb').scrollTop=0}
+function render(){const m={build:['الإنشاءات والمنشآت',rBuild],fact:['المصانع',rFact],truck:['🚚 أمر البيع',rTruck],wallet:['👛 محفظة إبداع',rWallet],prof:['الملف الشخصي',rProf],det:['التفاصيل',()=>rDet(detObj)]}[shKind];$('st').textContent=m[0];$('sb').innerHTML=m[1]()}
+function selectItem(i){delMode=false;$('bd').classList.remove('on');placing=i+1;mov=null;closeSheet();toast('المس الأرض لوضع: '+ITEMS[i][1])}
+function rBuild(){const cs=CATS.map((c,i)=>ITEMS.some(d=>d[0]==i)?`<button class='${i==bcat?'on':''}' data-a='cat' data-i='${i}'>${c[0]} ${c[1]}</button>`:'').join('');const its=ITEMS.map((d,i)=>[d,i]).filter(([d])=>d[0]==bcat).map(([d,i])=>`<div class='row' style='flex-direction:column;margin:0;text-align:center;font-size:12px;cursor:pointer' data-a='pick' data-i='${i}'><img src='${icon(i)}' style='width:100%'><div>${d[1]}</div></div>`).join('');return `<div class='cats'>${cs}</div><div class='g'>${its}</div>`}
+function rFact(){return Object.keys(RC).map(n=>{const i=ITEMS.findIndex(d=>d[2]==n);if(i<0)return'';const rc=RC[n],d=ITEMS[i],ins=Object.entries(rc.in).map(([k,v])=>v+RS[k][1]).join(' + '),outs=(rc.outs||[[rc.out,1]]).map(([k,v])=>v+RS[k][1]).join(' + '),pl=objs.filter(o=>o.k=='cat'&&o.ci==i),run=pl.filter(o=>o.run).length;return `<div class='row'><img src='${icon(i)}' style='width:64px'><div style='flex:1'><b>${d[1]}</b><div style='font-size:12px'>${ins} ← ${outs} · 30ث</div><div style='font-size:11px;opacity:.75'>سعة الناتج ${rc.oc||10} · مبنية: ${pl.length} · تعمل: ${run}</div></div><button class='btn' data-a='pick' data-i='${i}'>بناء</button></div>`}).join('')}
+function rTruck(){const st=whStock(),tr=objs.filter(o=>o.k=='veh'&&o.role=='truck'),idle=tr.filter(o=>o.st=='idle'&&!o.away&&!o.order),keys=Object.keys(st);keys.forEach(k=>{const m=Math.min(20,st[k]);TO[k]=TO[k]==null?m:Math.min(TO[k],m)});
+ const rows=keys.map(k=>`<div class='row'><span style='font-size:24px'>${RS[k][1]}</span><div style='flex:1'><b>${RN[k]||k}</b><div style='font-size:11px;opacity:.75'>المخزون ${st[k]} · السعر ${price(k)}$</div></div><button class='btn gray' data-a='tq' data-k='${k}' data-d='-1'>−</button><b style='min-width:26px;text-align:center'>${TO[k]}</b><button class='btn gray' data-a='tq' data-k='${k}' data-d='1'>＋</button><button class='btn gray' data-a='tq' data-k='${k}' data-d='20'>كل</button></div>`).join('')||`<p style='opacity:.7'>لا توجد منتجات في المستودع العام.</p>`;
+ const rev=keys.reduce((a,k)=>a+TO[k]*price(k),0);return `<div class='row'><span style='font-size:28px'>🚚</span><div style='flex:1'>الشاحنات: ${tr.length} · المتاحة: ${idle.length}<div style='font-size:12px'>⛽ الوقود ${fuelHave()} · الرحلة تستهلك 10 براميل · السعة 20 وحدة لكل صنف</div></div></div>${rows}<div class='row'><div style='flex:1'>الإيراد المتوقع: <b>${rev}$</b></div><button class='btn' data-a='send'>🚚 إرسال للبيع</button></div>`}
+function rDet(o){if(!o)return'';if(o.k=='rock')return `<div class='row'><span style='font-size:40px'>🪨</span><div style='flex:1'><b>صخرة</b><div style='font-size:12px;opacity:.7'>تعيق البناء على هذا المربع</div></div></div><button class='btn red' data-a='del'>إزالة الصخرة (50$)</button>`;
+ const d=ITEMS[o.ci],r=o.role,n=d[2];let h=`<div class='row'><img src='${icon(o.ci)}' style='width:72px'><div style='flex:1'><b style='font-size:16px'>${d[1]}</b><div style='font-size:12px;opacity:.7'>${n}</div></div></div>`;
+ if(NEED.includes(r)&&o.act===false)h+=`<div class='tag'>⛔ لا يعمل: يحتاج طريقاً أمامه</div>`;
+ h+=kv('الموقع','('+(Math.floor(o.x)+1)+'، '+(Math.floor(o.y)+1)+')'+(o.fw?' · '+o.fw+'×'+o.fd:''));
+ if(r=='field')h+=kv('الحالة',o.st==0?'💧 تحتاج سقياً':o.st==1?'🌱 تنمو '+Math.min(100,Math.round(o.t*10))+'%':'✅ جاهزة للحصاد')+kv('المنتج',RS[FO[n]][1]+' '+(RN[FO[n]]||''))+kv('الإنتاج','وحدة واحدة لكل حصاد · نمو 10ث');
+ else if(r=='pen')h+=kv('الاحتياج',o.need?((o.nw?'💧 ':'')+(o.nf>0?'🌾×'+o.nf:'')||'يُجهّز…'):'لا شيء — بعد '+Math.max(0,Math.ceil(40-(o.tf||0)))+'ث')+kv('العلف لكل دورة',FEED[n]||1)+kv('المنتج',RS[PNM[n]][1]+' '+(RN[PNM[n]]||''))+kv('ناتج ينتظر الجمع',o.out||0);
+ else if(r=='proc'){const rc=RC[n];h+=kv('الوصفة',Object.entries(rc.in).map(([k,v])=>v+RS[k][1]).join(' + ')+' ← '+(rc.outs||[[rc.out,1]]).map(([k,v])=>v+RS[k][1]).join(' + ')+' · 30ث')+bar(o.run?o.pg:0,30,'#f2c030');for(const k in rc.in)h+=kv('مخزون '+(RN[k]||k),(o.inv[k]||0)+' / '+icap(rc,k));h+=kv('الناتج',(o.out||0)+' / '+(rc.oc||10))}
+ else if(r=='prod'){const p=PR[n];h+=kv('المنتج',RS[p.out][1]+' '+(RN[p.out]||''))+bar(o.pg||0,p.t||20,'#f2c030')+kv('كل',(p.t||20)+'ث')+kv('الناتج',o.out||0)}
+ else if(STO[r]){const c=o.cap||CAP[r]||100,t=o.inv?tot(o):0,e=Object.entries(o.inv||{}).filter(a=>a[1]>0);h+=kv('السعة',t+' / '+c)+bar(t,c,t>=c?'#e5534b':'')+kv('يخزّن',SG[r]?SG[r].map(x=>RS[x][1]).join(' '):'كل الأصناف (مستودع عام للبيع)')+(e.length?e.map(a=>kv(RS[a[0]][1]+' '+(RN[a[0]]||a[0]),a[1])).join(''):kv('المحتوى','فارغ'))}
+ else if(r=='well')h+=kv('الوظيفة','مصدر مياه للسقي');
+ else if(HS[r])h+=kv('العمال',objs.filter(w=>w.k=='worker'&&w.home===o).length+' عامل')+kv('الوظيفة',r=='whouse'?'الصناعة: بطاريات، حديد، نفط، وقود':r=='fhouse'?'الزراعة: حقول وحظائر ومطحنة':'قطع الأشجار');
+ else if(o.k=='veh')h+=kv('الحالة',o.away?'خارج المدينة':o.st)+kv('الحمولة',o.cargo||0);
+ h+=`<div style='display:flex;gap:8px;margin-top:10px'>`+(o.k=='veh'?'':`<button class='btn' data-a='mv'>↔ نقل</button>`)+`<button class='btn red' data-a='del'>🗑 حذف (${delP(o)}$)</button></div>`;return h}
+function rWallet(){const tx=UP.tx.slice(0,20).map(t=>kv(new Date(t.t).toLocaleString('ar'),'−'+t.a.toLocaleString()+'$ · '+t.s)).join('')||`<p style='opacity:.7'>لا توجد عمليات سحب بعد.</p>`;
+ return `<div class='wal'><small>محفظة إبداع</small><div class='big'>💰 ${Math.floor(money).toLocaleString()}</div><small>رصيد الحساب</small></div><div class='row'><input id='wa' type='number' min='100' step='100' placeholder='المبلغ (الحد الأدنى 100)'><button class='btn' data-a='wd'>سحب</button></div><div style='display:flex;gap:6px;margin-bottom:10px'><button class='btn gray' data-a='wq' data-v='100'>100</button><button class='btn gray' data-a='wq' data-v='1000'>1,000</button><button class='btn gray' data-a='wq' data-v='10000'>10,000</button></div><b>سجل السحب</b>${tx}<p style='font-size:11px;opacity:.7'>⚠️ المحفظة محاكاة داخل اللعبة وليست دفعاً حقيقياً.</p>`}
+function rProf(){const n=objs.filter(o=>o.mv).length;return `<div class='bigav'>${UP.av?`<img src='${UP.av}'>`:'🧑‍🌾'}</div><div style='text-align:center;margin-bottom:10px'><label class='btn gray' style='display:inline-block'>📷 تغيير الصورة<input id='pf' type='file' accept='image/*' hidden></label></div><div class='row'><input id='pnm' type='text' maxlength='20' value='${UP.name}' placeholder='اسم اللاعب'></div>${kv('المستوى',1+Math.floor(n/5))}${kv('المنشآت',n)}${kv('العمال',objs.filter(o=>o.k=='worker').length)}${kv('الشاحنات',objs.filter(o=>o.role=='truck').length)}${kv('إجمالي المبيعات',(UP.sold||0).toLocaleString()+'$')}${kv('مساحة الأرض',W*H+' مربع')}`}
+function readAv(f){if(!f)return;const r=new FileReader();r.onload=()=>{const im=new Image();im.onload=()=>{const c=document.createElement('canvas');c.width=c.height=128;const g=c.getContext('2d'),s=Math.min(im.width,im.height);g.drawImage(im,(im.width-s)/2,(im.height-s)/2,s,s,0,0,128,128);UP.av=c.toDataURL('image/jpeg',.82);saveUP();render()};im.src=r.result};r.readAsDataURL(f)}
+function chips(){const s={};objs.forEach(o=>{if(o.inv&&STO[o.role])for(const k in o.inv)s[k]=(s[k]||0)+o.inv[k]});const g=x=>Object.keys(s).filter(k=>RS[k][0]==x).reduce((a,k)=>a+s[k],0);const it=[['🪵',g('wood')],['🌾',g('crop')],['🍞',g('food')],['⚙️',g('goods')-(s.bat||0)],['🔋',s.bat||0],['⛽',g('fuel')],['👷',objs.filter(o=>o.k=='worker').length]];$('res2').innerHTML=it.map(([e,v])=>`<span class='ch'>${e} ${v}</span>`).join('')}
+$('dock').onclick=e=>{const b=e.target.closest('button');if(!b)return;const k=b.dataset.d;if(k=='del'){$('bd').click();return}if(shKind==k){closeSheet();return}showSheet(k)};
+$('sx').onclick=closeSheet;$('av').onclick=()=>showSheet('prof');$('bal').onclick=()=>showSheet('wallet');
+$('gear').onclick=()=>{$('gm').style.display=$('gm').style.display=='flex'?'none':'flex'};
+$('gm').onclick=e=>{const b=e.target.closest('[data-g]');if(!b)return;$(b.dataset.g).click();if(b.dataset.g!='br')$('gm').style.display='none'};
+$('z1').onclick=()=>$('bz').click();$('z2').onclick=()=>$('bm').click();$('z3').onclick=()=>$('bc').click();
+$('pe').onclick=()=>{placing=null;mov=null;if(delMode)$('bd').click()};
+$('sb').onclick=e=>{const t=e.target.closest('[data-a]');if(!t)return;const a=t.dataset.a,D=t.dataset;
+ if(a=='cat'){bcat=+D.i;render()}
+ else if(a=='pick')selectItem(+D.i);
+ else if(a=='tq'){const st=whStock(),k=D.k,m=Math.min(20,st[k]||0);TO[k]=Math.max(0,Math.min(m,D.d=='20'?m:(TO[k]||0)+(+D.d)));render()}
+ else if(a=='send'){sendTruck();render()}
+ else if(a=='mv'){mov=detObj;closeSheet();toast('المس مربعاً فارغاً لنقل المنشأة (الزاوية العلوية)')}
+ else if(a=='del'){if(delThing(detObj))closeSheet()}
+ else if(a=='wq')$('wa').value=D.v;
+ else if(a=='wd'){const v=Math.floor(+$('wa').value);if(!(v>=100))toast('الحد الأدنى للسحب 100$');else if(v>money)toast('الرصيد لا يكفي');else{money-=v;UP.tx.unshift({t:Date.now(),a:v,s:'قيد المعالجة'});saveUP();toast('تم طلب سحب '+v.toLocaleString()+'$');render()}}};
+$('sb').onchange=e=>{if(e.target.id=='pf')readAv(e.target.files[0])};
+$('sb').oninput=e=>{if(e.target.id=='pnm'){UP.name=e.target.value.slice(0,20)||'اللاعب';saveUP()}};
+let lastK='';
+setInterval(()=>{$('bv').textContent=Math.floor(money).toLocaleString();const n=objs.filter(o=>o.mv).length,k=UP.av+'|'+UP.name;if(k!=lastK){lastK=k;$('av').innerHTML=UP.av?`<img src='${UP.av}'>`:'🧑‍🌾';$('pn').textContent=UP.name}$('plv').textContent='المستوى '+(1+Math.floor(n/5))+' · '+n+' منشأة';chips();
+ let t='';if(placing)t='📍 '+ITEMS[placing-1][1]+' — المس الأرض للبناء (بلا حدّ)';else if(mov)t='↔ المس مربعاً فارغاً لنقل المنشأة';else if(delMode)t='🗑️ وضع الحذف: المس منشأة (السعر حسب النوع) أو صخرة (50$) أو طريقاً (مجاناً)';$('pbar').style.display=t?'flex':'none';$('pt').textContent=t;[...document.querySelectorAll('#dock button')].forEach(b=>{if(b.dataset.d=='del')b.classList.toggle('on',delMode)})},500);
+setInterval(()=>{if(shKind=='truck'||shKind=='det'||shKind=='fact'){if(shKind=='det'&&!objs.includes(detObj)){closeSheet();return}const y=$('sb').scrollTop;render();$('sb').scrollTop=y}},900);
+applyRM();
 addEventListener('resize',()=>{rs()});rs();center();requestAnimationFrame(frame);
-
-/* ===== إضافات توجيه وظائف العمال المعتمدة ===== */
-PREF.bread=['wh'];
-PREF.fabric=['wh'];
-/* مخرجات المخبزة والقماش والفولاذ والبطاريات لا تُحوّل إلى مخزن آخر عند امتلاء المستودع؛ تنتظر حتى تتوفر سعته. */
-const __dstBeforeWarehouseOnly=dst;
-const __warehouseOnlyProducts=new Set(['bread','fabric','steel','bat']);
-dst=function(r,n,p){
- if(__warehouseOnlyProducts.has(r)){
-  return nearest(objs.filter(o=>o.role=='wh'&&o.act!==false&&o.inv&&o.cap-tot(o)>=(n||1)),p);
- }
- return __dstBeforeWarehouseOnly(r,n,p);
-};
-
-
-/* الفلاح لا يحصد خشب مزارع الأشجار؛ تبقى هذه المزارع ضمن اختصاص الحطّاب. */
-const __planBeforeWorkerRouting=plan;
-plan=function(w){
- const hiddenTreeOutputs=[];
- const hiddenBakeryOutputs=[];
- if(w.role=='farm'){
-  objs.forEach(o=>{
-   if(o.role=='field'&&FO[ITEMS[o.ci]?.[2]]=='wood'&&o.out>0){
-    hiddenTreeOutputs.push([o,o.out]);
-    o.out=0;
-   }
-   if(o.role=='proc'&&ITEMS[o.ci]?.[2]=='Bakery'&&o.out>0){
-    hiddenBakeryOutputs.push([o,o.out]);
-    o.out=0;
-   }
-  });
- }
- let tasks=null;
- try{tasks=__planBeforeWorkerRouting(w)}
- finally{
-  hiddenTreeOutputs.forEach(([o,n])=>{o.out=n});
-  hiddenBakeryOutputs.forEach(([o,n])=>{o.out=n});
- }
- if(tasks)return tasks;
-
- /* عامل المصانع يجمع الخبز النهائي من المخبزة إلى المستودع، ولا يزوّدها بالمدخلات. */
- if(w.role=='hand'){
-  const warehouses=objs.filter(o=>o.role=='wh'&&o.act!==false&&o.inv&&o.cap>tot(o));
-  const bakery=nearest(objs.filter(o=>o.role=='proc'&&ITEMS[o.ci]?.[2]=='Bakery'&&o.act!==false&&o.out>0&&!CL.has('c'+oid(o))&&warehouses.some(d=>d.cap-tot(d)>0)),w);
-  if(bakery){
-   const dest=nearest(warehouses.filter(d=>d.cap-tot(d)>0),bakery);
-   if(dest){
-    const key='c'+oid(bakery);
-    cl(key);w.ks=[key];
-    let amount=0;
-    return[
-     {go:()=>ft(bakery)},
-     {d:.8,st:'take',fn:()=>{
-      amount=Math.min(bakery.out,Math.max(0,dest.cap-tot(dest)));
-      if(amount<1)return false;
-      bakery.out-=amount;w.n=amount;w.car='bread';
-     }},
-     {go:()=>ft(dest)},
-     {d:.6,st:'drop',fn:()=>{
-      if(dest.cap-tot(dest)<w.n)return false;
-      give(dest,'bread',w.n);w.car=null;w.n=0;
-     }}
-    ];
-   }
-  }
- }
- return null;
-};
-
-/* الحطّاب يجمع أيضاً إنتاج Tree Farm وOak Tree Farm، ويوجهه إلى مصانع الخشب/الطاحونة ثم مخازن الخشب عند توفر السعة. */
-const __aiWBeforeTreeFields=aiW;
-const __woodRoomForWorker=d=>{
- if(!d||!d.inv)return 0;
- if(d.role=='proc'){
-  const rc=RC[ITEMS[d.ci]?.[2]];
-  return rc&&rc.in.wood?Math.max(0,icap(rc,'wood')-(d.inv.wood||0)):0;
- }
- return Math.max(0,(d.cap||0)-tot(d));
-};
-aiW=function(w,dt){
- if(w.st=='idle'){
-  const field=nearest(objs.filter(o=>o.role=='field'&&o.act!==false&&o.st==2&&o.out>0&&FO[ITEMS[o.ci]?.[2]]=='wood'&&!CL.has('c'+oid(o))),w);
-  if(field){
-   const dest=dst('wood',1,w);
-   if(dest&&__woodRoomForWorker(dest)>0){
-    w.tg=field;w.ds=dest;w.k0='c'+oid(field);cl(w.k0);w.st='toFarmTreeField';w.tm=0;
-   }
-  }
- }
- if(w.st=='toFarmTreeField'){
-  if(!w.tg||w.tg.out<1){rls([w.k0]);w.k0=null;w.st='idle';return}
-  const p=ct(w.tg);
-  if(p&&go(w,p.x,p.y,dt)){w.st='takeFarmTreeWood';w.tm=0}
-  return;
- }
- if(w.st=='takeFarmTreeWood'){
-  w.tm+=dt;
-  if(w.tm>.8){
-   let room=__woodRoomForWorker(w.ds);
-   if(room<1){w.ds=dst('wood',1,w);room=__woodRoomForWorker(w.ds)}
-   const amount=Math.min(w.tg?.out||0,room);
-   if(amount<1)return;
-   w.tg.out-=amount;w.n=amount;w.car='wood';
-   if(w.tg.out<1){w.tg.out=0;w.tg.st=0;w.tg.t=0}
-   w.st='toFarmTreeWoodDest';w.tm=0;
-  }
-  return;
- }
- if(w.st=='toFarmTreeWoodDest'){
-  if(!w.ds||__woodRoomForWorker(w.ds)<w.n)w.ds=dst('wood',w.n,w);
-  if(!w.ds)return;
-  const p=ft(w.ds);
-  if(p&&go(w,p.x,p.y,dt)){w.st='dropFarmTreeWood';w.tm=0}
-  return;
- }
- if(w.st=='dropFarmTreeWood'){
-  w.tm+=dt;
-  if(w.tm>.6){
-   if(!w.ds||__woodRoomForWorker(w.ds)<w.n){w.ds=dst('wood',w.n,w);w.st='toFarmTreeWoodDest';return}
-   const before=w.ds.role=='proc'?(w.ds.inv.wood||0):tot(w.ds);
-   give(w.ds,'wood',w.n);
-   const after=w.ds.role=='proc'?(w.ds.inv.wood||0):tot(w.ds);
-   const moved=Math.max(0,after-before);
-   w.n-=moved;
-   if(w.n>0){w.ds=null;w.st='toFarmTreeWoodDest';return}
-   rls([w.k0]);w.k0=null;w.tg=null;w.ds=null;w.n=0;w.car=null;w.st='idle';
-  }
-  return;
- }
- __aiWBeforeTreeFields(w,dt);
-};
-
-/* الجرار ينفذ خطة الفلاح نفسها: السقي والحصاد والنقل والتزويد، مع استبعاد خشب مزارع الأشجار. */
-aiT=function(o,dt){
- o.walk=false;
- if(!o.steps){
-  const role=o.role;o.role='farm';
-  try{o.steps=plan(o)}finally{o.role=role}
-  o.tm=0;
-  if(!o.steps){drive(o,o.hx,o.hy,dt);return}
- }
- const step=o.steps[0];
- if(!step){rls(o.ks||[]);o.ks=[];o.steps=null;o.st='idle';o.car=0;return}
- if(step.go){
-  const p=step.go();
-  if(!p){rls(o.ks||[]);o.ks=[];o.steps=null;o.st='idle';o.car=0;return}
-  if(drive(o,p.x,p.y,dt)){o.steps.shift();o.tm=0}
- }else{
-  o.st=step.st;o.tm+=dt;
-  if(o.tm>=step.d){
-   if(step.fn&&step.fn()===false){rls(o.ks||[]);o.ks=[];o.steps=null;o.st='idle';o.car=0;return}
-   o.steps.shift();o.tm=0;o.st='idle';
-  }
- }
- if(o.steps&&!o.steps.length){rls(o.ks||[]);o.ks=[];o.steps=null;o.st='idle';o.car=0;o.n=0}
-};
-
-
-/* ===== واجهة قريتي المحسّنة — طبقة عرض فقط، دون تعديل منطق اللعبة أو العمال ===== */
-(()=>{
- const style=document.createElement('style');
- style.textContent=`
-.hud.top,.hud.bot{display:none!important}
-canvas#c{position:fixed!important;inset:0!important;z-index:1!important;display:block!important;visibility:visible!important;opacity:1!important;pointer-events:auto!important;width:100%!important;height:100%!important}
-#villageUI{position:fixed;inset:0;z-index:10;pointer-events:none;background:transparent;direction:rtl;font-family:system-ui,"Segoe UI",Tahoma,sans-serif;color:var(--ink)}
-#villageUI button{all:unset;box-sizing:border-box;cursor:pointer;pointer-events:auto;width:38px;height:38px;border-radius:12px;background:var(--card);color:inherit;text-align:center;line-height:38px;font-size:18px;box-shadow:0 2px 8px rgba(0,0,0,.2)}
-#villageUI button:active{transform:scale(.97)}
-#villageUI .gl{background:var(--card);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);border:1px solid rgba(127,127,127,.2);box-shadow:0 4px 18px rgba(0,0,0,.2);pointer-events:auto}
-#villageUI .vtop{position:absolute;top:calc(8px + env(safe-area-inset-top,0px));left:8px;right:8px;display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:18px}
-#villageUI .vbrand{display:flex;align-items:center;gap:9px;flex:1;min-width:0;cursor:pointer}
-#villageUI .vavatar{width:46px;height:46px;flex:0 0 46px;border-radius:50%;border:2px solid #4caf50;background:#dfe8d8;display:grid;place-items:center;font-size:26px}
-#villageUI .who{min-width:0;display:flex;flex-direction:column;line-height:1.25}
-#villageUI .who b{font-size:14px;white-space:nowrap}
-#villageUI .who small{font-size:11px;opacity:.7}
-#villageUI .vbalance{width:auto;height:36px;padding:0 12px;border-radius:18px;background:linear-gradient(135deg,#f6cb45,#e8951a);color:#3a2600;font-weight:800;font-size:14px;line-height:36px;white-space:nowrap;box-shadow:none}
-#villageUI .vgear{flex:0 0 38px;background:rgba(127,127,127,.15);box-shadow:none}
-#villageUI .vresources{position:absolute;top:calc(70px + env(safe-area-inset-top,0px));left:8px;right:8px;display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding:2px 0;pointer-events:auto}
-#villageUI .vresources .chip{flex:0 0 auto;padding:5px 10px;border-radius:14px;background:var(--card);font-size:12px;font-weight:600;box-shadow:0 1px 6px rgba(0,0,0,.18)}
-#villageUI #res{white-space:nowrap}
-#villageUI #cnt{display:none}
-#villageUI .vzoom{position:absolute;right:10px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:8px;padding:6px;border-radius:16px}
-#villageUI .vzoom button{background:rgba(127,127,127,.12);box-shadow:none}
-#villageUI .vmenu{position:absolute;top:calc(64px + env(safe-area-inset-top,0px));left:8px;display:none;flex-direction:column;gap:6px;padding:8px;border-radius:14px}
-#villageUI .vmenu.show{display:flex}
-#villageUI .vmenu button{width:auto;height:36px;padding:0 12px;border-radius:10px;font-size:13px;line-height:36px;white-space:nowrap}
-#villageUI .vsheet{position:absolute;left:0;right:0;bottom:calc(86px + env(safe-area-inset-bottom,0px));max-height:52vh;border-radius:22px 22px 0 0;display:none;flex-direction:column;overflow:hidden}
-#villageUI .vsheet.show{display:flex}
-#villageUI .vhead{display:flex;align-items:center;gap:8px;padding:12px 14px 6px;font-weight:800}
-#villageUI .vhead span{flex:1}
-#villageUI .vhead button{width:34px;height:34px;line-height:34px;font-size:16px;background:rgba(127,127,127,.25);box-shadow:none}
-#villageUI #vContent{overflow-y:auto;padding:4px 12px 14px;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;pointer-events:auto}
-#villageUI #info{position:static!important;display:block!important;transform:none!important;max-width:none!important;opacity:1!important;pointer-events:auto!important;text-align:right!important;margin:0 0 7px;padding:7px 9px;border-radius:10px;font-size:12px;box-shadow:none;background:rgba(127,127,127,.1)}
-#villageUI #cat{display:flex;gap:6px;overflow-x:auto;padding:6px 2px;background:transparent;box-shadow:none;pointer-events:auto}
-#villageUI #cat button{flex:0 0 46px;width:46px;height:46px;line-height:46px;font-size:24px;box-shadow:none;background:rgba(127,127,127,.14)}
-#villageUI #pan{display:none;max-height:none;overflow:visible;padding:8px 0;background:transparent;box-shadow:none}
-#villageUI #pan.show{display:block}
-#villageUI #det{font-size:13px;margin:0 0 6px;min-height:18px}
-#villageUI #items{display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:8px}
-#villageUI .it{background:rgba(127,127,127,.12);border-radius:12px;text-align:center;font-size:11px;padding:5px 3px;cursor:pointer;border:2px solid transparent;min-width:0}
-#villageUI .it.on{border-color:#4caf50}
-#villageUI .it img{width:100%;display:block}
-#villageUI .vstats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
-#villageUI .vstat{padding:10px;border-radius:12px;background:rgba(127,127,127,.1);font-size:12px}
-#villageUI .vstat b{display:block;font-size:17px;margin-top:3px}
-#villageUI .vdock{position:absolute;bottom:calc(10px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);display:flex;gap:6px;padding:8px;border-radius:22px;z-index:5}
-#villageUI .vdock button{width:64px;height:58px;border-radius:16px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:24px;line-height:1;box-shadow:none;background:rgba(127,127,127,.14)}
-#villageUI .vdock small{font-size:10px;margin-top:4px}
-#villageUI .vdock button.on{background:#4caf50;color:#fff}
-@media(min-width:700px){#villageUI .vsheet{left:0;right:14px;width:min(460px,45vw);bottom:85px;max-height:70vh;border-radius:22px}#villageUI .vdock{left:50%;width:auto}#villageUI .vresources{right:8px;left:8px}}
-@media(max-width:380px){#villageUI .vdock button{width:56px}#villageUI .vbalance{padding:0 8px;font-size:12px}}
-`;
- document.head.appendChild(style);
- const ui=document.createElement('div');ui.id='villageUI';
- ui.innerHTML=`<div class="vtop gl"><div class="vbrand"><div class="vavatar">🏡</div><div class="who"><b>قريتي</b><small>حياتك في المزرعة</small></div></div><button class="vbalance" id="vWallet">💰 <span id="vMoney">—</span></button><button class="vgear" id="vGear">⚙️</button></div><div class="vresources" id="vResHost"></div><div class="vzoom gl"><button id="vPlus">＋</button><button id="vMinus">－</button><button id="vCenter">◎</button></div><div class="vmenu gl" id="vMenu"><button data-cmd="bs">💾 حفظ التقدم</button><button data-cmd="bg">▦ إظهار الشبكة</button><button data-cmd="br">🔄 إعادة البداية</button></div><div class="vsheet gl" id="vSheet"><div class="vhead"><span id="vTitle">الإنشاءات</span><button id="vClose">✕</button></div><div id="vContent"></div></div><div class="vdock gl"><button data-vtab="build">🏗️<small>البناء</small></button><button data-vtab="factory">🏭<small>المصانع</small></button><button data-vtab="truck">🚚<small>الشاحنة</small></button><button data-vtab="delete">🗑️<small>حذف</small></button></div>`;
- document.body.appendChild(ui);
- const $v=id=>document.getElementById(id);
- const sheet=$v('vSheet'),content=$v('vContent'),title=$v('vTitle');
- const info=$('info'),pan=$('pan'),cat=$('cat'),res=$('res'),cnt=$('cnt');
- const resHost=$v('vResHost');if(res){const chip=document.createElement('div');chip.className='chip';chip.appendChild(res);resHost.appendChild(chip)}if(cnt){const chip=document.createElement('div');chip.className='chip';chip.appendChild(cnt);resHost.appendChild(chip)}
- content.appendChild(info);content.appendChild(cat);content.appendChild(pan);
- const close=()=>{sheet.classList.remove('show');ui.querySelectorAll('.vdock button').forEach(b=>b.classList.remove('on'));};
- const open=tab=>{sheet.classList.add('show');ui.querySelectorAll('.vdock button').forEach(b=>b.classList.toggle('on',b.dataset.vtab===tab));};
- const showBuild=()=>{title.textContent='🏗️ الإنشاءات والمنشآت';cat.style.display='flex';pan.classList.remove('show');$('info').textContent='اختر تصنيفاً ثم المنشأة، وبعدها المس أرض اللعبة لوضعها.';open('build');};
- const showFactories=()=>{
-  title.textContent='🏭 المصانع والإنتاج';cat.style.display='none';pan.classList.add('show');
-  const ids=ITEMS.map((d,i)=>i).filter(i=>!!(RC[ITEMS[i][2]]||PR[ITEMS[i][2]]));
-  $('det').textContent='اختر المصنع الذي تريد بناءه. وصفات الإنتاج تبقى كما هي في نظام اللعبة.';
-  $('items').innerHTML=ids.map(i=>'<div class="it" data-i="'+i+'"><img src="'+icon(i)+'"><div>'+ITEMS[i][1]+'</div></div>').join('');
-  open('factory');
- };
- const showTruck=()=>{
-  title.textContent='🚚 البيع والنقل';cat.style.display='none';pan.classList.add('show');
-  const trucks=objs.filter(o=>o.k==='veh'&&o.role==='truck');
-  const active=trucks.filter(o=>o.away||o.st!=='idle').length;
-  $('det').textContent='نظام البيع الحالي يعمل بالشاحنة وفق آلية اللعبة الموجودة؛ لم تتم إضافة طريقة بيع أو اقتصاد جديد.';
-  $('items').innerHTML='<div class="vstats"><div class="vstat">الشاحنات المملوكة<b>'+trucks.length+'</b></div><div class="vstat">في رحلة أو تعمل<b>'+active+'</b></div><div class="vstat">رصيد اللعبة<b>'+Math.floor(money).toLocaleString()+' $</b></div><div class="vstat">حالة البيع<b>تلقائي</b></div></div>';
-  open('truck');
- };
- const showWallet=()=>{
-  title.textContent='💰 رصيد اللعبة';cat.style.display='none';pan.classList.add('show');
-  $('det').textContent='الرصيد المعروض هو رصيد اللعبة الحالي، دون إضافة عمليات إيداع أو سحب جديدة.';
-  $('items').innerHTML='<div class="vstat">الرصيد الحالي<b>'+Math.floor(money).toLocaleString()+' $</b></div>';
-  open('wallet');
- };
- const showProfile=()=>{
-  title.textContent='👨‍🌾 ملف المزرعة';cat.style.display='none';pan.classList.add('show');
-  const buildings=objs.filter(o=>o.mv).length,workers=objs.filter(o=>o.k==='worker').length,vehicles=objs.filter(o=>o.k==='veh').length;
-  $('det').textContent='ملخص مزرعتك الحالية.';
-  $('items').innerHTML='<div class="vstats"><div class="vstat">المنشآت<b>'+buildings+'</b></div><div class="vstat">العمال<b>'+workers+'</b></div><div class="vstat">المركبات<b>'+vehicles+'</b></div><div class="vstat">مساحة الأرض<b>'+W*H+' مربع</b></div></div>';
-  open('profile');
- };
- ui.querySelectorAll('.vdock button').forEach(b=>b.addEventListener('click',()=>{
-  const t=b.dataset.vtab;
-  if(t==='build')showBuild();
-  else if(t==='factory')showFactories();
-  else if(t==='truck')showTruck();
-  else if(t==='delete'){close();$('bd').click();}
- }));
- $v('vClose').addEventListener('click',close);
- $v('vGear').addEventListener('click',()=> $v('vMenu').classList.toggle('show'));
- $v('vMenu').addEventListener('click',e=>{const b=e.target.closest('[data-cmd]');if(!b)return;$ (b.dataset.cmd).click();$v('vMenu').classList.remove('show')});
-
- $v('vWallet').addEventListener('click',showWallet);
- $v('vPlus').addEventListener('click',()=>$('bz').click());
- $v('vMinus').addEventListener('click',()=>$('bm').click());
- $v('vCenter').addEventListener('click',()=>$('bc').click());
- ui.querySelector('.vbrand').style.cursor='pointer';
- ui.querySelector('.vbrand').addEventListener('click',showProfile);
- $('items').addEventListener('click',e=>{
-  const it=e.target.closest('.it');if(!it)return;
-  setTimeout(()=>{if(placing){close();cat.style.display='flex';}},0);
- });
- let lastMoney=-1;
- setInterval(()=>{
-  const n=Math.floor(money);
-  if(n!==lastMoney){lastMoney=n;$v('vMoney').textContent=n.toLocaleString();}
- },500);
-})();
-
-</script>
-</body></html>
+</script></body></html>
