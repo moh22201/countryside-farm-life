@@ -476,9 +476,9 @@ function aiW(w,dt){w.walk=false;w.tm+=dt;
  switch(w.st){
  case'idle':{
   const mills=objs.filter(o=>o.role=='proc'&&o.act!==false&&ITEMS[o.ci][2]=='Lumber Mill'&&o.out>=1&&o.ores=='plank'&&!o.plankRes);
-  const lm=nearest(mills.filter(m=>objs.some(d=>d.role=='depot'&&d.act!==false&&d.inv&&d.cap>tot(d))),w);
+  const lm=nearest(mills.filter(m=>objs.some(d=>(d.role=='depot'||d.role=='wh')&&d.act!==false&&d.inv&&d.cap>tot(d))),w);
   if(lm){
-   const d=nearest(objs.filter(o=>o.role=='depot'&&o.act!==false&&o.inv&&o.cap>tot(o)),lm);
+   const d=nearest(objs.filter(o=>(o.role=='depot'||o.role=='wh')&&o.act!==false&&o.inv&&o.cap>tot(o)),lm);
    if(d){lm.plankRes=1;w.mill=lm;w.ds=d;w.st='toMill';break}
   }
   const b=nearest(objs.filter(o=>o.k=='tree'&&!o.res),w);
