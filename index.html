@@ -474,7 +474,20 @@ function plan(w){const L=a=>nearest(a,w),act=(...r)=>objs.filter(o=>r.includes(o
  return null}
 function aiW(w,dt){w.walk=false;w.tm+=dt;
  switch(w.st){
- case'idle':{const b=nearest(objs.filter(o=>o.k=='tree'&&!o.res),w);if(b&&dst('wood',1,w)){b.res=1;w.tg=b;w.st='toTree'}else{const h=fr(w.home);go(w,h.x,h.y,dt)}break}
+ case'idle':{
+  const mills=objs.filter(o=>o.role=='proc'&&o.act!==false&&ITEMS[o.ci][2]=='Lumber Mill'&&o.out>=1&&o.ores=='plank'&&!o.plankRes);
+  const lm=nearest(mills.filter(m=>objs.some(d=>d.role=='depot'&&d.act!==false&&d.inv&&d.cap>tot(d))),w);
+  if(lm){
+   const d=nearest(objs.filter(o=>o.role=='depot'&&o.act!==false&&o.inv&&o.cap>tot(o)),lm);
+   if(d){lm.plankRes=1;w.mill=lm;w.ds=d;w.st='toMill';break}
+  }
+  const b=nearest(objs.filter(o=>o.k=='tree'&&!o.res),w);
+  if(b&&dst('wood',1,w)){b.res=1;w.tg=b;w.st='toTree'}else{const h=fr(w.home);go(w,h.x,h.y,dt)}
+  break}
+ case'toMill':if(!w.mill||w.mill.out<1||w.mill.ores!='plank'){if(w.mill)w.mill.plankRes=0;w.mill=null;w.ds=null;w.st='idle'}else if(go(w,ft(w.mill).x,ft(w.mill).y,dt)){w.st='takePlank';w.tm=0}break;
+ case'takePlank':if(w.tm>.8){const a=Math.min(w.mill?.out||0,w.ds?Math.max(0,w.ds.cap-tot(w.ds)):0);if(a>0){w.mill.out-=a;w.n=a;w.car='plank';w.st='toDepot'}else{if(w.mill)w.mill.plankRes=0;w.mill=null;w.ds=null;w.st='idle'}}break;
+ case'toDepot':if(w.ds&&go(w,ft(w.ds).x,ft(w.ds).y,dt)){w.st='dropPlank';w.tm=0}break;
+ case'dropPlank':if(w.tm>.6){give(w.ds,'plank',w.n);if(w.mill)w.mill.plankRes=0;w.mill=null;w.ds=null;w.n=0;w.car=null;w.st='idle'}break;
  case'toTree':if(go(w,w.tg.x+.3,w.tg.y+.3,dt)){w.fx=(w.tg.x-w.x)-(w.tg.y-w.y)>=0?1:-1;w.st='chop';w.tm=0}break;
  case'chop':w.tg.shake=1;if(w.tm>4){const g=w.tg,tx=Math.floor(g.x),ty=Math.floor(g.y);objs.splice(objs.indexOf(g),1);if(!objs.some(o=>o.k=='tree'&&Math.floor(o.x)==tx&&Math.floor(o.y)==ty))T[tx][ty]=0;w.log={k:'log',x:g.x,y:g.y};objs.push(w.log);w.st='pick';w.tm=0}break;
  case'pick':if(w.tm>.8){objs.splice(objs.indexOf(w.log),1);w.car='log';w.st='toStore';w.ds=null}break;
