@@ -195,24 +195,6 @@ const find=k=>objs.filter(o=>(o.role||o.k)==k),nearest=(a,w)=>a.reduce((b,o)=>!b
 const fr=o=>({x:o.x+o.fw/2+.02,y:o.y+o.fd+.55});
 const src=w=>{const ws=find('well');return nearest(ws.length?ws.map(o=>({x:o.x+.5,y:o.y+1.35})):SHORE,w)};
 function go(w,tx,ty,dt){const dx=tx-w.x,dy=ty-w.y,l=Math.hypot(dx,dy);if(l<.07)return true;const s=Math.min(l,1.7*dt);w.x+=dx/l*s;w.y+=dy/l*s;w.mvg+=dt*10;w.walk=true;w.fx=dx-dy>=0?1:-1;return false}
-function goRoad(w,tx,ty,dt){
- const same=w.rdTarget&&Math.abs(w.rdTarget.x-tx)<.12&&Math.abs(w.rdTarget.y-ty)<.12;
- if(!same){w.rdTarget={x:tx,y:ty};w.rdPath=null;w.rdIndex=0;w.rdBlocked=false;w.rdWait=0}
- if(!w.rdPath){
-  if(w.rdBlocked){w.rdWait=(w.rdWait||0)+dt;if(w.rdWait<1.5)return false;w.rdWait=0}
-  const near=(x,y)=>{let best=null,bd=36;for(let ix=Math.max(0,Math.floor(x)-6);ix<=Math.min(W-1,Math.floor(x)+6);ix++)for(let iy=Math.max(0,Math.floor(y)-6);iy<=Math.min(H-1,Math.floor(y)+6);iy++){if(T[ix][iy]!==1||RT[ix][iy]!==0)continue;const d=(ix+.5-x)**2+(iy+.5-y)**2;if(d<bd){bd=d;best={x:ix,y:iy}}}return best};
-  const a=near(w.x,w.y),b=near(tx,ty);
-  if(!a||!b){w.rdBlocked=true;return false}
-  const id=(x,y)=>x*H+y,from=id(a.x,a.y),to=id(b.x,b.y),prev=new Int32Array(W*H);prev.fill(-2);prev[from]=-1;
-  const queue=[from],dirs=[[1,0],[-1,0],[0,1],[0,-1]];let qi=0;
-  while(qi<queue.length&&prev[to]===-2){const v=queue[qi++],x=Math.floor(v/H),y=v%H;for(const d of dirs){const nx=x+d[0],ny=y+d[1];if(nx<0||ny<0||nx>=W||ny>=H||T[nx][ny]!==1||RT[nx][ny]!==0)continue;const ni=id(nx,ny);if(prev[ni]!==-2)continue;prev[ni]=v;queue.push(ni);if(ni===to)break}}
-  if(prev[to]===-2){w.rdBlocked=true;return false}
-  const route=[];for(let v=to;v!==-1;v=prev[v])route.push({x:Math.floor(v/H)+.5,y:(v%H)+.5});route.reverse();
-  w.rdPath=route;w.rdIndex=0;w.rdBlocked=false
- }
- while(w.rdIndex<w.rdPath.length){const p=w.rdPath[w.rdIndex];if(go(w,p.x,p.y,dt)){w.rdIndex++;continue}return false}
- return true
-}
 function update(dt){[...objs].forEach(o=>{if(o.role=='field'&&o.st==1){o.t+=dt;if(o.t>=10)o.st=2}if(o.k=='worker')(o.role=='wood'?aiW:o.role=='hand'?aiH:aiF)(o,dt);if(o.mv&&!o.sp){o.sp=1;spawnFor(o)}tick(o,dt)});const s=`🪵 ${wood} · 🌾 ${crop} · 🔋 ${bat} · 💰 ${money.toLocaleString()}`;if($('res').textContent!=s)$('res').textContent=s}
 function aiW(w,dt){w.walk=false;w.tm+=dt;const st=find('store')[0];
  switch(w.st){
