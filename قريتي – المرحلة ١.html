@@ -555,7 +555,9 @@ function doDel(px,py,p){const info=s=>$('info').textContent=s,wx=(px-cam.x)/cam.
  const o=v||pickObj(px,py);
  if(o){const nm=ITEMS[o.ci]?ITEMS[o.ci][1]:'';if(o.k!='veh')occ(o,0);objs.splice(objs.indexOf(o),1);objs.filter(q=>q.k=='worker'&&q.home===o).forEach(q=>{if(q.tg&&q.tg.k=='tree')q.tg.res=0;objs.splice(objs.indexOf(q),1)});
   CL.clear();mov=null;objs.forEach(q=>{if(q.k=='worker'&&q.role!='wood')fin(q);if(q.k=='veh'){q.st='idle';q.car=0}});info('تم حذف: '+nm)}
- else if(p&&T[p.x][p.y]==5){if(money<10){info('الرصيد غير كافٍ — إزالة الصخرة تكلف 10
+ else if(p&&T[p.x][p.y]==5){if(money<10){info('الرصيد غير كافٍ لإزالة الصخرة؛ التكلفة 10 دولار');return}money-=10;T[p.x][p.y]=0;const rockObj=objs.find(q=>q.k=='rock'&&Math.floor(q.x)==p.x&&Math.floor(q.y)==p.y);if(rockObj)objs.splice(objs.indexOf(rockObj),1);info('تمت إزالة الصخرة مقابل 10 دولار');hud()}
+ else if(p&&T[p.x][p.y]==1){T[p.x][p.y]=0;info('تم حذف الطريق')}
+ else info('لا يوجد شيء للحذف هنا')}
 $('bd').onclick=e=>{delMode=!delMode;placing=null;mov=null;e.currentTarget.classList.toggle('on',delMode);[...$('items').children].forEach(x=>x.classList.remove('on'));$('info').textContent=delMode?'وضع الحذف: المس منشأة أو طريقاً لحذفه':'تم إلغاء وضع الحذف'};
 /* ===== طرق وشاحنة ===== */
 const RT=Array.from({length:W},()=>new Int8Array(H));
