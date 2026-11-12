@@ -523,20 +523,34 @@ function plan(w){const L=a=>nearest(a,w),act=(...r)=>objs.filter(o=>r.includes(o
  const co=L(act(...haulRoles).filter(o=>o.out>=1&&(o.role!='field'||o.st==2)&&!(o.role=='proc'&&ITEMS[o.ci][2]=='Windmill'&&o.out<1)&&!CL.has('c'+oid(o))&&((w.role=='farm'&&o.role=='proc'&&ITEMS[o.ci][2]=='Windmill'&&o.ores=='flour'&&!!dst('flour',o.out,w))||(w.role=='hand'&&['oil','ore','fuel','steel','bat'].includes(o.ores)&&!!dst(o.ores,o.out,w))||(o.role=='field'&&!!wheatSilo(o.out,o)))));
  if(co){const k='c'+oid(co),f=co.role=='field';cl(k);w.ks=[k];let D;return[{go:()=>f?ct(co):ft(co)},{d:1.2,st:f?'harv':'take',fn:()=>{if(co.out<1)return false;w.n=co.out;w.car=co.ores;co.out=0;if(f){co.st=0;co.t=0;w.farmWaterNext=true}}},{go:()=>(D=D||(f?wheatSilo(w.n,w):dst(w.car,w.n,w)))&&ft(D)},{d:.6,st:'drop',fn:()=>{if(D)give(D,w.car,w.n);w.car=null}}]}
 
+ /* نقل القمح من الصومعة إلى طاحونة الحبوب عند وجود حاجة فعلية. */
+ if(w.role=='farm'){
+  const windmill=L(act('proc').filter(p=>ITEMS[p.ci][2]=='Windmill'&&p.out<50));
+  if(windmill){
+   const need=Math.max(0,(RC['Windmill'].in.wheat||0)-(windmill.inv.wheat||0));
+   const silo=L(objs.filter(q=>q.role=='silo'&&q.act!==false&&q.inv&&(q.inv.wheat||0)>0&&!CL.has('wheat-to-mill'+oid(q))));
+   const amount=Math.min(need,silo?(silo.inv.wheat||0):0,Math.max(0,10-tot(windmill)));
+   if(need>0&&silo&&amount>0){
+    const k='wheat-to-mill'+oid(silo);cl(k);w.ks=[k];
+    return[{go:()=>ft(silo)},{d:.8,st:'take',fn:()=>{const n=Math.min(amount,silo.inv.wheat||0);if(n<1)return false;silo.inv.wheat-=n;w.n=n;w.car='wheat'}},{go:()=>ft(windmill)},{d:.8,st:'drop',fn:()=>{give(windmill,'wheat',w.n);w.car=null;w.n=0}}]
+   }
+  }
+ }
  /* رعاية الحيوانات ضمن مهام الفلاح، بعد الحصاد ونقل المحاصيل. */
  if(w.role=='farm'){
   const pens=act('pen');
+  const thirsty=L(pens.filter(p=>p.nw&&!CL.has('water-pen'+oid(p))));
+  const water=wsrc(w)||SHORE[0];
+  if(thirsty&&water){
+   const k='water-pen'+oid(thirsty);cl(k);w.ks=[k];
+   return[{go:()=>water},{d:1.2,st:'fill',fn:()=>{w.car='bucket'}},{go:()=>ft(thirsty)},{d:1.5,st:'water',fn:()=>{thirsty.nw=0;w.car=null;penDone(thirsty)}}]
+  }
   const mill=L(act('proc').filter(o=>ITEMS[o.ci][2]=='Feed Mill'));
   const readyPen=L(pens.filter(p=>p.nf>0&&!CL.has('feed'+oid(p))));
   if(readyPen&&mill&&mill.ores=='feed'&&mill.out>0){
    const k='feed'+oid(readyPen),amount=Math.min(mill.out,readyPen.nf);
    cl(k);w.ks=[k];
    return[{go:()=>ft(mill)},{d:.8,st:'take',fn:()=>{const n=Math.min(amount,mill.out||0,readyPen.nf);if(n<1||mill.ores!='feed')return false;mill.out-=n;w.n=n;w.car='feed'}},{go:()=>ft(readyPen)},{d:1.5,st:'feed',fn:()=>{readyPen.nf=Math.max(0,readyPen.nf-w.n);w.car=null;w.n=0;penDone(readyPen)}}]
-  }
-  const thirsty=L(pens.filter(p=>p.nw&&!CL.has('water-pen'+oid(p)))),water=wsrc(w);
-  if(thirsty&&water){
-   const k='water-pen'+oid(thirsty);cl(k);w.ks=[k];
-   return[{go:once(()=>wsrc(w))},{d:1.2,st:'fill',fn:()=>{w.car='bucket'}},{go:()=>ft(thirsty)},{d:1.5,st:'water',fn:()=>{thirsty.nw=0;w.car=null;penDone(thirsty)}}]
   }
  }
 
