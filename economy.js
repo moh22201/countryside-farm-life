@@ -1740,21 +1740,22 @@
       }
     }
     const step=w.steps&&w.steps[0];
-    if(!step){w.steps=null;w.st='idle';return;}
+    if(!step){fin(w);return;}
     if(step.go){
       const target=step.go();
-      if(!target||go(w,target.x,target.y,dt)){
-        w.steps.shift();w.tm=0;
-      }
+      if(!target){fin(w);return;}
+      if(go(w,target.x,target.y,dt)){w.steps.shift();w.tm=0;}
     }else{
       w.st=step.st||'work';
       w.tm=(w.tm||0)+dt;
       if(w.tm>=(step.d||0)){
-        if(step.fn)step.fn();
+        if(step.fn&&step.fn()===false){fin(w);return;}
         w.steps.shift();w.tm=0;w.st='idle';
       }
     }
-    if(w.steps&&!w.steps.length){w.steps=null;w.st='idle';}
+    // Release source/destination reservations after each completed job.
+    // Without this, a worker permanently locks the field or storage slot.
+    if(w.steps&&!w.steps.length)fin(w);
   };
   window.QARYATI_WORKER_DISPATCH={
     hand:'خدمات المخازن ونقل الفائض إلى المستودع العام',
