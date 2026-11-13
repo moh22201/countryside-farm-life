@@ -1120,6 +1120,54 @@
   window.QARYATI_PRODUCER_RECIPES=QARYATI_PRODUCER_RECIPES;
   window.QARYATI_STORAGE_MAP.woodYard=['wood','oakWood','lumber'];
 
-  window.QARYATI_ECONOMY_VERSION='unified-townstar-multirecipe-9';
+
+  // ===== Beehive products and beekeeper collection =====
+  // Beehives can produce Honey, Honeycomb and Wax; the Beekeeper House worker
+  // must collect whichever product is currently selected.
+  Object.assign(RS,{
+    clover:['crop','☘️'],honeycomb:['food','🍯'],wax:['goods','🕯️']
+  });
+  Object.assign(RN,{clover:'برسيم بري',honeycomb:'قرص عسل',wax:'شمع'});
+  if(!SG.silo.includes('clover'))SG.silo.push('clover');
+  if(!SG.pantry.includes('honeycomb'))SG.pantry.push('honeycomb');
+  if(!SG.wh.includes('wax'))SG.wh.push('wax');
+  QARYATI_PRODUCER_RECIPES['Beehive']=[
+    {id:'honey',label:'العسل',out:'honey',time:60,source:'Learn Town Star building guide'},
+    {id:'honeycomb',label:'أقراص العسل',out:'honeycomb',time:120,source:'Learn Town Star building guide'},
+    {id:'wax',label:'الشمع',out:'wax',time:60,source:'Learn Town Star building guide'}
+  ];
+  QARYATI_BUILD_REQUIREMENTS['Beehive']={lumber:3,wood:1};
+  PRICE['Beehive']=25000;
+
+  const qPlanBeforeBeeProducts=plan;
+  plan=function(w){
+    if(w&&w.role==='bee'){
+      const hive=nearest(objs.filter(o=>o.role==='prod'&&ITEMS[o.ci]&&
+        ITEMS[o.ci][2]==='Beehive'&&o.out>0&&o.ores&&reserve('b'+oid(o))),w);
+      if(hive){
+        const steps=deliverSteps(hive,hive.ores,'b',w);
+        if(steps)return steps;
+      }
+      return null;
+    }
+    return qPlanBeforeBeeProducts(w);
+  };
+  const qBeeDetail=rDet;
+  rDet=function(o){
+    let html=qBeeDetail(o);
+    if(o&&o.role==='prod'&&ITEMS[o.ci]&&ITEMS[o.ci][2]==='Beehive'){
+      html+='<div style="margin-top:8px;font-size:12px">🐝 منتجات الخلية: العسل، أقراص العسل، الشمع. '+
+        'عامل مربي النحل يجمع المنتج المختار وينقله إلى مخزنه المتخصص.</div>';
+    }
+    return html;
+  };
+  window.QARYATI_BEE_CHAIN={
+    outputs:['honey','honeycomb','wax'],
+    beekeeperHouseWorker:true,
+    outputTimes:{honey:60,honeycomb:120,wax:60},
+    source:'Learn Town Star Beehive building guide; proximity can change actual times'
+  };
+
+  window.QARYATI_ECONOMY_VERSION='unified-townstar-multirecipe-10';
 
 })();
