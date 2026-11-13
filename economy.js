@@ -794,6 +794,208 @@
     return html;
   };
 
-  window.QARYATI_ECONOMY_VERSION='unified-townstar-multirecipe-6';
+
+  // ===== Integrated economy completion: storage routing, transport, workers =====
+  // Store each resource in its correct specialist building. Water drums and
+  // industrial materials belong in the Warehouse, not Fuel Storage/Storehouse.
+  RS.lumber=['wood','🪵'];
+  RN.lumber='خشب منشور';
+  SG.store=Array.from(new Set([...(SG.store||[]),'oakWood','lumber']));
+  SG.wh=Array.from(new Set([...(SG.wh||[]),
+    'waterDrum','energy','iron','ore','chromium','limestone','silica','sand',
+    'glass','steel','blueSteel','bat','wineBottle','oakBarrel',
+    'cottonYarn','woolYarn','uniforms'
+  ]));
+  SG.depot=(SG.depot||[]).filter(r=>!SG.wh.includes(r));
+  SG.fuelst=(SG.fuelst||[]).filter(r=>r!=='waterDrum');
+  if(!SG.wh.includes('waterDrum'))SG.wh.push('waterDrum');
+  if(!SG.fuelst.includes('petroleum'))SG.fuelst.push('petroleum');
+  if(!SG.fuelst.includes('gasoline'))SG.fuelst.push('gasoline');
+  if(!SG.fuelst.includes('jetFuel'))SG.fuelst.push('jetFuel');
+
+  // Standard storage capacities. Existing stock above the new limit is
+  // grandfathered until it is consumed; no saved inventory is deleted.
+  Object.assign(CAP,{store:10,silo:20,depot:20,wh:20,pantry:20,fuelst:20});
+  const qCapacityTick=tick;
+  tick=function(o,dt){
+    const result=qCapacityTick(o,dt);
+    if(o&&CAP[o.role]&&o.inv){
+      o.cap=Math.max(CAP[o.role],tot(o));
+    }
+    return result;
+  };
+
+  // Route output to a factory that needs it first, then to its correct store.
+  const qPreviousDst=dst;
+  dst=function(resource,amount,position){
+    const n=Math.max(1,amount||1);
+    const processors=objs.filter(o=>{
+      if(o.role!=='proc'||o.act===false||!o.inv)return false;
+      const name=ITEMS[o.ci]&&ITEMS[o.ci][2];
+      const rc=RC[name];
+      return rc&&rc.in&&rc.in[resource]&&
+        (o.inv[resource]||0)+n<=(rc.oc||10);
+    });
+    if(processors.length)return nearest(processors,position);
+    const preferred=Object.keys(SG).filter(role=>(SG[role]||[]).includes(resource));
+    if(preferred.length){
+      const stores=objs.filter(o=>preferred.includes(o.role)&&o.act!==false&&o.inv&&
+        o.cap&&tot(o)+n<=o.cap);
+      return stores.length?nearest(stores,position):null;
+    }
+    return qPreviousDst(resource,amount,position);
+  };
+
+  // Lumberjack keeps his natural-tree job. If no natural tree is available,
+  // he collects mature Tree Farm/Oak Tree Farm output instead of standing idle.
+  const qOriginalWoodAI=aiW;
+  aiW=function(w,dt){
+    if(w.st==='idle'&&!w.steps){
+      const natural=objs.some(o=>o.k==='tree'&&!o.res&&dst('wood',1,w));
+      if(!natural){
+        const source=nearest(objs.filter(o=>o.role==='field'&&o.act!==false&&
+          o.out>0&&['wood','oakWood'].includes(o.ores)&&
+          reserve('c'+oid(o))),w);
+        if(source){
+          const steps=deliverSteps(source,source.ores,'c',w);
+          if(steps){w.steps=steps;w.tm=0;}
+        }
+      }
+    }
+    if(w.steps)return aiH(w,dt);
+    return qOriginalWoodAI(w,dt);
+  };
+
+  // Quad rider is a mobile logistics worker: prioritize factory inputs/outputs,
+  // then assist farm and livestock logistics. It uses the existing movement AI.
+  aiR=function(w,dt){
+    if(!w.steps){
+      let steps=qIndustryPlan(w);
+      const oldRole=w.role;
+      if(!steps){
+        try{w.role='hand';steps=qOldPlan(w);}finally{w.role=oldRole;}
+      }
+      if(!steps){
+        try{w.role='farm';steps=qOldPlan(w);}finally{w.role=oldRole;}
+      }
+      w.steps=steps||null;
+      w.tm=0;
+    }
+    if(w.steps)return aiH(w,dt);
+    w.walk=false;
+  };
+
+  // The Water Facility creates Water Drums from a water source. The industrial
+  // worker collects its finished drums and delivers them to the Warehouse.
+  const qWaterDetail=rDet;
+  rDet=function(o){
+    let html=qWaterDetail(o);
+    if(o&&o.ci>=0&&ITEMS[o.ci]&&ITEMS[o.ci][2]==='Water Facility'){
+      html+='<div style="margin-top:10px;padding:8px;border-top:1px solid #9996">'+
+        '<b>وظيفة منشأة المياه</b>'+
+        '<div style="font-size:12px">تنتج براميل الماء كل 30 ثانية عند توفر مصدر مياه قريب. '+
+        'عامل الصناعة يجمع البراميل وينقلها إلى المستودع لاستخدامها في المصفاة والمنشآت الصناعية.</div>'+
+        '<div style="font-size:11px;opacity:.75">المخرج: برميل ماء · المخزن المستهدف: المستودع</div></div>';
+    }
+    if(o&&o.k==='worker'&&(o._qWageDue||0)>0){
+      html+='<div style="margin-top:8px;font-size:12px">أجور عمل مستحقة: '+o._qWageDue+'$</div>';
+    }
+    return html;
+  };
+
+  // The sale truck accepts the game's gasoline as fuel, while retaining the
+  // legacy "fuel" key for old saved towns. Each dispatch still costs 10 barrels.
+  const qOriginalSendTruck=sendTruck;
+  sendTruck=function(){
+    const truck=objs.find(o=>o.k==='veh'&&o.role==='truck'&&o.st==='idle'&&!o.away&&!o.order);
+    if(!truck)return toast('لا توجد شاحنة بيع متاحة');
+    const stock=whStock();
+    const order=Object.keys(TO).filter(k=>TO[k]>0&&(stock[k]||0)>0)
+      .map(k=>({r:k,n:Math.min(10,TO[k],stock[k])}));
+    if(!order.length)return toast('لا توجد منتجات محددة للبيع في المستودع');
+    const tanks=objs.filter(o=>o.role==='fuelst'&&o.inv);
+    const available=tanks.reduce((sum,o)=>sum+(o.inv.gasoline||0)+(o.inv.fuel||0),0);
+    if(available<10)return toast('الوقود غير كافٍ: تحتاج الشاحنة 10 براميل بنزين/وقود، والمتوفر '+available);
+    const tx=Math.floor(truck.x),ty=Math.floor(truck.y);
+    if(!asph(tx,ty)||!bfs(tx,ty,brd))
+      return toast('الشاحنة تحتاج طريقاً أسفلتياً متصلاً بحافة الأرض');
+    let remaining=10;
+    // Prefer current gasoline; consume legacy fuel only for compatibility.
+    for(const key of ['gasoline','fuel']){
+      for(const tank of tanks){
+        if(remaining<=0)break;
+        const take=Math.min(remaining,tank.inv[key]||0);
+        tank.inv[key]-=take;remaining-=take;
+      }
+    }
+    truck.order=order;
+    save();
+    toast('🚚 انطلقت الشاحنة: '+order.map(x=>(RN[x.r]||x.r)+' ×'+x.n).join('، ')+
+      ' · استهلاك 10 براميل وقود');
+  };
+
+  // Restore a useful sales dashboard when the truck icon opens its panel.
+  rTruck=function(){
+    const stock=whStock();
+    const trucks=objs.filter(o=>o.k==='veh'&&o.role==='truck');
+    const ready=trucks.filter(o=>o.st==='idle'&&!o.away&&!o.order).length;
+    const active=trucks.length-ready;
+    const fuel=objs.filter(o=>o.role==='fuelst'&&o.inv)
+      .reduce((sum,o)=>sum+(o.inv.gasoline||0)+(o.inv.fuel||0),0);
+    const keys=Object.keys(stock).filter(k=>RS[k]&&stock[k]>0);
+    keys.forEach(k=>{TO[k]=Math.min(10,stock[k]);});
+    const revenue=keys.reduce((sum,k)=>sum+(TO[k]||0)*price(k),0);
+    const rows=keys.map(k=>'<div class="row"><span style="font-size:22px">'+RS[k][1]+
+      '</span><div style="flex:1"><b>'+(RN[k]||k)+'</b><div style="font-size:11px;opacity:.75">'+
+      'المخزون: '+stock[k]+' · كمية الرحلة: '+TO[k]+' · سعر الوحدة: '+price(k)+'$</div></div>'+
+      '<b>'+((TO[k]||0)*price(k)).toLocaleString()+'$</b></div>').join('')||
+      '<p style="opacity:.7">لا توجد منتجات في المستودع العام للبيع حالياً.</p>';
+    return '<div class="row"><span style="font-size:30px">🚚</span><div style="flex:1">'+
+      '<b>إدارة شاحنة البيع</b><div style="font-size:12px">الشاحنات: '+trucks.length+
+      ' · المتاحة: '+ready+' · في الرحلة: '+active+'</div></div></div>'+
+      '<div class="row"><div style="flex:1">الوقود المتاح</div><b>⛽ '+fuel+' / 10 للرحلة</b></div>'+
+      '<div class="row"><div style="flex:1">قيمة المنتجات المحددة</div><b>'+
+      revenue.toLocaleString()+'$</b></div><div style="font-weight:700;margin:10px 0 5px">مخزون المستودع والبيع</div>'+
+      rows+'<button class="btn" data-a="send" style="width:100%;margin-top:8px" '+
+      (ready&&keys.length&&fuel>=10?'':'disabled')+'>🚚 إرسال الشاحنة للبيع</button>'+
+      '<div style="font-size:11px;opacity:.7;margin-top:6px">الرحلة تتطلب طريقاً أسفلتياً متصلاً بالحافة وتستهلك 10 براميل وقود.</div>';
+  };
+
+  // Approved Qaryati wages: charged only for active work states, every 5 minutes.
+  // Travel, idle time, and waiting for inputs do not accrue wages.
+  const qWageRate={farm:5,wood:5,animal:6,industry:7,builder:8,hand:5};
+  const qActiveWork=new Set(['harv','take','drop','fill','water','feed','chop','pick','build','repair','collect']);
+  const qOriginalUpdate=update;
+  update=function(dt){
+    qOriginalUpdate(dt);
+    let changed=false;
+    objs.forEach(w=>{
+      if(w.k!=='worker'||w.role==='rider')return;
+      const rate=qWageRate[w.role]||0;
+      if(!rate)return;
+      if(qActiveWork.has(w.st)){
+        w._qActiveSeconds=(w._qActiveSeconds||0)+dt;
+        while(w._qActiveSeconds>=300){
+          w._qActiveSeconds-=300;
+          w._qWageDue=(w._qWageDue||0)+rate;
+        }
+      }
+      const due=w._qWageDue||0;
+      if(due>0&&money>=due){
+        money-=due;w._qWageDue=0;w._qWageNotice=false;changed=true;
+      }else if(due>0&&!w._qWageNotice){
+        w._qWageNotice=true;
+        toast('تنبيه: توجد أجور عمال مستحقة '+due+'$؛ الرصيد لا يكفي لتسويتها حالياً.');
+      }
+    });
+    if(changed){save();hud();}
+  };
+
+  window.QARYATI_STORAGE_MAP={
+    woodShed:['wood','oakWood','lumber'],
+    silo:SG.silo.slice(),storehouse:SG.depot.slice(),
+    pantry:SG.pantry.slice(),warehouse:SG.wh.slice(),fuelStorage:SG.fuelst.slice()
+  };
+  window.QARYATI_ECONOMY_VERSION='unified-townstar-multirecipe-7';
 
 })();
