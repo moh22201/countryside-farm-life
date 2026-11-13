@@ -673,7 +673,7 @@ CAP.silo=200;CAP.wh=2000;
 RC['Windmill']={in:{wheat:5,sugar:6,brine:6,wood:3},out:'flour',recipes:[{in:{wheat:5,wood:3},out:'flour',ic:{wheat:50,wood:30}},{in:{sugar:6,wood:3},out:'sugar_product',ic:{sugar:50,wood:30}},{in:{brine:6,wood:3},out:'salt',ic:{brine:50,wood:30}}],ic:{wheat:50,sugar:50,brine:50,wood:30},oc:50};
 
 RC['Steel Mill']={in:{ore:5},out:'steel',ic:{ore:100},oc:20};
-RC['Refinery']={in:{oil:5,energy:6,waterdrum:2},out:'petroleum',recipes:[{in:{oil:5,energy:6,waterdrum:2},out:'petroleum',t:30},{in:{oil:3,energy:2,waterdrum:1},out:'fuel',t:30}],ic:{oil:100,energy:100,waterdrum:100},oc:100};
+RC['Refinery']={in:{oil:3,energy:2,waterdrum:1},out:'fuel',recipes:[{in:{oil:3,energy:2,waterdrum:1},out:'fuel',t:30}],ic:{oil:100,energy:100,waterdrum:100},oc:100};
 RC['Water Facility']={in:{wood:1,energy:1},out:'waterdrum',t:45,ic:{wood:100,energy:100},oc:10};
 RC['Power Plant']={in:{fuel:1},out:'bat',t:30,ic:{fuel:100},oc:10};
 const icap=(rc,r)=>(rc.ic&&rc.ic[r])||rc.in[r]*3;
