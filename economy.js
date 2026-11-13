@@ -1521,7 +1521,7 @@
         if(missing<=0)return;
         const source=nearest(qConstructionSources(resource).filter(s=>
           reserve('qbuildsrc'+oid(site)+resource+oid(s))),site);
-        if(source)jobs.push({site,resource,source,amount:Math.min(missing,
+        if(source)jobs.push({site,resource,source,x:site.x,y:site.y,amount:Math.min(missing,
           source.role==='field'?source.out:(source.inv[resource]||0))});
       });
     });
