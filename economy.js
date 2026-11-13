@@ -187,18 +187,32 @@
   const stock=r=>objs.filter(q=>ACC[q.role]&&q.act!==false&&q.inv&&(q.inv[r]||0)>0);
   const deliverSteps=(source,res,prefix,w)=>{
     const key=prefix+oid(source);
-    if(!reserve(key))return null;
-    let amount=0,drop=null;
-    cl(key);w.ks=[key];
+    if(!reserve(key)||!(source.out>0))return null;
+    // Secure a real destination before collecting anything. If every matching
+    // store and consuming factory is full, leave the product at its source.
+    const amount=source.out;
+    const drop=dst(res,amount,w);
+    if(!drop)return null;
+    const destKey='d'+oid(drop);
+    if(!reserve(destKey))return null;
+    cl(key);cl(destKey);w.ks=[key,destKey];
     return [
       {go:()=>source.role==='field'?ct(source):ft(source)},
       {d:1.2,st:'take',fn:()=>{
-        if(!(source.out>0))return false;
-        amount=source.out;w.n=amount;w.car=res;source.out=0;
-        if(source.role==='field'){source.st=0;source.t=0}
+        const stillFits=drop.inv&&drop.cap&&tot(drop)+amount<=drop.cap;
+        if(!(source.out>=amount)||!stillFits)return false;
+        source.out-=amount;w.n=amount;w.car=res;
+        if(source.role==='field'&&source.out<=0){source.st=0;source.t=0}
       }},
-      {go:()=>{drop=dst(res,amount,w);return drop&&ft(drop)}},
-      {d:.6,st:'drop',fn:()=>{if(drop)give(drop,res,amount);w.car=null}}
+      {go:()=>ft(drop)},
+      {d:.6,st:'drop',fn:()=>{
+        if(!drop||!w.car)return false;
+        const before=drop.inv[res]||0;
+        give(drop,res,amount);
+        const stored=(drop.inv[res]||0)-before;
+        if(stored<amount){drop.inv[res]=before;source.out+=amount;return false}
+        w.car=null;
+      }}
     ];
   };
   const fieldPlan=w=>{
