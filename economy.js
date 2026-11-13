@@ -1764,13 +1764,13 @@
   // Industrial House creates exactly one dedicated industry worker.
   const qSpawnBeforeIndustryHome=spawnFor;
   spawnFor=function(home){
-    if(home&&home.ci>=0&&ITEMS[home.ci]&&ITEMS[home.ci][2]==='Industrial Worker House'){
-      home.role='industryHouse';
-      const existing=objs.some(w=>w&&w.k==='worker'&&w.home===home&&w.role==='industry');
-      if(existing)return;
+    if(home&&home.ci>=0&&ITEMS[home.ci]&&['Industrial Worker House','Builder House'].includes(ITEMS[home.ci][2])){
+      const industrial=ITEMS[home.ci][2]==='Industrial Worker House';
+      const workerRole=industrial?'industry':'builder';
+      home.role=industrial?'industryHouse':'builderhouse';
+      if(objs.some(w=>w&&w.k==='worker'&&w.home===home&&w.role===workerRole))return;
       const p=fr(home);
-      objs.push({k:'worker',role:'industry',home,x:p.x,y:p.y,st:'idle',tm:0,
-        car:null,fx:1,mvg:0,walk:false});
+      objs.push({k:'worker',role:workerRole,home,x:p.x,y:p.y,st:'idle',tm:0,car:null,fx:1,mvg:0,walk:false});
       return;
     }
     return qSpawnBeforeIndustryHome(home);
