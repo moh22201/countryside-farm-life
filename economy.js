@@ -1799,6 +1799,33 @@
     if(w.role==='bee')return qDedicatedBeePlan(w);
     return qFinalPreviousPlan(w);
   };
+
+  // Water is a direct resource drawn from water-source buildings, never a drum.
+  RS.water=['goods','💧'];
+  RN.water='ماء';
+  ACC.well=Array.from(new Set([...(ACC.well||[]),'goods']));
+  // Convert industrial recipes to direct water input. Legacy Water Drum stock is
+  // retained for save compatibility but is no longer produced or consumed.
+  Object.values(QARYATI_RECIPES).forEach(list=>{
+    (list||[]).forEach(recipe=>{
+      if(recipe.in&&recipe.in.waterDrum){
+        recipe.in.water=(recipe.in.water||0)+recipe.in.waterDrum;
+        delete recipe.in.waterDrum;
+      }
+    });
+  });
+  const qDirectWaterTick=tick;
+  tick=function(o,dt){
+    const result=qDirectWaterTick(o,dt);
+    if(o&&o.mv&&o.role==='well'&&ITEMS[o.ci]&&
+      ['Water Facility','Well','Water Pump','Wind Pump'].includes(ITEMS[o.ci][2])){
+      if(!o.inv)o.inv={};
+      // A source has a refillable water reserve for direct industrial collection.
+      o.inv.water=100;
+    }
+    return result;
+  };
+
   window.QARYATI_DIRECT_ROLES={
     waterFacility:'well/direct water source; no Water Drum output',
     oilPump:'oil -> Fuel Storage',
