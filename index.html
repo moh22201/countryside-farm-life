@@ -645,11 +645,12 @@ RC['Power Plant']={in:{fuel:1},out:'bat',t:30,ic:{fuel:100},oc:10};
 const icap=(rc,r)=>(rc.ic&&rc.ic[r])||rc.in[r]*3;
 const FARMN=new Set(['Windmill','Bakery','Cakery','Candy Shop','Chocolate Shop','Winery','Cafe','Beekeeper House','Beehive']);
 const dom=o=>(o.role=='field'||FARMN.has(ITEMS[o.ci][2]))?'farm':o.role=='pen'?'animal':'hand';
-const DIRECT=new Set([...FOV,'ore','oil','brine','energy','waterdrum']),PREF={flour:['wh'],sugar_product:['pantry'],egg:['wh'],milk:['wh'],wool:['wh'],bat:['wh'],energy:['wh'],waterdrum:['wh'],petroleum:['fuelst'],steel:['wh'],honey:['wh'],feed:['silo'],fuel:['fuelst'],wood:['store']};
+const DIRECT=new Set([...FOV,'ore','oil','petroleum','brine','energy','waterdrum']),PREF={flour:['wh'],sugar_product:['pantry'],egg:['wh'],milk:['wh'],wool:['wh'],bat:['wh'],energy:['wh'],waterdrum:['wh'],petroleum:['fuelst'],steel:['wh'],honey:['wh'],feed:['silo'],fuel:['fuelst'],wood:['store']};
 function give(s,r,n){if(!s||!s.inv)return;const sp=s.cap?s.cap-tot(s):icap(RC[ITEMS[s.ci][2]],r)-(s.inv[r]||0);s.inv[r]=(s.inv[r]||0)+Math.max(0,Math.min(n,sp))}
 function dst(r,n,p){let b=null,bd=1e9;n=n||1;
  if(DIRECT.has(r))objs.forEach(o=>{if(o.role!='proc'||o.act===false||!o.inv)return;const rc=RC[ITEMS[o.ci][2]],accepts=(rc.recipes||[rc]).some(q=>q.in[r]);if(!accepts||(o.inv[r]||0)+n>icap(rc,r))return;const s=Math.hypot(o.x-p.x,o.y-p.y);if(s<bd){bd=s;b=o}});
  if(b)return b;
+ if(r=='oil'||r=='petroleum')return null;
  for(const pr of(PREF[r]||[])){bd=1e9;objs.forEach(o=>{if(o.role!=pr||o.act===false||!o.inv||tot(o)+n>o.cap)return;const s=Math.hypot(o.x-p.x,o.y-p.y);if(s<bd){bd=s;b=o}});if(b)return b}
  bd=1e9;objs.forEach(o=>{const t=SG[o.role];if(!t||o.act===false||!o.inv||!t.includes(r)||tot(o)+n>o.cap)return;const s=Math.hypot(o.x-p.x,o.y-p.y)+(RK[o.role]||0)*1000;if(s<bd){bd=s;b=o}});return b}
 function spawnFor(o){const r={whouse:'animal',lhouse:'wood',fhouse:'farm',ihouse:'hand'}[o.role];if(!r)return;const d=fr(o);objs.push({k:'worker',role:r,home:o,x:d.x,y:d.y,st:'idle',tm:0,car:null,fx:1,mvg:0,walk:false})}
