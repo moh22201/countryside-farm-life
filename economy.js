@@ -1535,6 +1535,8 @@
       const buildKey='qbuildwork'+oid(ready);
       if(!reserve(buildKey))return null;
       cl(buildKey);worker.ks=[buildKey];
+      ready._qBuildStarted=true;
+      save();
       return [
         {go:()=>ft(ready)},
         {d:QARYATI_BUILD_TIMES[ITEMS[ready.ci][2]]||60,st:'build',fn:()=>{
@@ -1621,9 +1623,12 @@
       const req=o._qBuildRequired||{},done=o._qBuildDelivered||{};
       const rows=Object.entries(req).map(([r,n])=>
         (RN[r]||r)+': '+(done[r]||0)+' / '+n).join(' · ');
+      const duration=QARYATI_BUILD_TIMES[ name ]||60;
       html+='<div style="margin-top:10px;padding:8px;border-top:1px solid #9996">'+
         '<b>🏗️ قيد الإنشاء</b><div style="font-size:12px">المواد المورّدة: '+rows+
-        '</div><div style="font-size:11px">سيجلب العامل المواد من المخازن أو من إنتاج الأشجار الجاهز. لن يبدأ تشغيل المنشأة قبل اكتمال التوريد.</div></div>';
+        '</div><div style="font-size:12px">مدة عمل البنّاء: '+duration+' ثانية</div>'+
+        '<div style="font-size:11px">'+(o._qBuildStarted?'🔨 عامل البناء يعمل في الموقع الآن':'سيحضر عامل البناء المواد أولاً ثم يبدأ البناء')+
+        '. لن يبدأ تشغيل المنشأة قبل اكتمال التوريد والبناء.</div></div>';
     }
     return html;
   };
