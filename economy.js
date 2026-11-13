@@ -1400,7 +1400,74 @@
   // Expose the dynamic Bakery battery requirement to the industrial worker's
   // input planner, so the 5-before/1-after Power Plant rule is actually supplied.
   window.QARYATI_BAKERY_BATTERY_INPUT=()=>qBakeryBattery();
-  window.QARYATI_ECONOMY_VERSION='unified-townstar-multirecipe-15';
+
+  // ===== Assign the Builder House worker to the Boxing Facility =====
+  // The Builder worker handles the parcel line specifically; Industrial workers
+  // continue servicing the other factories and production buildings.
+  const qBuilderPlan=w=>{
+    const facilities=objs.filter(p=>p.role==='proc'&&p.mv&&p.inv&&p.act!==false&&
+      ITEMS[p.ci]&&ITEMS[p.ci][2]==='Boxing Facility');
+    const ready=nearest(facilities.filter(p=>p.out>0&&p.ores&&reserve('bp'+oid(p))),w);
+    if(ready)return deliverSteps(ready,ready.ores,'bp',w);
+    const jobs=[];
+    facilities.forEach(p=>{
+      const name=ITEMS[p.ci]&&ITEMS[p.ci][2];
+      const recipe=qRecipe(name,p.recipeId);
+      if(!recipe)return;
+      Object.entries(qCoreRecipe(name,recipe).in).forEach(([resource,required])=>{
+        const target=required*3;
+        const missing=target-(p.inv[resource]||0);
+        const key='bd'+oid(p)+resource;
+        if(missing<=0||CL.has(key))return;
+        const source=nearest(stock(resource),p);
+        if(source)jobs.push({p,resource,source,amount:Math.min(6,missing,source.inv[resource]||0),key});
+      });
+    });
+    const job=nearest(jobs,w);
+    if(job&&job.amount>0){
+      cl(job.key);w.ks=[job.key];let amount=0;
+      return [
+        {go:()=>ft(job.source)},
+        {d:.8,st:'take',fn:()=>{
+          amount=Math.min(job.amount,job.source.inv[job.resource]||0);
+          if(amount<1)return false;
+          job.source.inv[job.resource]-=amount;w.n=amount;w.car=job.resource;
+        }},
+        {go:()=>ft(job.p)},
+        {d:.8,st:'drop',fn:()=>{
+          job.p.inv[job.resource]=(job.p.inv[job.resource]||0)+amount;
+          w.car=null;
+        }}
+      ];
+    }
+    return generalPlan(w);
+  };
+  const qPlanBeforeBuilder=plan;
+  plan=function(w){
+    if(w&&w.role==='builder')return qBuilderPlan(w);
+    return qPlanBeforeBuilder(w);
+  };
+  const qBuilderDetail=rDet;
+  rDet=function(o){
+    let html=qBuilderDetail(o);
+    if(o&&o.k==='worker'&&o.role==='builder'){
+      html+='<div style="font-size:12px;margin-top:8px">📦 عامل البناء مسؤول عن نقل مكونات الطرود وتشغيل منشأة Boxing Facility.</div>';
+    }
+    return html;
+  };
+  window.QARYATI_WORKER_ASSIGNMENTS={
+    farmer:'الحقول والسقي والحصاد',
+    lumberjack:'الأشجار الطبيعية ومزارع الأشجار',
+    animal:'سقي الحيوانات وإطعامها وجمع منتجاتها',
+    industry:'المناجم والطاقة والمياه وسلاسل المصانع',
+    beekeeper:'البرسيم/الرحيق ومدخلات الخلية وجمع منتجاتها',
+    builder:'مدخلات ومخرجات Boxing Facility',
+    rider:'نقل مساند للمدخلات والمخرجات والمحاصيل',
+    tractor:'حصاد الحقول ونقل محاصيلها'
+  };
+  window.QARYATI_ECONOMY_VERSION='unified-townstar-multirecipe-16';
+
+  window.QARYATI_ECONOMY_VERSION='unified-townstar-multirecipe-16';
 
   window.QARYATI_ECONOMY_VERSION='unified-townstar-multirecipe-15';
 
