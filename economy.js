@@ -1530,7 +1530,7 @@
       const ready=nearest(sites.filter(site=>{
         const req=QARYATI_BUILD_REQUIREMENTS[ITEMS[site.ci][2]];
         return Object.entries(req).every(([r,n])=>(site._qBuildDelivered&&site._qBuildDelivered[r]||0)>=n);
-      }).filter(site=>!site._qBuildStarted),worker);
+      }).filter(site=>!site._qBuildComplete),worker);
       if(!ready)return null;
       const buildKey='qbuildwork'+oid(ready);
       if(!reserve(buildKey))return null;
@@ -1633,7 +1633,7 @@
       const req=o._qBuildRequired||{},done=o._qBuildDelivered||{};
       const rows=Object.entries(req).map(([r,n])=>
         (RN[r]||r)+': '+(done[r]||0)+' / '+n).join(' · ');
-      const duration=QARYATI_BUILD_TIMES[ name ]||60;
+      const name=ITEMS[o.ci]&&ITEMS[o.ci][2],duration=QARYATI_BUILD_TIMES[name]||60;
       html+='<div style="margin-top:10px;padding:8px;border-top:1px solid #9996">'+
         '<b>🏗️ قيد الإنشاء</b><div style="font-size:12px">المواد المورّدة: '+rows+
         '</div><div style="font-size:12px">مدة عمل البنّاء: '+duration+' ثانية</div>'+
