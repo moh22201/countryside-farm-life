@@ -45,6 +45,8 @@
     stackBox:'صندوق مركب'
   });
 
+  RS.sugar=['goods','🍬'];
+  SG.silo=SG.silo.filter(r=>r!=='sugar');
   SG.silo.push('brine','sugarcane','cabernetGrapes','chardonnayGrapes','pinotGrapes');
   SG.store.push('oakWood');
   SG.depot.push('sugar');
@@ -74,7 +76,8 @@
   }
 
   // Agreed Qaryati battery rule: 5 before Power Plant, 1 after installation.
-  DIRECT.add('bat');
+  ['bat','brine','sugarcane','oakWood','cabernetGrapes','chardonnayGrapes','pinotGrapes'].forEach(r=>DIRECT.add(r));
+  if (RC.Bakery) RC.Bakery.in.bat=5;
   FARMN.clear();
   const syncBakeryEnergy = () => {
     const powered = objs.some(o => o.mv && o.ci >= 0 &&
@@ -275,5 +278,49 @@
       kv('إجمالي المبيعات',(UP.sold||0).toLocaleString()+'$')+kv('مساحة الأرض',W*H+' مربع');
   };
 
+  let selectedSaleItem=null;
+  rTruck=function(){
+    const st=whStock();
+    const keys=Object.keys(st).filter(k=>st[k]>0);
+    if(!keys.includes(selectedSaleItem))selectedSaleItem=keys[0]||null;
+    Object.keys(TO).forEach(k=>delete TO[k]);
+    if(selectedSaleItem)TO[selectedSaleItem]=10;
+    const rows=keys.map(k=>{
+      const chosen=k===selectedSaleItem;
+      return '<div class="row" style="border:'+(chosen?'2px solid #4caf50':'1px solid transparent')+'">'+
+        '<span style="font-size:24px">'+RS[k][1]+'</span><div style="flex:1"><b>'+
+        (RN[k]||k)+'</b><div style="font-size:11px;opacity:.75">المخزون '+st[k]+
+        ' · سعر 10 وحدات '+(price(k)*10).toLocaleString()+'$</div></div>'+
+        '<button class="btn '+(chosen?'':'gray')+'" data-a="saleSelect" data-k="'+k+'">'+
+        (chosen?'محدد':'اختيار')+'</button></div>';
+    }).join('')||'<p style="opacity:.7">لا توجد منتجات في المستودع العام.</p>';
+    const enough=selectedSaleItem&&st[selectedSaleItem]>=10;
+    return '<div class="row"><span style="font-size:28px">🚚</span><div style="flex:1">الشاحنة: '+
+      objs.filter(o=>o.k==='veh'&&o.role==='truck').length+
+      ' · الوقود '+fuelHave()+' برميل · كل رحلة تستهلك 10 براميل</div></div>'+
+      rows+'<div class="row"><div style="flex:1">الكمية الثابتة: 10 وحدات'+
+      (selectedSaleItem?' · الإيراد المتوقع '+(price(selectedSaleItem)*10).toLocaleString()+'
+})();
+:'')+
+      '</div><button class="btn" data-a="send" '+(enough?'':'disabled')+'>إرسال للبيع</button></div>';
+  };
+  window.QARYATI_SELECT_SALE=k=>{selectedSaleItem=k};
+  sendTruck=function(){
+    const tr=objs.find(o=>o.k==='veh'&&o.role==='truck'&&o.st==='idle'&&!o.away&&!o.order);
+    if(!tr)return toast('لا توجد شاحنة بيع متاحة');
+    const st=whStock(),r=selectedSaleItem;
+    if(!r||!TO[r])return toast('اختر منتجاً للبيع أولاً');
+    if((st[r]||0)<10)return toast('يلزم توفر 10 وحدات من المنتج المختار');
+    const have=fuelHave();
+    if(have<10)return toast('الوقود غير كافٍ: الرحلة تحتاج 10 براميل (المتوفر '+have+')');
+    const tx=Math.floor(tr.x),ty=Math.floor(tr.y);
+    if(!asph(tx,ty)||!bfs(tx,ty,brd))return toast('الشاحنة تحتاج طريقاً أسفلتياً يصل إلى حافة المدينة');
+    let need=10;
+    objs.filter(o=>o.role==='fuelst'&&o.inv&&(o.inv.fuel||0)>0).forEach(o=>{
+      if(need<=0)return;const n=Math.min(need,o.inv.fuel);o.inv.fuel-=n;need-=n;
+    });
+    tr.order=[{r,n:10}];
+    toast('🚚 انطلقت الشاحنة: '+RS[r][1]+' 10 وحدات (−10 ⛽)');
+  };
   window.QARYATI_ECONOMY_VERSION='unified-townstar-baseline-1';
 })();
