@@ -328,5 +328,208 @@
     tr.order=[{r,n:10}];
     toast('🚚 انطلقت الشاحنة: '+RS[r][1]+' 10 وحدات (−10 ⛽)');
   };
-  window.QARYATI_ECONOMY_VERSION='unified-townstar-baseline-1';
+
+  // ===== Per-facility multi-recipe production engine =====
+  Object.assign(RS, {
+    sugar:['goods','🍬'], salt:['goods','🧂'], lumber:['goods','🪵'],
+    baguette:['food','🥖'], cabernetSauvignon:['food','🍷'],
+    chardonnay:['food','🥂'], pinotNoir:['food','🍷']
+  });
+  Object.assign(RN, {
+    sugar:'سكر',salt:'ملح',lumber:'خشب منشور',baguette:'رغيف باغيت',
+    cabernetSauvignon:'نبيذ كابيرنيه',chardonnay:'نبيذ شاردونيه',
+    pinotNoir:'نبيذ بينو نوار'
+  });
+  SG.depot.push('sugar','salt','lumber','cottonYarn','woolYarn','uniforms');
+  SG.pantry.push('baguette','dough','butter','batter','cake','pumpkinPie','candyCanes','choco');
+  Object.assign(SALE_PER_UNIT,{
+    sugar:3150,salt:2550,lumber:1350,baguette:91300,dough:29150,
+    butter:16250,batter:48700,cake:178050,pumpkinPie:49750,
+    candyCanes:25700,choco:6650,cottonYarn:3250,woolYarn:24250,
+    uniforms:34450,foodParcel:165000
+  });
+
+  const QARYATI_RECIPES = {
+    'Windmill':[
+      {id:'flour',label:'الدقيق',in:{wheat:5,wood:3},out:'flour',time:30},
+      {id:'sugar',label:'السكر',in:{sugarcane:6,wood:3},out:'sugar',time:30},
+      {id:'salt',label:'الملح',in:{brine:6,wood:3},out:'salt',time:30}
+    ],
+    'Bakery':[
+      {id:'butter',label:'الزبدة',in:{milk:2,salt:2,sugar:1},out:'butter',time:30},
+      {id:'dough',label:'العجين',in:{flour:5,egg:1,butter:1},out:'dough',time:30},
+      {id:'baguette',label:'الباغيت',in:{dough:2,butter:2,wood:2},out:'baguette',time:60}
+    ],
+    'Cakery':[
+      {id:'batter',label:'خليط الكعك',in:{flour:5,egg:3,butter:2},out:'batter',time:30},
+      {id:'cake',label:'الكعكة',in:{batter:3,sugar:6,bat:3},out:'cake',time:60},
+      {id:'pumpkinPie',label:'فطيرة القرع',in:{pumpkin:1,sugar:5,egg:10},out:'pumpkinPie',time:180}
+    ],
+    'Candy Shop':[
+      {id:'candyCanes',label:'حلوى قصب',in:{sugar:6,mint:4,energy:10},out:'candyCanes',time:360}
+    ],
+    'Chocolate Shop':[
+      {id:'choco',label:'ألواح الشوكولاتة',in:{cocoa:3,sugar:2,milk:1},out:'choco',time:90}
+    ],
+    'Fabric Plant':[
+      {id:'cottonYarn',label:'خيط قطني',in:{cotton:5,lumber:1,energy:1},out:'cottonYarn',time:60},
+      {id:'woolYarn',label:'خيط صوفي',in:{wool:5,lumber:1,energy:1},out:'woolYarn',time:60},
+      {id:'uniforms',label:'الأزياء الموحدة',in:{cottonYarn:3,woolYarn:1,lumber:1},out:'uniforms',time:60}
+    ],
+    'Refinery':[
+      {id:'petroleum',label:'البترول المكرر',in:{oil:2,energy:2,waterDrum:1},out:'petroleum',time:30},
+      {id:'gasoline',label:'البنزين',in:{petroleum:1,energy:6,waterDrum:2},out:'gasoline',time:30}
+    ],
+    'Boxing Facility':[
+      {id:'foodParcel',label:'الطرد الغذائي',in:{baguette:3,jam:2,honey:1},out:'foodParcel',time:30}
+    ]
+  };
+  window.QARYATI_RECIPES = QARYATI_RECIPES;
+
+  // Keep the agreed battery requirement on every Bakery cycle.
+  const qBakeryBattery = () => RC.Bakery && RC.Bakery.in ? (RC.Bakery.in.bat || 5) : 5;
+  const qRecipe = (name,id) => {
+    const list=QARYATI_RECIPES[name]||[];
+    return list.find(r=>r.id===id)||list[0]||null;
+  };
+  const qCoreRecipe = (name,recipe) => {
+    const inputs=Object.assign({},recipe.in);
+    if(name==='Bakery')inputs.bat=qBakeryBattery();
+    return {in:inputs,out:recipe.out,oc:10,t:recipe.time};
+  };
+  const qBaseTick = tick;
+  tick = function(o,dt) {
+    if(o && o.role==='proc' && o.mv) {
+      const name=o.ci>=0&&ITEMS[o.ci]?ITEMS[o.ci][2]:'';
+      const list=QARYATI_RECIPES[name];
+      if(list && list.length) {
+        const wasRunning=!!o.run;
+        const recipe= qRecipe(name,wasRunning?(o.activeRecipeId||o.recipeId):o.recipeId);
+        if(recipe) {
+          const old=RC[name];
+          RC[name]=qCoreRecipe(name,recipe);
+          const standard=PROCESS_SECONDS[name]||30;
+          const result=qBaseTick(o,dt*standard/recipe.time);
+          if(!wasRunning && o.run) o.activeRecipeId=recipe.id;
+          if(wasRunning && !o.run) delete o.activeRecipeId;
+          RC[name]=old;
+          return result;
+        }
+      }
+    }
+    return qBaseTick(o,dt);
+  };
+
+  // Industrial workers now service each factory's own selected recipe.
+  const qOldPlan=plan;
+  const qIndustryPlan = w => {
+    const ready=nearest(objs.filter(o=>(o.role==='proc'||o.role==='prod')&&o.out>0&&
+      o.ores&&reserve('c'+oid(o))),w);
+    if(ready) {
+      const steps=deliverSteps(ready,ready.ores,'c',w);
+      if(steps)return steps;
+    }
+    const candidates=[];
+    objs.filter(p=>p.role==='proc'&&p.mv&&p.inv&&p.act!==false).forEach(p=>{
+      const name=ITEMS[p.ci]&&ITEMS[p.ci][2];
+      const recipe=qRecipe(name,p.recipeId);
+      if(!recipe)return;
+      Object.entries(recipe.in).forEach(([resource,required])=>{
+        const target=required*3;
+        const missing=target-(p.inv[resource]||0);
+        const key='d'+oid(p)+resource;
+        if(missing<=0||CL.has(key))return;
+        const source=nearest(stock(resource),p);
+        if(source)candidates.push({p,resource,source,amount:Math.min(6,missing,source.inv[resource]||0),key});
+      });
+    });
+    const job=nearest(candidates,w);
+    if(job&&job.amount>0) {
+      cl(job.key);w.ks=[job.key];let amount=0;
+      return [
+        {go:()=>ft(job.source)},
+        {d:.8,st:'take',fn:()=>{
+          amount=Math.min(job.amount,job.source.inv[job.resource]||0);
+          if(amount<1)return false;
+          job.source.inv[job.resource]-=amount;w.n=amount;w.car=job.resource;
+        }},
+        {go:()=>ft(job.p)},
+        {d:.8,st:'drop',fn:()=>{
+          job.p.inv[job.resource]=(job.p.inv[job.resource]||0)+amount;
+          w.car=null;
+        }}
+      ];
+    }
+    return generalPlan(w);
+  };
+  plan = function(w) {
+    if(w.role==='industry')return qIndustryPlan(w);
+    return qOldPlan(w);
+  };
+
+  // Per-building recipe selector in the facility details panel.
+  const qBaseRDet=rDet;
+  rDet=function(o) {
+    if(!o||o.role!=='proc')return qBaseRDet(o);
+    const name=ITEMS[o.ci]&&ITEMS[o.ci][2];
+    const list=QARYATI_RECIPES[name];
+    if(!list||!list.length)return qBaseRDet(o);
+    const selected=qRecipe(name,o.recipeId);
+    const old=RC[name];
+    if(selected)RC[name]=qCoreRecipe(name,selected);
+    let html=qBaseRDet(o);
+    RC[name]=old;
+    const buttons=list.map(r=>{
+      const active=selected&&r.id===selected.id;
+      const inputs=Object.entries(r.in).map(([k,v])=>v+' '+(RN[k]||k)).join(' + ');
+      return '<button class="btn '+(active?'':'gray')+'" data-a="recipe" data-r="'+r.id+'" '+
+        (o.run?'disabled':'')+' style="margin:3px;white-space:normal;height:auto;line-height:1.35;padding:8px">'+
+        (active?'✓ ':'')+r.label+'<div style="font-size:10px;font-weight:400;margin-top:3px">'+
+        inputs+' → '+(RN[r.out]||r.out)+' · '+r.time+'ث</div></button>';
+    }).join('');
+    html += '<div style="margin-top:12px;padding-top:10px;border-top:1px solid #9996">'+
+      '<b>اختيار وصفة هذه المنشأة</b><div style="font-size:11px;opacity:.75;margin:5px 0">'+
+      (o.run?'المنشأة تنفذ وصفة حالياً؛ انتظر اكتمال الدورة قبل تغييرها.':
+      'اختيار الوصفة مستقل لكل منشأة، وتُحفظ مع تقدمك.')+'</div><div style="display:flex;flex-wrap:wrap;gap:4px">'+buttons+'</div></div>';
+    return html;
+  };
+  const qOldRFact=rFact;
+  rFact=function(){
+    const rows=Object.keys(RC).map(name=>{
+      const i=ITEMS.findIndex(d=>d[2]===name);
+      if(i<0)return '';
+      const buildings=objs.filter(o=>o.k==='cat'&&o.ci===i);
+      const recipes=QARYATI_RECIPES[name]||[];
+      const recipeNames=recipes.length?recipes.map(r=>r.label+' ('+r.time+'ث)').join(' · '):
+        ((RN[RC[name].out]||RC[name].out||'')+' · '+(RC[name].t||30)+'ث');
+      const active=buildings.filter(o=>o.run).length;
+      return '<div class="row"><img src="'+icon(i)+'" style="width:58px"><div style="flex:1">'+
+        '<b>'+dSafe(ITEMS[i][1])+'</b><div style="font-size:11px">'+recipeNames+'</div>'+
+        '<div style="font-size:11px;opacity:.7">المنشآت: '+buildings.length+' · دورات جارية: '+active+'</div></div>'+
+        '<button class="btn" data-a="pick" data-i="'+i+'">بناء</button></div>';
+    }).join('');
+    return rows;
+  };
+  function dSafe(v){return String(v==null?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+
+  const qOldSheetClick=$('sb').onclick;
+  $('sb').onclick=function(e){
+    const b=e.target.closest('[data-a="recipe"]');
+    if(b) {
+      if(!detObj||detObj.run){toast('انتظر اكتمال دورة الإنتاج قبل تغيير الوصفة');return;}
+      detObj.recipeId=b.dataset.r;
+      save();
+      toast('تم اختيار وصفة '+(qRecipe(ITEMS[detObj.ci][2],detObj.recipeId).label)+' لهذه المنشأة');
+      render();
+      return;
+    }
+    return qOldSheetClick.call(this,e);
+  };
+
+  // Correct Food Parcel recipe and keep it in the Boxing Facility.
+  RC['Boxing Facility']={in:{baguette:3,jam:2,honey:1},out:'foodParcel',oc:10,t:30};
+  PROCESS_SECONDS['Chocolate Shop']=90;
+  PROCESS_SECONDS['Boxing Facility']=30;
+  window.QARYATI_ECONOMY_VERSION='unified-townstar-multirecipe-2';
+
 })();
