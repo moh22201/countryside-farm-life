@@ -1642,4 +1642,101 @@
     }
     return html;
   };
+
+  // ===== Repair worker dispatch: execute the assigned economy plans =====
+  // The legacy aiH called taskH() directly and bypassed the worker plan system.
+  const qWorkerHouseIndex=ITEMS.findIndex(d=>d&&d[2]==='Worker House');
+  if(qWorkerHouseIndex>=0) ITEMS[qWorkerHouseIndex][1]='منزل الخدمات';
+
+  // Beekeeper collects hive outputs and supplies the selected recipe inputs.
+  const qDedicatedBeePlan=w=>{
+    const hives=objs.filter(o=>o.role==='prod'&&o.mv&&o.inv&&o.act!==false&&
+      ITEMS[o.ci]&&ITEMS[o.ci][2]==='Beehive');
+    const ready=nearest(hives.filter(h=>h.out>0&&h.ores&&reserve('beeout'+oid(h))),w);
+    if(ready){
+      const steps=deliverSteps(ready,ready.ores,'beeout',w);
+      if(steps)return steps;
+    }
+    const jobs=[];
+    hives.forEach(h=>{
+      const recipe=(QARYATI_PRODUCER_RECIPES.Beehive||[]).find(r=>
+        r.id===(h.recipeId||'honey'))||(QARYATI_PRODUCER_RECIPES.Beehive||[])[0];
+      if(!recipe)return;
+      Object.entries(recipe.in||{}).forEach(([resource,required])=>{
+        const missing=required-(h.inv[resource]||0);
+        const key='beein'+oid(h)+resource;
+        if(missing<=0||!reserve(key))return;
+        const source=nearest(stock(resource).filter(s=>(s.inv[resource]||0)>0),h);
+        if(source)jobs.push({h,resource,source,x:h.x,y:h.y,
+          amount:Math.min(missing,source.inv[resource]||0),key});
+      });
+    });
+    const job=nearest(jobs,w);
+    if(job&&job.amount>0){
+      cl(job.key);w.ks=[job.key];let amount=0;
+      return [
+        {go:()=>ft(job.source)},
+        {d:.8,st:'take',fn:()=>{
+          amount=Math.min(job.amount,job.source.inv[job.resource]||0);
+          if(amount<1)return false;
+          job.source.inv[job.resource]-=amount;w.n=amount;w.car=job.resource;
+        }},
+        {go:()=>ft(job.h)},
+        {d:.8,st:'drop',fn:()=>{
+          job.h.inv[job.resource]=(job.h.inv[job.resource]||0)+amount;
+          w.car=null;save();
+        }}
+      ];
+    }
+    return null;
+  };
+
+  // Builder serves construction sites before returning to the parcel facility.
+  plan=function(w){
+    if(w&&w.role==='builder'){
+      const construction=qConstructionPlan(w);
+      if(construction)return construction;
+      if(objs.some(site=>site&&site._qBuildPending))return null;
+      return qBuilderPlan(w);
+    }
+    if(w&&w.role==='bee')return qDedicatedBeePlan(w);
+    return qPlanBeforeBuilder(w);
+  };
+
+  // Route the real worker movement loop through plan(). This activates the
+  // already-defined assignments for industry, animals, beekeeper and services.
+  aiH=function(w,dt){
+    w.walk=false;
+    if(!w.steps){
+      w.steps=plan(w)||null;
+      w.tm=0;
+      if(!w.steps){
+        const home=fr(w.home);
+        if(home)go(w,home.x,home.y,dt);
+        return;
+      }
+    }
+    const step=w.steps&&w.steps[0];
+    if(!step){w.steps=null;w.st='idle';return;}
+    if(step.go){
+      const target=step.go();
+      if(!target||go(w,target.x,target.y,dt)){
+        w.steps.shift();w.tm=0;
+      }
+    }else{
+      w.st=step.st||'work';
+      w.tm=(w.tm||0)+dt;
+      if(w.tm>=(step.d||0)){
+        if(step.fn)step.fn();
+        w.steps.shift();w.tm=0;w.st='idle';
+      }
+    }
+    if(w.steps&&!w.steps.length){w.steps=null;w.st='idle';}
+  };
+  window.QARYATI_WORKER_DISPATCH={
+    hand:'خدمات المخازن ونقل الفائض إلى المستودع العام',
+    beekeeper:'تغذية خلايا النحل بمدخلاتها وجمع العسل والشمع وأقراص العسل',
+    builder:'جمع مواد كل مخطط بناء ثم تنفيذ البناء في موقعه',
+    industry:'تغذية وتشغيل المنشآت الصناعية وجمع منتجاتها'
+  };
 })();
