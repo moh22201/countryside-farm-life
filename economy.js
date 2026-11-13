@@ -996,6 +996,93 @@
     silo:SG.silo.slice(),storehouse:SG.depot.slice(),
     pantry:SG.pantry.slice(),warehouse:SG.wh.slice(),fuelStorage:SG.fuelst.slice()
   };
-  window.QARYATI_ECONOMY_VERSION='unified-townstar-multirecipe-7';
+
+  // ===== Close missing production links =====
+  // Jam: Learn Town Star guide recipe. Its timer varies with game conditions;
+  // 90 seconds is the Qaryati baseline within the documented 45–360s range.
+  RN.jam='مربى';
+  RS.jam=['food','🫙'];
+  if(!SG.pantry.includes('jam'))SG.pantry.push('jam');
+  QARYATI_RECIPES['Bakery'].push({
+    id:'jam',label:'المربى',in:{strawberry:6,choco:2,energy:2},
+    out:'jam',time:90,source:'community-guide; 45–360s variable range'
+  });
+  SALE_PER_UNIT.jam=22000;
+  SALE_PER_UNIT.lumber=1350;
+
+  // Feed Mill, Cafe and Pottery Shop were still using legacy RC entries only.
+  // Register them in the unified recipe selector so the industrial worker can
+  // actually supply their inputs using the same logistics engine.
+  QARYATI_RECIPES['Feed Mill']=[
+    {id:'feed',label:'إنتاج العلف',in:{wheat:2,corn:1},out:'feed',time:30,source:'existing Qaryati recipe'}
+  ];
+  QARYATI_RECIPES['Cafe']=[
+    {id:'meal',label:'وجبة المقهى',in:{bread:1,milk:1},out:'meal',time:30,source:'existing Qaryati recipe'}
+  ];
+  QARYATI_RECIPES['Pottery Shop']=[
+    {id:'pot',label:'وعاء فخاري',in:{clay:2},out:'pot',time:30,source:'existing Qaryati recipe'}
+  ];
+  PROCESS_SECONDS['Feed Mill']=30;
+  PROCESS_SECONDS['Cafe']=30;
+  PROCESS_SECONDS['Pottery Shop']=30;
+
+  // Jet Fuel uses the documented refinery chain: 3 Petroleum + 2 Water Drums
+  // + 3 Energy. Standard Rulebook production time is 90 seconds.
+  QARYATI_RECIPES['Refinery'].push({
+    id:'jetFuel',label:'وقود الطائرات',
+    in:{petroleum:3,waterDrum:2,energy:3},
+    out:'jetFuel',time:90,source:'Learn Town Star production guide'
+  });
+
+  // Water Facility requires a nearby actual water source. Six tiles is the
+  // Qaryati operating radius; the source guide says "near" but gives no number.
+  const QARYATI_WATER_SOURCE_RADIUS=6;
+  const qWaterSourceNear=facility=>{
+    const near=(p)=>Math.hypot(p.x-facility.x,p.y-facility.y)<=QARYATI_WATER_SOURCE_RADIUS;
+    if(objs.some(p=>p.role==='well'&&p.act!==false&&near(p)))return true;
+    return (SHORE||[]).some(near);
+  };
+  const qWaterTick=tick;
+  tick=function(o,dt){
+    if(o&&o.role==='prod'&&ITEMS[o.ci]&&ITEMS[o.ci][2]==='Water Facility'&&
+      !qWaterSourceNear(o)){
+      o.waterBlocked=true;
+      o.pg=0;
+      return qWaterTick(o,0);
+    }
+    if(o&&o.role==='prod'&&ITEMS[o.ci]&&ITEMS[o.ci][2]==='Water Facility')
+      o.waterBlocked=false;
+    return qWaterTick(o,dt);
+  };
+  window.QARYATI_WATER_SOURCE_RADIUS=QARYATI_WATER_SOURCE_RADIUS;
+
+  // Show the operating state of the water plant and the two mobile units.
+  const qFinalDetail=rDet;
+  rDet=function(o){
+    let html=qFinalDetail(o);
+    if(o&&o.role==='prod'&&ITEMS[o.ci]&&ITEMS[o.ci][2]==='Water Facility'){
+      html+='<div style="margin-top:8px;font-size:12px">'+
+        (o.waterBlocked?
+          '⛔ متوقفة: لا يوجد بئر أو مصدر ماء ضمن 6 مربعات.':
+          '💧 مصدر المياه متاح؛ تنتج برميل ماء كل 30 ثانية.')+
+        '</div>';
+    }
+    if(o&&o.k==='veh'&&o.role==='tractor'){
+      html+='<div style="margin-top:8px;font-size:12px">🚜 الجرار يحصد الحقول الناضجة وينقل المحصول إلى المخازن المناسبة تلقائياً.</div>';
+    }
+    if(o&&o.k==='worker'&&o.role==='rider'){
+      html+='<div style="margin-top:8px;font-size:12px">🏍️ راكبة الدراجة تنقل مدخلات المصانع ومخرجاتها، وتساند نقل المحاصيل والمنتجات عند الحاجة.</div>';
+    }
+    return html;
+  };
+  window.QARYATI_ECONOMY_CHAINS={
+    jam:{building:'Bakery',inputs:{strawberry:6,choco:2,energy:2},timerRange:[45,90,180,360],defaultTimer:90},
+    jetFuel:{building:'Refinery',inputs:{petroleum:3,waterDrum:2,energy:3},time:90},
+    feed:{building:'Feed Mill',inputs:{wheat:2,corn:1},out:'feed'},
+    cafe:{building:'Cafe',inputs:{bread:1,milk:1},out:'meal'},
+    pottery:{building:'Pottery Shop',inputs:{clay:2},out:'pot'}
+  };
+
+  window.QARYATI_ECONOMY_VERSION='unified-townstar-multirecipe-8';
 
 })();
