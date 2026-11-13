@@ -51,16 +51,14 @@ for(let x=0;x<W;x++)for(let y=0;y<H;y++){
   if(y>=20&&rnd()<.4)objs.push({k:'tree',x:x+.5+(rnd()-.5)*.8,y:y+.5+(rnd()-.5)*.8,s:.7+rnd()*.4,pine:rnd()>.4,v:rnd()});
  }else if(y<20&&rnd()<.04){T[x][y]=5;objs.push({k:'rock',x:x+.5,y:y+.5,s:.8+rnd()*.5})}
 }
-objs.push({k:'house',x:7,y:2,fw:2,fd:2,mv:1,c:[243,228,196],rc:[196,72,52],door:[.4,.62],wins:[[.08,.28],[.72,.92]],bw:[.3,.7],beam:1,shut:1,flower:1});
-objs.push({k:'house',x:10,y:2,fw:2,fd:2,mv:1,c:[160,110,68],rc:[58,112,86],door:[.1,.32],wins:[[.46,.66],[.76,.94]],bw:[.3,.7],log:1,shut:0});
-objs.push({k:'silo',x:13,y:2,fw:2,fd:2,mv:1});
+// Initial decorative houses and storage removed; keep the starting road only.
 const OBJ=Array.from({length:W},()=>Array(H).fill(null));let placing=null,mov=null,wood=0,crop=0,bat=0,money=1000000;
 const dep=o=>o.x+o.y+((o.fw||0)+(o.fd||0))/2-(o.role=='field'?.6:0);
 function occ(o,on){if(o.nocc)return;for(let i=0;i<(o.fw||1);i++)for(let j=0;j<(o.fd||1);j++){const x=o.x+i,y=o.y+j;OBJ[x][y]=on?o:null;T[x][y]=on?(o.role=='field'?6:3):0}}
 objs.filter(o=>o.mv).forEach(o=>occ(o,1));
 const SHORE=[];for(let x=0;x<W;x++)for(let y=0;y<H;y++)if(T[x][y]<2&&[[1,0],[-1,0],[0,1],[0,-1]].some(([a,b])=>x+a>=0&&y+b>=0&&x+a<W&&y+b<H&&T[x+a][y+b]==2))SHORE.push({x:x+.5,y:y+.5});
-[[objs.find(o=>o.log),'wood'],[objs.find(o=>o.beam),'farm']].forEach(([h,r])=>objs.push({k:'worker',role:r,home:h,x:h.x+h.fw/2+.02,y:h.y+h.fd+.55,st:'idle',tm:0,car:null,fx:1,mvg:0,walk:false}));
-/* إبقاء بيوت البداية والصومعة ظاهرة؛ وهي أيضاً منازل العمال الأولية. */
+// No starting workers: workers are created from their dedicated houses.
+/* بداية نظيفة: الطريق فقط؛ العمال ينشؤون من منازلهم المخصصة عند وضعها. */
 $('cnt').textContent=`${W*H} مربع (${W}×${H}) · متاح: ${T.reduce((s,c)=>s+c.reduce((a,v)=>a+(v==0),0),0)}`;
 
 /* ---------- tiles ---------- */
