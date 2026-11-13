@@ -1026,35 +1026,8 @@
   PROCESS_SECONDS['Cafe']=30;
   PROCESS_SECONDS['Pottery Shop']=30;
 
-  // Jet Fuel uses the documented refinery chain: 3 Petroleum + 2 Water Drums
-  // + 3 Energy. Standard Rulebook production time is 90 seconds.
-  QARYATI_RECIPES['Refinery'].push({
-    id:'jetFuel',label:'وقود الطائرات',
-    in:{petroleum:3,waterDrum:2,energy:3},
-    out:'jetFuel',time:90,source:'Learn Town Star production guide'
-  });
-
-  // Water Facility requires a nearby actual water source. Six tiles is the
-  // Qaryati operating radius; the source guide says "near" but gives no number.
-  const QARYATI_WATER_SOURCE_RADIUS=6;
-  const qWaterSourceNear=facility=>{
-    const near=(p)=>Math.hypot(p.x-facility.x,p.y-facility.y)<=QARYATI_WATER_SOURCE_RADIUS;
-    if(objs.some(p=>p.role==='well'&&p.act!==false&&near(p)))return true;
-    return (SHORE||[]).some(near);
-  };
-  const qWaterTick=tick;
-  tick=function(o,dt){
-    if(o&&o.role==='prod'&&ITEMS[o.ci]&&ITEMS[o.ci][2]==='Water Facility'&&
-      !qWaterSourceNear(o)){
-      o.waterBlocked=true;
-      o.pg=0;
-      return qWaterTick(o,0);
-    }
-    if(o&&o.role==='prod'&&ITEMS[o.ci]&&ITEMS[o.ci][2]==='Water Facility')
-      o.waterBlocked=false;
-    return qWaterTick(o,dt);
-  };
-  window.QARYATI_WATER_SOURCE_RADIUS=QARYATI_WATER_SOURCE_RADIUS;
+  // Jet Fuel timer is documented at 90 seconds; exact ingredient quantities are not confirmed.
+  window.QARYATI_JET_FUEL={building:'Refinery',inputs:['petroleum','waterDrum','energy'],time:90,quantitiesConfirmed:false};
 
   // Show the operating state of the water plant and the two mobile units.
   const qFinalDetail=rDet;
@@ -1169,37 +1142,8 @@
   };
 
 
-  // Beehive requires Wild Clover within one tile, matching its documented
-  // proximity pickup. This is separate from the beekeeper who collects output.
-  const QARYATI_BEE_PROXIMITY=1;
-  const qBeeCloverNear=hive=>objs.some(field=>{
-    if(field.role!=='field'||!ITEMS[field.ci]||ITEMS[field.ci][2]!=='Wild Clover')return false;
-    const hw=hive.fw||2,hh=hive.fd||2,fw=field.fw||1,fh=field.fd||1;
-    const dx=Math.max(0,hive.x-(field.x+fw),field.x-(hive.x+hw));
-    const dy=Math.max(0,hive.y-(field.y+fh),field.y-(hive.y+hh));
-    return Math.max(dx,dy)<=QARYATI_BEE_PROXIMITY;
-  });
-  const qBeeSourceTick=tick;
-  tick=function(o,dt){
-    if(o&&o.role==='prod'&&ITEMS[o.ci]&&ITEMS[o.ci][2]==='Beehive'&&!qBeeCloverNear(o)){
-      o.beeBlocked=true;o.pg=0;
-      return qBeeSourceTick(o,0);
-    }
-    if(o&&o.role==='prod'&&ITEMS[o.ci]&&ITEMS[o.ci][2]==='Beehive')o.beeBlocked=false;
-    return qBeeSourceTick(o,dt);
-  };
-  const qBeeFinalDetail=rDet;
-  rDet=function(o){
-    let html=qBeeFinalDetail(o);
-    if(o&&o.role==='prod'&&ITEMS[o.ci]&&ITEMS[o.ci][2]==='Beehive'){
-      html+='<div style="font-size:12px">'+(o.beeBlocked?
-        '⛔ تحتاج الخلية إلى حقل برسيم بري ملاصق (مسافة مربع واحد).':
-        '☘️ حقل البرسيم البري قريب؛ يمكن للخلية الإنتاج.')+'</div>';
-    }
-    return html;
-  };
-  window.QARYATI_BEE_PROXIMITY=QARYATI_BEE_PROXIMITY;
-
+  // Clover Fields provide Nectar; no numeric proximity radius is published.
+  window.QARYATI_BEE_PROXIMITY={source:'Clover Field',range:'proximity-based; exact tile radius not published'};
 
   // Keep the sale rule: one selected product, exactly 10 units per trip.
   rTruck=function(){
@@ -1262,6 +1206,64 @@
     toast('🚚 انطلقت الشاحنة: '+RS[resource][1]+' ×10 · استهلاك 10 براميل وقود');
   };
 
-  window.QARYATI_ECONOMY_VERSION='unified-townstar-multirecipe-12';
+
+  // ===== Correct storage destinations and capacities =====
+  Object.assign(CAP,{store:100,silo:100,depot:100,pantry:100,fuelst:100,wh:100});
+  SG.store=Array.from(new Set([...(SG.store||[]),'wood','oakWood','lumber']));
+  SG.silo=Array.from(new Set([...(SG.silo||[]),
+    'wheat','corn','cotton','sugarcane','brine','mint','pumpkin','strawberry',
+    'cocoa','cabernetGrapes','chardonnayGrapes','pinotGrapes'
+  ]));
+  SG.depot=Array.from(new Set([...(SG.depot||[]),
+    'flour','egg','milk','wool','butter','batter','dough','salt','sugar',
+    'cake','baguette','candyCanes','cabernetSauvignon','chardonnay','pinotNoir',
+    'pumpkinPie','choco','jam','honey'
+  ]));
+  SG.wh=Array.from(new Set([...(SG.wh||[]),
+    'waterDrum','energy','ore','iron','chromium','limestone','silica',
+    'steel','blueSteel','wineBottle','oakBarrel','cottonYarn','woolYarn',
+    'uniforms','wax','ceramicBowl','foodParcel','giftParcel','woodenBox',
+    'fabricBox','supplyBox','partyBox','stackBox'
+  ]));
+  SG.fuelst=Array.from(new Set([...(SG.fuelst||[]),'oil','petroleum','gasoline','jetFuel']));
+  SG.fuelst=SG.fuelst.filter(r=>r!=='waterDrum');
+  SG.wh=SG.wh.filter(r=>!['gasoline','petroleum','jetFuel'].includes(r));
+  SG.depot=SG.depot.filter(r=>!['ore','iron','chromium','limestone','silica','energy','waterDrum'].includes(r));
+  delete QARYATI_BUILD_REQUIREMENTS['Lumber Yard'];
+
+  // Route delivery to the currently selected recipe, not obsolete default RC inputs.
+  const qStorageDstBeforeRecipe=dst;
+  dst=function(resource,amount,position){
+    const n=Math.max(1,amount||1);
+    const processors=objs.filter(o=>{
+      if(o.role!=='proc'||o.act===false||!o.inv)return false;
+      const name=ITEMS[o.ci]&&ITEMS[o.ci][2];
+      const selected=qRecipe(name,o.recipeId);
+      const inputs=selected?selected.in:(RC[name]&&RC[name].in)||{};
+      return Object.prototype.hasOwnProperty.call(inputs,resource)&&
+        (o.inv[resource]||0)+n<=10;
+    });
+    if(processors.length)return nearest(processors,position);
+    return qStorageDstBeforeRecipe(resource,amount,position);
+  };
+
+  // Make the sales product selector respond to actual panel clicks.
+  const qSalesPanelClick=$('sb').onclick;
+  $('sb').onclick=function(e){
+    const b=e.target.closest('[data-a="saleSelect"]');
+    if(b){
+      window.QARYATI_SELECT_SALE(b.dataset.k);
+      save();render();return;
+    }
+    return qSalesPanelClick.call(this,e);
+  };
+  delete qWageRate.hand;
+  window.QARYATI_STORAGE_MAP={
+    woodShed:SG.store.slice(),silo:SG.silo.slice(),storehouse:SG.depot.slice(),
+    pantry:SG.pantry.slice(),warehouse:SG.wh.slice(),fuelStorage:SG.fuelst.slice()
+  };
+  window.QARYATI_ECONOMY_VERSION='unified-townstar-multirecipe-13';
+
+  window.QARYATI_ECONOMY_VERSION='unified-townstar-multirecipe-13';
 
 })();
