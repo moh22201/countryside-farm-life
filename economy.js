@@ -716,7 +716,7 @@
     const b=e.target.closest('[data-a="producer-recipe"]');
     if(b){
       if(!detObj||detObj.role!=='prod'){toast('اختر منشأة إنتاج أولاً');return;}
-      if(detObj.out>0){toast('اجمع الناتج الحالي قبل تغيير الإنتاج');return;}
+      if(detObj.out>0||detObj.pg>0||detObj._qBeeInputsPaid){toast('انتظر اكتمال دورة الإنتاج وجمع الناتج قبل تغيير الوصفة');return;}
       detObj.recipeId=b.dataset.r;
       save();
       toast('تم تغيير إنتاج المنشأة');
@@ -1465,7 +1465,26 @@
     rider:'نقل مساند للمدخلات والمخرجات والمحاصيل',
     tractor:'حصاد الحقول ونقل محاصيلها'
   };
-  window.QARYATI_ECONOMY_VERSION='unified-townstar-multirecipe-16';
+
+  // Water Facility status: show the nearest actual water source without
+  // pretending an undocumented tile radius is a hard game rule.
+  const qWaterStatusDetail=rDet;
+  rDet=function(o){
+    let html=qWaterStatusDetail(o);
+    if(o&&o.role==='prod'&&ITEMS[o.ci]&&ITEMS[o.ci][2]==='Water Facility'){
+      const sources=objs.filter(p=>p.role==='well'&&p.act!==false).map(p=>({x:p.x,y:p.y,name:ITEMS[p.ci]&&ITEMS[p.ci][2]||'بئر'}))
+        .concat((SHORE||[]).map(p=>({x:p.x,y:p.y,name:'ماء البركة'})));
+      const nearestSource=sources.sort((a,b)=>Math.hypot(a.x-o.x,a.y-o.y)-Math.hypot(b.x-o.x,b.y-o.y))[0];
+      html+='<div style="font-size:12px;margin-top:8px">'+
+        (nearestSource?'💧 أقرب مصدر ماء: '+nearestSource.name+' · المسافة '+Math.hypot(nearestSource.x-o.x,nearestSource.y-o.y).toFixed(1)+' مربعاً.':
+        '⛔ لا يوجد بئر أو مضخة أو ماء بركة معروف في الأرض؛ أضف مصدراً للمياه.')+
+        '<br>ينقل عامل الصناعة براميل الماء الناتجة إلى المستودع.</div>';
+    }
+    return html;
+  };
+  window.QARYATI_ECONOMY_VERSION='unified-townstar-multirecipe-17';
+
+  window.QARYATI_ECONOMY_VERSION='unified-townstar-multirecipe-17';
 
   window.QARYATI_ECONOMY_VERSION='unified-townstar-multirecipe-16';
 
