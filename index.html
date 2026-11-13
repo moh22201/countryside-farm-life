@@ -60,7 +60,7 @@ function occ(o,on){if(o.nocc)return;for(let i=0;i<(o.fw||1);i++)for(let j=0;j<(o
 objs.filter(o=>o.mv).forEach(o=>occ(o,1));
 const SHORE=[];for(let x=0;x<W;x++)for(let y=0;y<H;y++)if(T[x][y]<2&&[[1,0],[-1,0],[0,1],[0,-1]].some(([a,b])=>x+a>=0&&y+b>=0&&x+a<W&&y+b<H&&T[x+a][y+b]==2))SHORE.push({x:x+.5,y:y+.5});
 [[objs.find(o=>o.log),'wood'],[objs.find(o=>o.beam),'farm']].forEach(([h,r])=>objs.push({k:'worker',role:r,home:h,x:h.x+h.fw/2+.02,y:h.y+h.fd+.55,st:'idle',tm:0,car:null,fx:1,mvg:0,walk:false}));
-objs.filter(o=>o.k=='house'||o.k=='silo').forEach(o=>{occ(o,0);objs.splice(objs.indexOf(o),1)});
+/* إبقاء بيوت البداية والصومعة ظاهرة؛ وهي أيضاً منازل العمال الأولية. */
 $('cnt').textContent=`${W*H} مربع (${W}×${H}) · متاح: ${T.reduce((s,c)=>s+c.reduce((a,v)=>a+(v==0),0),0)}`;
 
 /* ---------- tiles ---------- */
