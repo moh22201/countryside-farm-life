@@ -555,10 +555,10 @@ function load(){let s=null;try{s=JSON.parse(localStorage.getItem(SK))}catch(e){}
  $('info').textContent='✅ تم استرجاع التقدم المحفوظ'}
 let rq=0;$('bs').onclick=()=>save(true);
 $('br').onclick=()=>{if(Date.now()<rq){noSave=true;try{localStorage.removeItem(SK)}catch(e){}location.reload();return}rq=Date.now()+4000;$('info').textContent='⚠️ اضغط 🔄 مرة ثانية خلال 4 ثوانٍ لمسح التقدم والبدء من جديد'};
-load();setInterval(()=>save(),5000);addEventListener('pagehide',()=>save());document.addEventListener('visibilitychange',()=>{if(document.hidden)save()});
+setTimeout(()=>{load();setInterval(()=>save(),5000);addEventListener('pagehide',()=>save());document.addEventListener('visibilitychange',()=>{if(document.hidden)save()})},0);
 /* ===== دفعات البيع ===== */
 const SB={flour:50,milk:20,wool:10,egg:20,wheat:50,corn:50,wood:50,sugar:30,cotton:30,soy:30,glass:10,steel:10,fabric:10,pot:10,bat:10,cake:10,choco:10,wine:10,meal:10,jam:10,honey:10,ore:20,sand:20,plank:20,oil:20,fuel:20},PRCg={crop:5,food:10,goods:15,fuel:8,wood:4};
-const sb=r=>SB[r]||20,price=r=>PRCg[RS[r][0]]||5;
+const sb=r=>SB[r]||10,price=r=>(window.QARYATI_SALE_PER_UNIT&&window.QARYATI_SALE_PER_UNIT[r])||PRCg[RS[r][0]]||5;
 function lots(){const tt={},st=objs.filter(q=>ACC[q.role]&&q.act!==false&&q.inv);st.forEach(q=>{for(const k in q.inv)tt[k]=(tt[k]||0)+q.inv[k]});const L=[];for(const r in tt)if(tt[r]>=sb(r))L.push({r,n:sb(r)});
  if(!L.length)st.forEach(q=>{if(tot(q)>=q.cap){let br=null;for(const k in q.inv)if(!br||q.inv[k]>q.inv[br])br=k;if(br&&!L.some(l=>l.r==br))L.push({r:br,n:Math.min(tt[br],sb(br))})}});return L}
 function pickups(L,o){const out=[];L.forEach(l=>{let n=l.n;objs.filter(q=>ACC[q.role]&&q.act!==false&&q.inv&&(q.inv[l.r]||0)>0).sort((a,b)=>Math.hypot(a.x-o.x,a.y-o.y)-Math.hypot(b.x-o.x,b.y-o.y)).forEach(q=>{if(n>0){const a=Math.min(n,q.inv[l.r]);out.push({q,r:l.r,n:a});n-=a}})});return out}
@@ -708,7 +708,7 @@ function tap(px,py){const p=pick(px,py),info=toast;
 function whStock(){const s={};objs.forEach(o=>{if(o.role=='wh'&&o.inv)for(const k in o.inv)if(o.inv[k]>0)s[k]=(s[k]||0)+o.inv[k]});return s}
 const fuelHave=()=>objs.reduce((a,o)=>a+(o.role=='fuelst'&&o.inv?(o.inv.fuel||0):0),0);
 function sendTruck(){const tr=objs.find(o=>o.k=='veh'&&o.role=='truck'&&o.st=='idle'&&!o.away&&!o.order);if(!tr)return toast('لا توجد شاحنة متاحة — ابنِ شاحنة بيع من قسم التجارة والنقل');
- const st=whStock(),order=Object.keys(TO).filter(k=>TO[k]>0&&(st[k]||0)>0).map(k=>({r:k,n:Math.min(20,TO[k],st[k])}));if(!order.length)return toast('اختر منتجات للبيع أولاً');
+ const st=whStock(),order=Object.keys(TO).filter(k=>TO[k]>0&&(st[k]||0)>0).map(k=>({r:k,n:Math.min(10,TO[k],st[k])}));if(!order.length)return toast('اختر منتجات للبيع أولاً');
  const fs=objs.filter(o=>o.role=='fuelst'&&o.inv&&(o.inv.fuel||0)>0),have=fs.reduce((a,o)=>a+o.inv.fuel,0);if(have<10)return toast('الوقود غير كافٍ في مخزن الوقود: الرحلة تحتاج 10 براميل (المتوفر '+have+')');
  const tx=Math.floor(tr.x),ty=Math.floor(tr.y);if(!asph(tx,ty)||!bfs(tx,ty,brd))return toast('الشاحنة تحتاج طريقاً أسفلتياً يصل إلى حافة المدينة');
  let need=10;fs.forEach(o=>{if(need<=0)return;const a=Math.min(need,o.inv.fuel);o.inv.fuel-=a;need-=a});
@@ -736,7 +736,7 @@ document.body.appendChild(ui);document.body.appendChild($('info'));
 const kv=(a,b)=>`<div class='kv'><span>${a}</span><b>${b}</b></div>`,bar=(v,m,c)=>`<div class='bar'><i style='width:${Math.max(0,Math.min(100,v/m*100))}%;${c?'background:'+c:''}'></i></div>`;
 function closeSheet(){shKind=null;$('sheet').classList.remove('show');[...document.querySelectorAll('#dock button')].forEach(b=>b.classList.remove('on'))}
 function showSheet(k){shKind=k;[...document.querySelectorAll('#dock button')].forEach(b=>b.classList.toggle('on',b.dataset.d==k));$('gm').style.display='none';render();$('sheet').classList.add('show');$('sb').scrollTop=0}
-function render(){const m={build:['الإنشاءات والمنشآت',rBuild],fact:['المصانع',rFact],truck:['🚚 أمر البيع',rTruck],wallet:['👛 محفظة إبداع',rWallet],prof:['الملف الشخصي',rProf],det:['التفاصيل',()=>rDet(detObj)]}[shKind];$('st').textContent=m[0];$('sb').innerHTML=m[1]()}
+function render(){const m={build:['الإنشاءات والمنشآت',rBuild],fact:['المصانع',rFact],truck:['🚚 أمر البيع',rTruck],wallet:['رصيد اللعبة',rWallet],prof:['الملف الشخصي',rProf],det:['التفاصيل',()=>rDet(detObj)]}[shKind];$('st').textContent=m[0];$('sb').innerHTML=m[1]()}
 function selectItem(i){delMode=false;$('bd').classList.remove('on');placing=i+1;mov=null;closeSheet();toast('المس الأرض لوضع: '+ITEMS[i][1])}
 function rBuild(){const cs=CATS.map((c,i)=>ITEMS.some(d=>d[0]==i)?`<button class='${i==bcat?'on':''}' data-a='cat' data-i='${i}'>${c[0]} ${c[1]}</button>`:'').join('');const its=ITEMS.map((d,i)=>[d,i]).filter(([d])=>d[0]==bcat).map(([d,i])=>`<div class='row' style='flex-direction:column;margin:0;text-align:center;font-size:12px;cursor:pointer' data-a='pick' data-i='${i}'><img src='${icon(i)}' style='width:100%'><div>${d[1]}</div></div>`).join('');return `<div class='cats'>${cs}</div><div class='g'>${its}</div>`}
 function rFact(){return Object.keys(RC).map(n=>{const i=ITEMS.findIndex(d=>d[2]==n);if(i<0)return'';const rc=RC[n],d=ITEMS[i],ins=Object.entries(rc.in).map(([k,v])=>v+RS[k][1]).join(' + '),outs=(rc.outs||[[rc.out,1]]).map(([k,v])=>v+RS[k][1]).join(' + '),pl=objs.filter(o=>o.k=='cat'&&o.ci==i),run=pl.filter(o=>o.run).length;return `<div class='row'><img src='${icon(i)}' style='width:64px'><div style='flex:1'><b>${d[1]}</b><div style='font-size:12px'>${ins} ← ${outs} · 30ث</div><div style='font-size:11px;opacity:.75'>سعة الناتج ${rc.oc||10} · مبنية: ${pl.length} · تعمل: ${run}</div></div><button class='btn' data-a='pick' data-i='${i}'>بناء</button></div>`}).join('')}
@@ -780,10 +780,10 @@ $('sb').onclick=e=>{const t=e.target.closest('[data-a]');if(!t)return;const a=t.
 $('sb').onchange=e=>{if(e.target.id=='pf')readAv(e.target.files[0])};
 $('sb').oninput=e=>{if(e.target.id=='pnm'){UP.name=e.target.value.slice(0,20)||'اللاعب';saveUP()}};
 let lastK='';
-setInterval(()=>{$('bv').textContent=Math.floor(money).toLocaleString();const n=objs.filter(o=>o.mv).length,k=UP.av+'|'+UP.name;if(k!=lastK){lastK=k;$('av').innerHTML=UP.av?`<img src='${UP.av}'>`:'🧑‍🌾';$('pn').textContent=UP.name}$('plv').textContent='المستوى '+(1+Math.floor(n/5))+' · '+n+' منشأة';try{chips()}catch(e){console.warn('Resource strip update error:',e)}
+setInterval(()=>{$('bv').textContent=Math.floor(money).toLocaleString();const n=objs.filter(o=>o.mv).length,k=UP.av+'|'+UP.name;if(k!=lastK){lastK=k;$('av').innerHTML=UP.av?`<img src='${UP.av}'>`:'🧑‍🌾';$('pn').textContent=UP.name}$('plv').textContent='أرض مفتوحة · '+n+' منشأة';try{chips()}catch(e){console.warn('Resource strip update error:',e)}
  let t='';if(placing)t='📍 '+ITEMS[placing-1][1]+' — المس الأرض للبناء (بلا حدّ)';else if(mov)t='↔ المس مربعاً فارغاً لنقل المنشأة';else if(delMode)t='🗑️ وضع الحذف: المس منشأة (السعر حسب النوع) أو صخرة (50$) أو طريقاً (مجاناً)';$('pbar').style.display=t?'flex':'none';$('pt').textContent=t;[...document.querySelectorAll('#dock button')].forEach(b=>{if(b.dataset.d=='del')b.classList.toggle('on',delMode)})},500);
 setInterval(()=>{if(shKind=='truck'||shKind=='det'||shKind=='fact'){if(shKind=='det'&&!objs.includes(detObj)){closeSheet();return}const y=$('sb').scrollTop;render();$('sb').scrollTop=y}},900);
-applyRM();
+setTimeout(applyRM,0);
 /* ===== الخلفية الطبيعية: جبال وغابات وأنهار وبحر ===== */
 const BX0=-2000,BY0=-900,BWd=5000,BHt=3300,BK=.5;let BGc=null,RVL=[];
 const pj=(x,y)=>[(x-y)*32,(x+y)*16],coastY=x=>x<320?x/2+1408:1728-x/2,baseY=x=>Math.min(Math.abs(x)/2-260,coastY(x)-130);
@@ -861,7 +861,7 @@ function tap(px,py){const p=pick(px,py),info=toast;
 function selectItem(i){delMode=false;$('bd').classList.remove('on');placing=i+1;mov=null;closeSheet();toast('المس الأرض لشراء ووضع: '+ITEMS[i][1]+' — '+priceOf(i).toLocaleString()+'$')}
 function rBuild(){const cs=CATS.map((c,i)=>ITEMS.some(d=>d[0]==i)?`<button class='${i==bcat?'on':''}' data-a='cat' data-i='${i}'>${c[0]} ${c[1]}</button>`:'').join('');const its=ITEMS.map((d,i)=>[d,i]).filter(([d])=>d[0]==bcat).map(([d,i])=>`<div class='row' style='flex-direction:column;margin:0;text-align:center;font-size:12px;cursor:pointer' data-a='pick' data-i='${i}'><img src='${icon(i)}' style='width:100%'><div>${d[1]}</div><div style='color:#c98a00;font-weight:700'>💰 ${priceOf(i).toLocaleString()}$${/Road/.test(d[2])?' / مربع':''}</div></div>`).join('');return `<div class='cats'>${cs}</div><div class='g'>${its}</div>`}
 function rFact(){return Object.keys(RC).map(n=>{const i=ITEMS.findIndex(d=>d[2]==n);if(i<0)return'';const rc=RC[n],d=ITEMS[i],ins=Object.entries(rc.in).map(([k,v])=>v+RS[k][1]).join(' + '),outs=(rc.outs||[[rc.out,1]]).map(([k,v])=>v+RS[k][1]).join(' + '),pl=objs.filter(o=>o.k=='cat'&&o.ci==i),run=pl.filter(o=>o.run).length;return `<div class='row'><img src='${icon(i)}' style='width:64px'><div style='flex:1'><b>${d[1]}</b><div style='font-size:12px'>${ins} ← ${outs} · 30ث</div><div style='font-size:11px;opacity:.75'>سعة الناتج ${rc.oc||10} · مبنية: ${pl.length} · تعمل: ${run}</div><div style='font-size:12px;color:#c98a00;font-weight:700'>💰 ${priceOf(i).toLocaleString()}$</div></div><button class='btn' data-a='pick' data-i='${i}'>شراء</button></div>`}).join('')}
-function rTruck(){const st=whStock(),keys=Object.keys(st);keys.forEach(k=>{TO[k]=Math.min(20,st[k])});const rows=keys.map(k=>`<div class='row'><span style='font-size:24px'>${RS[k][1]}</span><b style='flex:1'>${RN[k]||k}</b><b>${st[k]}${st[k]>20?' ← 20':''}</b></div>`).join('')||`<p style='opacity:.7'>المستودع فارغ.</p>`;return rows+`<button class='btn' data-a='send' style='width:100%;margin-top:6px'>بيع</button>`}
+function rTruck(){const st=whStock(),keys=Object.keys(st);keys.forEach(k=>{TO[k]=Math.min(10,st[k])});const rows=keys.map(k=>`<div class='row'><span style='font-size:24px'>${RS[k][1]}</span><b style='flex:1'>${RN[k]||k}</b><b>${st[k]}${st[k]>20?' ← 20':''}</b></div>`).join('')||`<p style='opacity:.7'>المستودع فارغ.</p>`;return rows+`<button class='btn' data-a='send' style='width:100%;margin-top:6px'>بيع</button>`}
 mkBG();
 addEventListener('resize',()=>{rs()});rs();center();requestAnimationFrame(frame);
-</script></body></html>
+</script><script src="./economy.js"></script></body></html>
