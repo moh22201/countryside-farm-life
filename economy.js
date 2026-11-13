@@ -441,7 +441,8 @@
       const name=ITEMS[p.ci]&&ITEMS[p.ci][2];
       const recipe=qRecipe(name,p.recipeId);
       if(!recipe)return;
-      Object.entries(recipe.in).forEach(([resource,required])=>{
+      const recipeInputs=qCoreRecipe(name,recipe).in;
+      Object.entries(recipeInputs).forEach(([resource,required])=>{
         const target=required*3;
         const missing=target-(p.inv[resource]||0);
         const key='d'+oid(p)+resource;
@@ -1238,7 +1239,7 @@
       if(o.role!=='proc'||o.act===false||!o.inv)return false;
       const name=ITEMS[o.ci]&&ITEMS[o.ci][2];
       const selected=qRecipe(name,o.recipeId);
-      const inputs=selected?selected.in:(RC[name]&&RC[name].in)||{};
+      const inputs=selected?qCoreRecipe(name,selected).in:(RC[name]&&RC[name].in)||{};
       return Object.prototype.hasOwnProperty.call(inputs,resource)&&
         (o.inv[resource]||0)+n<=10;
     });
@@ -1328,7 +1329,7 @@
     if(!missing)return null;
     const [resource,required]=missing;
     if(resource==='nectar'){
-      const field=nearest(objs.filter(o=>o.role==='field'&&o.out>0&&o.ores==='nectar'&&
+      const field=nearest(objs.filter(o=>o.role==='field'&&o.out>0&&['nectar','clover'].includes(o.ores)&&
         reserve('n'+oid(o))),hive);
       return field?deliverSteps(field,'nectar','n',w):null;
     }
@@ -1390,7 +1391,18 @@
     outputStorage:{honey:'Pantry',honeycomb:'Pantry',wax:'Warehouse'},
     batchQuantities:'Qaryati local adaptation; input names and logistics based on Town Star Crafts'
   };
-  window.QARYATI_ECONOMY_VERSION='unified-townstar-multirecipe-14';
+
+  // Honey and honeycomb are Pantry goods, while Wax remains Warehouse goods.
+  SG.depot=SG.depot.filter(r=>r!=='honey');
+  SG.pantry=Array.from(new Set([...(SG.pantry||[]),'honey','honeycomb','jam']));
+  RS.honeycomb=['food','🍯'];
+
+  // Expose the dynamic Bakery battery requirement to the industrial worker's
+  // input planner, so the 5-before/1-after Power Plant rule is actually supplied.
+  window.QARYATI_BAKERY_BATTERY_INPUT=()=>qBakeryBattery();
+  window.QARYATI_ECONOMY_VERSION='unified-townstar-multirecipe-15';
+
+  window.QARYATI_ECONOMY_VERSION='unified-townstar-multirecipe-15';
 
   window.QARYATI_ECONOMY_VERSION='unified-townstar-multirecipe-14';
 
