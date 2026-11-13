@@ -362,7 +362,7 @@
     ],
     'Cakery':[
       {id:'batter',label:'خليط الكعك',in:{flour:5,egg:3,butter:2},out:'batter',time:30},
-      {id:'cake',label:'الكعكة',in:{batter:3,sugar:6,bat:3},out:'cake',time:60},
+      {id:'cake',label:'الكعكة',in:{batter:3,sugar:6,energy:3},out:'cake',time:60},
       {id:'pumpkinPie',label:'فطيرة القرع',in:{pumpkin:1,sugar:5,egg:10},out:'pumpkinPie',time:180}
     ],
     'Candy Shop':[
