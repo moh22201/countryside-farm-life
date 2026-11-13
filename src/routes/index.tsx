@@ -27,7 +27,7 @@ function Index() {
     >
       <iframe
         title="قريتي – المرحلة ١"
-        src="/village.html"
+        src="./village.html"
         style={{
           display: "block",
           width: "100%",
