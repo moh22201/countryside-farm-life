@@ -454,6 +454,7 @@ const RC={'Windmill':{in:{wheat:1},out:'flour'},'Bakery':{in:{flour:1},out:'brea
 const PR={'Beehive':{out:'honey'},'Iron Mine':{out:'ore'},'Sand Mine':{out:'sand'},'Shallow Mine':{out:'ore'},'Oil Pump':{out:'oil',t:30},'Wind Turbine':{out:'bat',outs:[['energy',1]],t:60},'Nuclear Power':{out:'energy',t:20}};
 const PNM={'Chicken Coop':'egg','Duck House':'egg','Sheep Pen':'wool','Milk Barn':'milk','Pasture':'wool'}; const ANIMAL_TIME={'Chicken Coop':60,'Duck House':60,'Sheep Pen':90,'Pasture':90,'Milk Barn':120};
 const FO={'Cotton Field':'cotton','Sugarcane Field':'sugar','Wheat Field':'wheat','Tree Farm':'wood','Oak Tree Farm':'wood','Salt Field':'salt','Peppermint Field':'mint','Pumpkin Patch':'pumpkin','Strawberry Field':'strawberry','Cocoa Tree':'cocoa','Apple Tree':'apple','Blueberry Field':'blueberry','Lettuce Field':'lettuce','Corn Field':'corn','Soybean Field':'soy','Tomato Farm':'tomato','Vanilla Bean Field':'vanilla','Cabernet Vines':'grape','Chardonnay Vines':'grape','Pinot Noir Vines':'grape','Bamboo Farm':'bamboo','Wild Clover':'clover','Clay Field':'clay'};
+const TREE_FIELDS=new Set(['Tree Farm','Oak Tree Farm','Cocoa Tree','Apple Tree','Bamboo Farm']);const isTreeField=o=>!!o&&o.role=='field'&&TREE_FIELDS.has(ITEMS[o.ci]?.[2]);
 let UID=0;const CL=new Set(),oid=o=>o.uid||(o.uid=++UID),cl=k=>{CL.add(k)},rls=ks=>ks.forEach(k=>CL.delete(k)),tot=o=>Object.values(o.inv).reduce((a,b)=>a+b,0);
 function roleOf(d){const n=d[2];if(n=='Farm Tractor')return'tractor';if(n=='Sales Truck')return'truck';const m={'Silo':'silo','Wood Shed':'store','Storehouse':'depot','Warehouse':'depot','Pantry':'pantry','Fuel Storage':'fuelst','Worker House':'whouse','Industry Worker House':'ihouse','Lumberjack House':'lhouse','Farm House':'fhouse','Well':'pond','Water Pond':'pond','Water Pump':'well','Wind Pump':'well'};if(m[n])return m[n];if(FO[n])return'field';if(PNM[n])return'pen';if(RC[n])return'proc';if(PR[n])return'prod';return null}
 function give(s,r,n){if(!s||!s.inv)return;s.inv[r]=(s.inv[r]||0)+Math.max(0,Math.min(n,s.cap-tot(s)))}
@@ -483,7 +484,7 @@ function aiH(w,dt){w.walk=false;if(!w.steps){w.steps=plan(w);w.tm=0;if(!w.steps)
  else{w.st=s.st;w.tm+=dt;if(w.tm>=s.d){if(s.fn&&s.fn()===false){fin(w);return}w.steps.shift();w.tm=0;w.st='idle'}}
  if(w.steps&&!w.steps.length)fin(w)}
 function plan(w){const L=a=>nearest(a,w),act=(...r)=>objs.filter(o=>r.includes(o.role)&&o.act!==false&&o.inv),stk=r=>objs.filter(q=>ACC[q.role]&&q.role!='wh'&&q.act!==false&&q.inv&&(q.inv[r]||0)>0);
- const co=L(act('field','pen','prod','proc').filter(o=>o.out>=1&&(o.role!='field'||o.st==2)&&!CL.has('c'+oid(o))&&dst(o.ores,o.out,w)));
+ const co=L(act('field','pen','prod','proc').filter(o=>o.out>=1&&(o.role!='field'||o.st==2)&&!(me=='farm'&&isTreeField(o))&&!CL.has('c'+oid(o))&&dst(o.ores,o.out,w)));
  if(co){const k='c'+oid(co),f=co.role=='field';cl(k);w.ks=[k];let D;return[{go:()=>f?ct(co):ft(co)},{d:1.2,st:f?'harv':'take',fn:()=>{if(co.out<1)return false;w.n=co.out;w.car=co.ores;co.out=0;if(f){co.st=0;co.t=0}}},{go:()=>(D=D||dst(w.car,w.n,w))&&ft(D)},{d:.6,st:'drop',fn:()=>{if(D)give(D,w.car,w.n);w.car=null}}]}
  const C=[];act('proc').forEach(p=>{const rc=RC[ITEMS[p.ci][2]];for(const r in rc.in){const need=Math.min(6,rc.in[r]*3-(p.inv[r]||0)),k='d'+oid(p)+r;if(need>0&&!CL.has(k)){const s=nearest(stk(r),p);if(s)C.push({p,r,s,need,k,x:p.x,y:p.y})}}});
  const c=L(C);
@@ -500,7 +501,15 @@ function plan(w){const L=a=>nearest(a,w),act=(...r)=>objs.filter(o=>r.includes(o
  return null}
 function aiW(w,dt){w.walk=false;w.tm+=dt;
  switch(w.st){
- case'idle':{const b=nearest(objs.filter(o=>o.k=='tree'&&!o.res),w);if(b&&dst('wood',1,w)){b.res=1;w.tg=b;w.st='toTree'}else{const h=fr(w.home);go(w,h.x,h.y,dt)}break}
+ case'idle':{
+  const orchard=nearest(objs.filter(f=>isTreeField(f)&&f.st==2&&f.out>=1&&!f.rs&&dst(f.ores,f.out,w)),w);
+  if(orchard){orchard.rs=1;w.tg=orchard;w.st='toOrchard';w.D=null;break}
+  const b=nearest(objs.filter(o=>o.k=='tree'&&!o.res&&dst('wood',1,w)),w);
+  if(b){b.res=1;w.tg=b;w.st='toTree'}else{const h=fr(w.home);go(w,h.x,h.y,dt)}break}
+ case'toOrchard':if(!w.tg||!w.tg.rs){w.st='idle';break}if(go(w,w.tg.x+.5,w.tg.y+.5,dt)){w.st='harvestOrchard';w.tm=0}break;
+ case'harvestOrchard':if(w.tm>1.5){const f=w.tg;if(f&&f.st==2&&f.out>=1){w.n=f.out;w.res=f.ores;f.out=0;f.st=0;f.t=0;w.car=w.res;w.st='toOrchardStore';w.D=null}else{if(f)f.rs=0;w.tg=null;w.st='idle'}}break;
+ case'toOrchardStore':w.D=w.D||dst(w.res,w.n,w);if(w.D&&go(w,w.D.x+w.D.fw/2,w.D.y+w.D.fd+.5,dt)){w.st='dropOrchard';w.tm=0}break;
+ case'dropOrchard':if(w.tm>.6){if(w.D)give(w.D,w.res,w.n);if(w.tg)w.tg.rs=0;w.tg=null;w.car=null;w.D=null;w.st='idle'}break;
  case'toTree':if(go(w,w.tg.x+.3,w.tg.y+.3,dt)){w.fx=(w.tg.x-w.x)-(w.tg.y-w.y)>=0?1:-1;w.st='chop';w.tm=0}break;
  case'chop':w.tg.shake=1;if(w.tm>4){const g=w.tg,tx=Math.floor(g.x),ty=Math.floor(g.y);objs.splice(objs.indexOf(g),1);if(!objs.some(o=>o.k=='tree'&&Math.floor(o.x)==tx&&Math.floor(o.y)==ty))T[tx][ty]=0;w.log={k:'log',x:g.x,y:g.y};objs.push(w.log);w.st='pick';w.tm=0}break;
  case'pick':if(w.tm>.8){objs.splice(objs.indexOf(w.log),1);w.car='log';w.st='toStore';w.ds=null}break;
