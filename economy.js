@@ -440,7 +440,7 @@
         const key='d'+oid(p)+resource;
         if(missing<=0||CL.has(key))return;
         const source=nearest(stock(resource),p);
-        if(source)candidates.push({p,resource,source,amount:Math.min(6,missing,source.inv[resource]||0),key});
+        if(source)candidates.push({p,x:p.x,y:p.y,resource,source,amount:Math.min(6,missing,source.inv[resource]||0),key});
       });
     });
     const job=nearest(candidates,w);
