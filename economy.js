@@ -299,9 +299,7 @@
       objs.filter(o=>o.k==='veh'&&o.role==='truck').length+
       ' · الوقود '+fuelHave()+' برميل · كل رحلة تستهلك 10 براميل</div></div>'+
       rows+'<div class="row"><div style="flex:1">الكمية الثابتة: 10 وحدات'+
-      (selectedSaleItem?' · الإيراد المتوقع '+(price(selectedSaleItem)*10).toLocaleString()+'
-})();
-:'')+
+      (selectedSaleItem ? ' · الإيراد المتوقع ' + (price(selectedSaleItem)*10).toLocaleString() + String.fromCharCode(36) : '') +
       '</div><button class="btn" data-a="send" '+(enough?'':'disabled')+'>إرسال للبيع</button></div>';
   };
   window.QARYATI_SELECT_SALE=k=>{selectedSaleItem=k};
