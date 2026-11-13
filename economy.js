@@ -1200,6 +1200,68 @@
   };
   window.QARYATI_BEE_PROXIMITY=QARYATI_BEE_PROXIMITY;
 
-  window.QARYATI_ECONOMY_VERSION='unified-townstar-multirecipe-11';
+
+  // Keep the sale rule: one selected product, exactly 10 units per trip.
+  rTruck=function(){
+    const st=whStock();
+    const keys=Object.keys(st).filter(k=>st[k]>0&&RS[k]&&['food','goods'].includes(RS[k][0]));
+    if(!keys.includes(selectedSaleItem))selectedSaleItem=keys[0]||null;
+    Object.keys(TO).forEach(k=>delete TO[k]);
+    if(selectedSaleItem)TO[selectedSaleItem]=10;
+    const trucks=objs.filter(o=>o.k==='veh'&&o.role==='truck');
+    const ready=trucks.filter(o=>o.st==='idle'&&!o.away&&!o.order).length;
+    const fuel=objs.filter(o=>o.role==='fuelst'&&o.inv)
+      .reduce((sum,o)=>sum+(o.inv.gasoline||0)+(o.inv.fuel||0),0);
+    const rows=keys.map(k=>{
+      const chosen=k===selectedSaleItem;
+      return '<div class="row" style="border:'+(chosen?'2px solid #4caf50':'1px solid transparent')+'">'+
+        '<span style="font-size:24px">'+RS[k][1]+'</span><div style="flex:1"><b>'+
+        (RN[k]||k)+'</b><div style="font-size:11px;opacity:.75">المخزون '+st[k]+
+        ' · سعر 10 وحدات '+(price(k)*10).toLocaleString()+'$</div></div>'+
+        '<button class="btn '+(chosen?'':'gray')+'" data-a="saleSelect" data-k="'+k+'">'+
+        (chosen?'محدد':'اختيار')+'</button></div>';
+    }).join('')||'<p style="opacity:.7">لا توجد منتجات قابلة للبيع في المستودع العام.</p>';
+    const enough=selectedSaleItem&&(st[selectedSaleItem]||0)>=10;
+    const revenue=enough?price(selectedSaleItem)*10:0;
+    return '<div class="row"><span style="font-size:28px">🚚</span><div style="flex:1"><b>إدارة شاحنة البيع</b>'+
+      '<div style="font-size:12px">الشاحنات: '+trucks.length+' · المتاحة: '+ready+
+      ' · في الرحلة: '+(trucks.length-ready)+'</div></div></div>'+
+      '<div class="row"><div style="flex:1">الوقود المتاح</div><b>⛽ '+fuel+' / 10</b></div>'+
+      rows+'<div class="row"><div style="flex:1">كمية البيع الثابتة: 10 وحدات'+
+      '<div style="font-size:11px;opacity:.7">الإيراد المتوقع: '+revenue.toLocaleString()+'$</div></div>'+
+      '<button class="btn" data-a="send" '+(ready&&enough&&fuel>=10?'':'disabled')+'>إرسال للبيع</button></div>'+
+      '<div style="font-size:11px;opacity:.7;margin-top:6px">كل رحلة تنقل منتجاً واحداً بكمية 10 وحدات وتستهلك 10 براميل بنزين/وقود، مع طريق أسفلتي متصل بحافة الأرض.</div>';
+  };
+  window.QARYATI_SELECT_SALE=k=>{
+    selectedSaleItem=k;
+    Object.keys(TO).forEach(x=>delete TO[x]);
+    if(k)TO[k]=10;
+  };
+  sendTruck=function(){
+    const truck=objs.find(o=>o.k==='veh'&&o.role==='truck'&&o.st==='idle'&&!o.away&&!o.order);
+    if(!truck)return toast('لا توجد شاحنة بيع متاحة');
+    const stock=whStock(),resource=selectedSaleItem;
+    if(!resource||!TO[resource])return toast('اختر منتجاً للبيع أولاً');
+    if((stock[resource]||0)<10)return toast('يلزم توفر 10 وحدات من المنتج المختار');
+    const tanks=objs.filter(o=>o.role==='fuelst'&&o.inv);
+    const available=tanks.reduce((sum,o)=>sum+(o.inv.gasoline||0)+(o.inv.fuel||0),0);
+    if(available<10)return toast('الوقود غير كافٍ: تحتاج الشاحنة 10 براميل، والمتوفر '+available);
+    const tx=Math.floor(truck.x),ty=Math.floor(truck.y);
+    if(!asph(tx,ty)||!bfs(tx,ty,brd))
+      return toast('الشاحنة تحتاج طريقاً أسفلتياً متصلاً بحافة الأرض');
+    let remaining=10;
+    for(const key of ['gasoline','fuel']){
+      for(const tank of tanks){
+        if(remaining<=0)break;
+        const take=Math.min(remaining,tank.inv[key]||0);
+        tank.inv[key]-=take;remaining-=take;
+      }
+    }
+    truck.order=[{r:resource,n:10}];
+    save();
+    toast('🚚 انطلقت الشاحنة: '+RS[resource][1]+' ×10 · استهلاك 10 براميل وقود');
+  };
+
+  window.QARYATI_ECONOMY_VERSION='unified-townstar-multirecipe-12';
 
 })();
