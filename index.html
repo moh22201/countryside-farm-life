@@ -546,7 +546,7 @@ function load(){let s=null;try{s=JSON.parse(localStorage.getItem(SK))}catch(e){}
  $('info').textContent='✅ تم استرجاع التقدم المحفوظ';const off=Math.max(0,Math.floor((Date.now()-(s.savedAt||Date.now()))/1000));for(let t=0;t<off&&!mainWarehouseFull();t++)update(1);if(off>0)$('info').textContent='✅ استمر الإنتاج أثناء غيابك ('+Math.floor(off/60)+' دقيقة)';save()}
 let rq=0;
 $('br').onclick=()=>{if(Date.now()<rq){noSave=true;try{localStorage.removeItem(SK)}catch(e){}location.reload();return}rq=Date.now()+4000;$('info').textContent='⚠️ اضغط 🔄 مرة ثانية خلال 4 ثوانٍ لمسح التقدم والبدء من جديد'};
-load();setInterval(()=>save(),5000);addEventListener('pagehide',()=>save());document.addEventListener('visibilitychange',()=>{if(document.hidden)save()});
+load();setInterval(()=>save(),1000);const saveOnExit=()=>{save();try{if(typeof UP!=='undefined')localStorage.setItem('village_profile_v1',JSON.stringify(UP))}catch(e){}};addEventListener('pagehide',saveOnExit);addEventListener('beforeunload',saveOnExit);addEventListener('freeze',saveOnExit);document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')saveOnExit()});
 /* ===== دفعات البيع ===== */
 const SB={flour:50,milk:20,wool:10,egg:20,wheat:50,corn:50,wood:50,sugar:30,cotton:30,soy:30,glass:10,steel:10,fabric:10,pot:10,bat:10,cake:10,choco:10,wine:10,meal:10,jam:10,honey:10,ore:20,sand:20,plank:20,oil:20,fuel:20},PRCg={crop:5,food:10,goods:15,fuel:8,wood:4};
 const sb=r=>SB[r]||20,price=r=>PRCg[RS[r][0]]||5;
