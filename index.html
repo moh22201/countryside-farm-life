@@ -539,12 +539,12 @@ K.H=function(a,b,c,f){if(f!='k')return H0(a,b,c,f);GND('#9a9aa0','#6a6a70');
  [-.17,.17].forEach(v=>EL(...Pq(.56,v,12),3,2.2,'#ffe9a0'));[-.42,-.05,.38].forEach(u=>{const q=Pq(u,.26,6);EL(q[0],q[1],8,8,'#1d1d1f');EL(q[0],q[1],3.5,3.5,'#9aa0a8')})};
 /* ===== حفظ التقدم ===== */
 const SK='village_save_v1';let noSave=false;
-function save(manual){if(noSave)return;try{const pl=objs.filter(o=>o.k=='cat'||o.k=='veh'),F=['k','role','x','y','fw','fd','mv','st','t','out','ores','inv','cap','pg','run','nw','nf','tw','tf','need','oq','sp','hx','hy','nocc','fx','cargo','away','recipeId','activeRecipeId'];
- const s={v:1,W,H,m:money,rr:[...(window.RM||[])],rd:[],tr:[],pl:pl.map(o=>{const r={nm:ITEMS[o.ci][2]};F.forEach(k=>{if(o[k]!==undefined)r[k]=o[k]});return r}),wk:objs.filter(o=>o.k=='worker').map(w=>({role:w.role,x:w.x,y:w.y,hi:pl.indexOf(w.home),hm:w.home?[w.home.x,w.home.y,w.home.fw,w.home.fd]:null}))};
+function save(manual){if(noSave)return;try{const pl=objs.filter(o=>o.k=='cat'||o.k=='veh'),F=['k','role','x','y','fw','fd','mv','st','t','out','ores','inv','cap','pg','run','nw','nf','tw','tf','need','oq','sp','act','hx','hy','nocc','fx','cargo','away','recipeId','activeRecipeId','_qBuildPending','_qBuildDelivered','_qBuildStarted','_qBuildComplete','_qBuildRemaining','_qBuildTarget','waterBlocked'];
+ const s={v:2,W,H,m:money,rr:[...(window.RM||[])],rd:[],tr:[],pl:pl.map(o=>{const r={nm:ITEMS[o.ci][2]};F.forEach(k=>{if(o[k]!==undefined)r[k]=o[k]});return r}),wk:objs.filter(o=>o.k=='worker').map(w=>({role:w.role,x:w.x,y:w.y,hi:pl.indexOf(w.home),hm:w.home?[w.home.x,w.home.y,w.home.fw,w.home.fd]:null}))};
  for(let x=0;x<W;x++)for(let y=0;y<H;y++)if(T[x][y]==1)s.rd.push([x,y,RT[x][y]]);
  objs.forEach(o=>{if(o.k=='tree')s.tr.push([+o.x.toFixed(2),+o.y.toFixed(2),+o.s.toFixed(2),o.pine?1:0,+o.v.toFixed(2)])});
  localStorage.setItem(SK,JSON.stringify(s));if(manual)$('info').textContent='💾 تم حفظ التقدم'}catch(e){if(manual)$('info').textContent='تعذّر الحفظ في هذا المتصفح'}}
-function load(){let s=null;try{s=JSON.parse(localStorage.getItem(SK))}catch(e){}if(!s||s.v!=1)return;
+function load(){let s=null;try{s=JSON.parse(localStorage.getItem(SK))}catch(e){}if(!s||![1,2].includes(s.v)||!Array.isArray(s.pl)||!Array.isArray(s.wk))return;
  const ow=s.W||40,oh=s.H||25;window.LF=ow==W&&oh==H;for(let x=0;x<ow;x++)for(let y=0;y<oh;y++){if(T[x][y]==1||T[x][y]==4)T[x][y]=0}
  s.rd.forEach(([x,y,t])=>{T[x][y]=1;RT[x][y]=t});
  for(let i=objs.length-1;i>=0;i--){const k=objs[i].k;if((k=='tree'&&objs[i].x<ow&&objs[i].y<oh)||k=='worker'||k=='cat'||k=='veh')objs.splice(i,1)}
@@ -552,7 +552,7 @@ function load(){let s=null;try{s=JSON.parse(localStorage.getItem(SK))}catch(e){}
  const pl=s.pl.map(r=>{const ci=ITEMS.findIndex(d=>d[2]==r.nm);if(ci<0)return null;const o=Object.assign({},r,{ci});delete o.nm;o.role=roleOf(ITEMS[ci]);if(o.k=='veh'){o.st='idle';o.away=0;o.car=0;o.tm=0;if(o.cargo){money+=o.cargo*10;o.cargo=0}}objs.push(o);if(o.k=='cat')occ(o,1);return o});
  money=s.m;window.RM=new Set(s.rr||[]);
  s.wk.forEach(r=>{const home=pl[r.hi]||(r.hm?{x:r.hm[0],y:r.hm[1],fw:r.hm[2],fd:r.hm[3]}:null);objs.push({k:'worker',role:(home&&home.role=='fhouse'?'farm':home&&home.role=='whouse'?'hand':r.role),home,x:r.x,y:r.y,st:'idle',tm:0,car:null,fx:1,mvg:0,walk:false})});
- $('info').textContent='✅ تم استرجاع التقدم المحفوظ'}
+ objs.filter(o=>o&&o.k=='cat'&&HS[o.role]).forEach(home=>{if(!objs.some(w=>w&&w.k=='worker'&&w.home===home)){spawnFor(home);home.sp=1;}});$('info').textContent='✅ تم استرجاع التقدم المحفوظ'}
 let rq=0;$('bs').onclick=()=>save(true);
 $('br').onclick=()=>{if(Date.now()<rq){noSave=true;try{localStorage.removeItem(SK)}catch(e){}location.reload();return}rq=Date.now()+4000;$('info').textContent='⚠️ اضغط 🔄 مرة ثانية خلال 4 ثوانٍ لمسح التقدم والبدء من جديد'};
 setTimeout(()=>{load();setInterval(()=>save(),5000);addEventListener('pagehide',()=>save());document.addEventListener('visibilitychange',()=>{if(document.hidden)save()})},0);
