@@ -20,7 +20,7 @@
   if (oldFishButton) oldFishButton.remove();
 
   Object.assign(RS, {
-    brine:['crop','🧂'], energy:['goods','⚡'], waterDrum:['goods','🛢️'],
+    brine:['crop','🧂'], sugarcane:['crop','🎋'], oakWood:['wood','🪵'], energy:['goods','⚡'], waterDrum:['goods','🛢️'], cabernetGrapes:['crop','🍇'], chardonnayGrapes:['crop','🍇'], pinotGrapes:['crop','🍇'],
     chromium:['goods','🔩'], limestone:['goods','🪨'], silica:['goods','🏖️'],
     petroleum:['fuel','🛢️'], gasoline:['fuel','⛽'], jetFuel:['fuel','✈️'],
     wineBottle:['goods','🍾'], oakBarrel:['goods','🛢️'],
@@ -33,7 +33,7 @@
     partyBox:['goods','🎁'], stackBox:['goods','📦']
   });
   Object.assign(RN, {
-    brine:'محلول ملحي',energy:'طاقة',waterDrum:'برميل ماء',chromium:'كروم',
+    brine:'محلول ملحي',sugarcane:'قصب السكر',oakWood:'خشب البلوط',energy:'طاقة',waterDrum:'برميل ماء',cabernetGrapes:'عنب كابيرنيه',chardonnayGrapes:'عنب شاردونيه',pinotGrapes:'عنب بينو نوار',chromium:'كروم',
     limestone:'حجر جيري',silica:'سيليكا',petroleum:'بترول',gasoline:'بنزين',
     jetFuel:'وقود طائرات',wineBottle:'زجاجة نبيذ',oakBarrel:'برميل بلوط',
     cottonYarn:'خيط قطني',woolYarn:'خيط صوفي',uniforms:'زي موحد',
@@ -45,13 +45,20 @@
     stackBox:'صندوق مركب'
   });
 
-  SG.silo.push('brine');
+  SG.silo.push('brine','sugarcane','cabernetGrapes','chardonnayGrapes','pinotGrapes');
+  SG.store.push('oakWood');
+  SG.depot.push('sugar');
   SG.depot.push('chromium','limestone','silica','energy','wineBottle','oakBarrel',
     'cottonYarn','woolYarn','uniforms','blueSteel','honeycomb','wax','ceramicBowl',
     'foodParcel','giftParcel','woodenBox','fabricBox','supplyBox','partyBox','stackBox');
   SG.pantry.push('dough','butter','batter','baguette','pumpkinPie','candyCanes');
   SG.fuelst.push('petroleum','gasoline','jetFuel','waterDrum');
   if (FO['Salt Field']) FO['Salt Field'] = 'brine';
+  FO['Sugarcane Field']='sugarcane';
+  FO['Oak Tree Farm']='oakWood';
+  FO['Cabernet Vines']='cabernetGrapes';
+  FO['Chardonnay Vines']='chardonnayGrapes';
+  FO['Pinot Noir Vines']='pinotGrapes';
 
   // Beekeeper House is a worker home, not a jam factory.
   delete RC['Beekeeper House'];
@@ -118,20 +125,27 @@
 
   // Official per-10 sale values converted to per-unit values for the truck.
   const SALE_PER_UNIT = {
-    wheat:300,wood:250,oakWood:250,cotton:350,sugar:400,brine:300,
-    mint:340,pumpkin:1000,grape:2670,egg:1650,milk:4000,wool:4550,
+    wheat:300,wood:250,oakWood:250,cotton:350,sugarcane:400,sugar:3150,brine:300,
+    mint:340,pumpkin:1000,cabernetGrapes:1820,chardonnayGrapes:810,pinotGrapes:2670,egg:1650,milk:4000,wool:4550,
     feed:340,flour:2250,salt:2550,energy:150,oil:50,petroleum:450,
     fuel:1450,gasoline:1450,jetFuel:1900,ore:4600,chromium:4600,
-    limestone:4600,sand:1000,silica:1000,plank:1350,glass:12800,
+    limestone:4600,sand:1000,silica:1000,plank:1350,
     steel:47000,blueSteel:270950,waterDrum:50,wineBottle:12800,
     oakBarrel:5500,cottonYarn:3250,woolYarn:24250,uniforms:34450,
     bread:91300,butter:16250,dough:29150,batter:48700,cake:178050,
-    candyCanes:25700,wine:57200,pumpkinPie:49750
+    candyCanes:25700,pumpkinPie:49750
   };
   window.QARYATI_SALE_PER_UNIT = SALE_PER_UNIT;
+  Object.keys(SB).forEach(k=>SB[k]=10);
+  Object.keys(TO).forEach(k=>TO[k]=Math.min(10,TO[k]||10));
 
   // Existing worker homes only; no generic houses are invented.
   Object.assign(HS,{animalHouse:1,industryHouse:1,beeHouse:1,builderHouse:1});
+  PRICE['Animal Worker House']=PRICE['Worker House']||700;
+  PRICE['Industrial Worker House']=PRICE['Worker House']||700;
+  PRICE['Boxing Facility']=PRICE['Steel Mill']||3500;
+  PR['Water Facility']={out:'waterDrum',t:30};
+  PR['Nuclear Power']={out:'energy',t:20};
   const baseRoleOf = roleOf;
   roleOf = function(d) {
     const n=d&&d[2];
@@ -140,6 +154,7 @@
       'Animal Worker House':'animalHouse','Industrial Worker House':'industryHouse',
       'Beekeeper House':'beeHouse','Builder House':'builderHouse'
     };
+    if(n==='Water Facility')return 'prod';
     return homes[n] || baseRoleOf(d);
   };
   spawnFor = function(o) {
