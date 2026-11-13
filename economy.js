@@ -789,7 +789,7 @@
     if(o&&o.ci>=0&&ITEMS[o.ci]){
       const name=ITEMS[o.ci][2],materials=qBuildMaterialText(name);
       if(materials)html+='<div style="margin-top:10px;padding:8px;border-top:1px solid #9996">'+
-        '<b>مواد البناء التي استُهلكت</b><div style="font-size:12px">'+materials+'</div></div>';
+        '<b>متطلبات مواد البناء</b><div style="font-size:12px">'+materials+'</div></div>';
     }
     return html;
   };
