@@ -1494,18 +1494,7 @@
     }
     return qWaterFacilityTick(o,dt);
   };
-  window.QARYATI_ECONOMY_VERSION='unified-townstar-multirecipe-18';
 
   window.QARYATI_ECONOMY_VERSION='unified-townstar-multirecipe-18';
-
-  window.QARYATI_ECONOMY_VERSION='unified-townstar-multirecipe-17';
-
-  window.QARYATI_ECONOMY_VERSION='unified-townstar-multirecipe-16';
-
-  window.QARYATI_ECONOMY_VERSION='unified-townstar-multirecipe-15';
-
-  window.QARYATI_ECONOMY_VERSION='unified-townstar-multirecipe-14';
-
-  window.QARYATI_ECONOMY_VERSION='unified-townstar-multirecipe-13';
 
 })();
