@@ -568,11 +568,11 @@ function load(){let s=null;try{s=JSON.parse(localStorage.getItem(SK))}catch(e){}
  s.rd.forEach(([x,y,t])=>{T[x][y]=1;RT[x][y]=t});
  for(let i=objs.length-1;i>=0;i--){const k=objs[i].k;if((k=='tree'&&objs[i].x<ow&&objs[i].y<oh)||k=='worker'||k=='cat'||k=='veh')objs.splice(i,1)}
  s.tr.forEach(([x,y,sc,p,v])=>{objs.push({k:'tree',x,y,s:sc,pine:!!p,v});T[Math.floor(x)][Math.floor(y)]=4});
- const pl=s.pl.map(r=>{const ci=ITEMS.findIndex(d=>d[2]===r.nm);if(ci<0)return null;const o=Object.assign({},r,{ci});delete o.nm;o.role=roleOf(ITEMS[ci]);if(o.k==='veh'){o.st='idle';o.away=0;o.car=0;o.tm=0;if(o.cargo){money+=o.cargo*10;o.cargo=0}}objs.push(o);if(o.k==='cat')occ(o,1);return o}).filter(Boolean);
+ const pl=s.pl.map(r=>{const ci=ITEMS.findIndex(d=>d[2]===r.nm);if(ci<0)return null;const o=Object.assign({},r,{ci});delete o.nm;o.role=roleOf(ITEMS[ci]);if(o.k==='veh'){o.st='idle';o.away=0;o.car=0;o.tm=0;if(o.cargo){money+=o.cargo*10;o.cargo=0}}objs.push(o);if(o.k==='cat')occ(o,1);return o});
  money=s.m;window.RM=new Set(s.rr||[]);
  // Restore worker homes as independent saved assets as well as normal buildings.
  (s.homes||[]).forEach(h=>{
-   const exists=pl.some(o=>o.k==='cat'&&ITEMS[o.ci]&&ITEMS[o.ci][2]===h.nm&&
+   const exists=pl.some(o=>o&&o.k==='cat'&&ITEMS[o.ci]&&ITEMS[o.ci][2]===h.nm&&
      Math.abs(o.x-h.x)<.01&&Math.abs(o.y-h.y)<.01);
    if(exists)return;
    const ci=ITEMS.findIndex(d=>d[2]===h.nm);if(ci<0)return;
