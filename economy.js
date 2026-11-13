@@ -1168,6 +1168,38 @@
     source:'Learn Town Star Beehive building guide; proximity can change actual times'
   };
 
-  window.QARYATI_ECONOMY_VERSION='unified-townstar-multirecipe-10';
+
+  // Beehive requires Wild Clover within one tile, matching its documented
+  // proximity pickup. This is separate from the beekeeper who collects output.
+  const QARYATI_BEE_PROXIMITY=1;
+  const qBeeCloverNear=hive=>objs.some(field=>{
+    if(field.role!=='field'||!ITEMS[field.ci]||ITEMS[field.ci][2]!=='Wild Clover')return false;
+    const hw=hive.fw||2,hh=hive.fd||2,fw=field.fw||1,fh=field.fd||1;
+    const dx=Math.max(0,hive.x-(field.x+fw),field.x-(hive.x+hw));
+    const dy=Math.max(0,hive.y-(field.y+fh),field.y-(hive.y+hh));
+    return Math.max(dx,dy)<=QARYATI_BEE_PROXIMITY;
+  });
+  const qBeeSourceTick=tick;
+  tick=function(o,dt){
+    if(o&&o.role==='prod'&&ITEMS[o.ci]&&ITEMS[o.ci][2]==='Beehive'&&!qBeeCloverNear(o)){
+      o.beeBlocked=true;o.pg=0;
+      return qBeeSourceTick(o,0);
+    }
+    if(o&&o.role==='prod'&&ITEMS[o.ci]&&ITEMS[o.ci][2]==='Beehive')o.beeBlocked=false;
+    return qBeeSourceTick(o,dt);
+  };
+  const qBeeFinalDetail=rDet;
+  rDet=function(o){
+    let html=qBeeFinalDetail(o);
+    if(o&&o.role==='prod'&&ITEMS[o.ci]&&ITEMS[o.ci][2]==='Beehive'){
+      html+='<div style="font-size:12px">'+(o.beeBlocked?
+        '⛔ تحتاج الخلية إلى حقل برسيم بري ملاصق (مسافة مربع واحد).':
+        '☘️ حقل البرسيم البري قريب؛ يمكن للخلية الإنتاج.')+'</div>';
+    }
+    return html;
+  };
+  window.QARYATI_BEE_PROXIMITY=QARYATI_BEE_PROXIMITY;
+
+  window.QARYATI_ECONOMY_VERSION='unified-townstar-multirecipe-11';
 
 })();
