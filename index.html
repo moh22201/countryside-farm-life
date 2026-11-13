@@ -773,6 +773,7 @@ $('sb').onclick=e=>{const t=e.target.closest('[data-a]');if(!t)return;const a=t.
  else if(a=='pick')selectItem(+D.i);
  else if(a=='tq'){const st=whStock(),k=D.k,m=Math.min(20,st[k]||0);TO[k]=Math.max(0,Math.min(m,D.d=='20'?m:(TO[k]||0)+(+D.d)));render()}
  else if(a=='send'){sendTruck();render()}
+ else if(a=='saleSelect'){window.QARYATI_SELECT_SALE(D.k);render()}
  else if(a=='mv'){mov=detObj;closeSheet();toast('المس مربعاً فارغاً لنقل المنشأة (الزاوية العلوية)')}
  else if(a=='del'){if(delThing(detObj))closeSheet()}
  else if(a=='wq')$('wa').value=D.v;
