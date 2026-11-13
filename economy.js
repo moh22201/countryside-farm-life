@@ -147,7 +147,7 @@
   PRICE['Animal Worker House']=PRICE['Worker House']||700;
   PRICE['Industrial Worker House']=PRICE['Worker House']||700;
   PRICE['Boxing Facility']=PRICE['Steel Mill']||3500;
-  PR['Water Facility']={out:'waterDrum',t:30};
+  delete PR['Water Facility']; // Water Facility is a direct water source, not a drum producer.
   PR['Nuclear Power']={out:'energy',t:20};
   const baseLoad = load;
   load = function(){
@@ -165,7 +165,7 @@
       'Animal Worker House':'animalHouse','Industrial Worker House':'industryHouse',
       'Beekeeper House':'beeHouse','Builder House':'builderHouse'
     };
-    if(n==='Water Facility')return 'prod';
+    // Water Facility keeps the base role 'well': it supplies direct water to fields and livestock.
     return homes[n] || baseRoleOf(d);
   };
   spawnFor = function(o) {
@@ -886,17 +886,15 @@
     w.walk=false;
   };
 
-  // The Water Facility creates Water Drums from a water source. The industrial
-  // worker collects its finished drums and delivers them to the Warehouse.
+  // The Water Facility is a direct water source. It does not manufacture or store Water Drums.
   const qWaterDetail=rDet;
   rDet=function(o){
     let html=qWaterDetail(o);
     if(o&&o.ci>=0&&ITEMS[o.ci]&&ITEMS[o.ci][2]==='Water Facility'){
       html+='<div style="margin-top:10px;padding:8px;border-top:1px solid #9996">'+
         '<b>وظيفة منشأة المياه</b>'+
-        '<div style="font-size:12px">تنتج براميل الماء كل 30 ثانية عند توفر مصدر مياه قريب. '+
-        'عامل الصناعة يجمع البراميل وينقلها إلى المستودع لاستخدامها في المصفاة والمنشآت الصناعية.</div>'+
-        '<div style="font-size:11px;opacity:.75">المخرج: برميل ماء · المخزن المستهدف: المستودع</div></div>';
+        '<div style="font-size:12px">تعمل كمصدر ماء مباشر للسقي، ولا تنتج براميل ماء. الفلاح وعامل الحيوانات يجلبان الماء منها مباشرة.</div>'+
+        '<div style="font-size:11px;opacity:.75">الوظيفة: مصدر ماء مباشر · لا يوجد منتج مخزّن</div></div>';
     }
     if(o&&o.k==='worker'&&(o._qWageDue||0)>0){
       html+='<div style="margin-top:8px;font-size:12px">أجور عمل مستحقة: '+o._qWageDue+'$</div>';
@@ -1471,14 +1469,14 @@
   const qWaterStatusDetail=rDet;
   rDet=function(o){
     let html=qWaterStatusDetail(o);
-    if(o&&o.role==='prod'&&ITEMS[o.ci]&&ITEMS[o.ci][2]==='Water Facility'){
+    if(o&&ITEMS[o.ci]&&ITEMS[o.ci][2]==='Water Facility'){
       const sources=objs.filter(p=>p.role==='well'&&p.act!==false).map(p=>({x:p.x,y:p.y,name:ITEMS[p.ci]&&ITEMS[p.ci][2]||'بئر'}))
         .concat((SHORE||[]).map(p=>({x:p.x,y:p.y,name:'ماء البركة'})));
       const nearestSource=sources.sort((a,b)=>Math.hypot(a.x-o.x,a.y-o.y)-Math.hypot(b.x-o.x,b.y-o.y))[0];
       html+='<div style="font-size:12px;margin-top:8px">'+
         (nearestSource?'💧 أقرب مصدر ماء: '+nearestSource.name+' · المسافة '+Math.hypot(nearestSource.x-o.x,nearestSource.y-o.y).toFixed(1)+' مربعاً.':
         '⛔ لا يوجد بئر أو مضخة أو ماء بركة معروف في الأرض؛ أضف مصدراً للمياه.')+
-        '<br>ينقل عامل الصناعة براميل الماء الناتجة إلى المستودع.</div>';
+        '<br>تُستخدم كمصدر ماء مباشر للحقول والحيوانات؛ لا تُنتج براميل.</div>';
     }
     return html;
   };
@@ -1739,4 +1737,72 @@
     builder:'جمع مواد كل مخطط بناء ثم تنفيذ البناء في موقعه',
     industry:'تغذية وتشغيل المنشآت الصناعية وجمع منتجاتها'
   };
+
+  // ===== Direct facility roles: water source, oil extraction, industrial home =====
+  // Water Facility is the water point itself; it has no production output.
+  delete PR['Water Facility'];
+  const qRoleBeforeDirectTargets=roleOf;
+  roleOf=function(d){
+    const n=d&&d[2];
+    if(n==='Water Facility')return 'well';
+    if(n==='Industrial Worker House')return 'industryHouse';
+    return qRoleBeforeDirectTargets(d);
+  };
+  Object.assign(HS,{industryHouse:1});
+  // Oil Pump has one explicit output: crude oil, routed by the industry worker
+  // to Fuel Storage. Reassert its producer definition at the final tick layer.
+  const qTickBeforeOilPump=tick;
+  tick=function(o,dt){
+    if(o&&o.mv&&o.role==='prod'&&ITEMS[o.ci]&&ITEMS[o.ci][2]==='Oil Pump'){
+      const old=PR['Oil Pump'];
+      PR['Oil Pump']={out:'oil',t:180};
+      try{return qTickBeforeOilPump(o,dt);}
+      finally{PR['Oil Pump']=old;}
+    }
+    return qTickBeforeOilPump(o,dt);
+  };
+  // Industrial House creates exactly one dedicated industry worker.
+  const qSpawnBeforeIndustryHome=spawnFor;
+  spawnFor=function(home){
+    if(home&&home.ci>=0&&ITEMS[home.ci]&&ITEMS[home.ci][2]==='Industrial Worker House'){
+      home.role='industryHouse';
+      const existing=objs.some(w=>w&&w.k==='worker'&&w.home===home&&w.role==='industry');
+      if(existing)return;
+      const p=fr(home);
+      objs.push({k:'worker',role:'industry',home,x:p.x,y:p.y,st:'idle',tm:0,
+        car:null,fx:1,mvg:0,walk:false});
+      return;
+    }
+    return qSpawnBeforeIndustryHome(home);
+  };
+  // Repair placed industrial houses from older saves and create their missing worker
+  // only when the house is road-connected, matching the game's home access rule.
+  objs.filter(home=>home&&home.k==='cat'&&home.ci>=0&&ITEMS[home.ci]&&
+    ITEMS[home.ci][2]==='Industrial Worker House').forEach(home=>{
+      home.role='industryHouse';
+      if(home.mv&&onRoad(home)){
+        home.sp=1;
+        spawnFor(home);
+      }
+    });
+  // Final dispatch is role-specific: no fallback through the general services worker.
+  const qFinalPreviousPlan=plan;
+  plan=function(w){
+    if(!w)return null;
+    if(w.role==='industry')return qIndustryPlan(w);
+    if(w.role==='builder'){
+      const construction=qConstructionPlan(w);
+      if(construction)return construction;
+      if(objs.some(site=>site&&site._qBuildPending))return null;
+      return qBuilderPlan(w);
+    }
+    if(w.role==='bee')return qDedicatedBeePlan(w);
+    return qFinalPreviousPlan(w);
+  };
+  window.QARYATI_DIRECT_ROLES={
+    waterFacility:'well/direct water source; no Water Drum output',
+    oilPump:'oil -> Fuel Storage',
+    industrialWorker:'spawned only from Industrial Worker House; services industrial producers and processors'
+  };
+
 })();
