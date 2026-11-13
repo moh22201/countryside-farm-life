@@ -254,7 +254,7 @@ const bub=(x,y,s,t)=>{const b=Math.sin(t/300)*2;ell(x,y+b,s.length>2?15:10,10,'r
 const DK=t=>Math.max(0,Math.sin(t/19099))*.3,once=f=>{let v;return()=>v||(v=f())},stor=(...r)=>{for(const k of r){const s=find(k)[0];if(s)return s}return null},ft=o=>({x:o.x+o.fw/2,y:o.y+o.fd+.35}),ct=o=>({x:o.x+.5,y:o.y+.5});
 let GLOW=[];
 function lighting(t){const dk=DK(t);ctx.save();ctx.setTransform(1,0,0,1,0,0);ctx.globalCompositeOperation='source-atop';const g=ctx.createLinearGradient(0,0,cv.width,cv.height);g.addColorStop(0,'rgba(255,240,200,.14)');g.addColorStop(1,'rgba(40,30,90,.14)');ctx.fillStyle=g;ctx.fillRect(0,0,cv.width,cv.height);if(dk>0){ctx.fillStyle='rgba(10,20,60,'+dk+')';ctx.fillRect(0,0,cv.width,cv.height)}ctx.globalCompositeOperation='lighter';ctx.setTransform(dpr*cam.s,0,0,dpr*cam.s,dpr*cam.x,dpr*cam.y);GLOW.forEach(([x,y,r])=>{const q=ctx.createRadialGradient(x,y,2,x,y,r);q.addColorStop(0,'rgba(255,200,100,'+Math.min(.7,dk*2.4)+')');q.addColorStop(1,'rgba(255,200,100,0)');ctx.fillStyle=q;ctx.beginPath();ctx.arc(x,y,r,0,7);ctx.fill()});GLOW=[];ctx.restore()}
-function spawnFor(o){const r={whouse:'hand',lhouse:'wood',fhouse:'farm'}[o.role];if(!r)return;const d=fr(o);objs.push({k:'worker',role:r,home:o,x:d.x,y:d.y,st:'idle',tm:0,car:null,fx:1,mvg:0,walk:false})}
+function spawnFor(o){const r={whouse:'animal',lhouse:'wood',fhouse:'farm'}[o.role];if(!r)return;const d=fr(o);objs.push({k:'worker',role:r,home:o,x:d.x,y:d.y,st:'idle',tm:0,car:null,fx:1,mvg:0,walk:false})}
 function tick(o,dt){if(o.role=='pen'){o.tw=(o.tw==null?12:o.tw)+dt;o.tf=(o.tf==null?18:o.tf)+dt;if(o.tw>20)o.nw=1;if(o.tf>28)o.nf=1}else if(o.role=='turb'){o.pt=(o.pt||0)+dt;if(o.pt>=60)o.bat=1}else if(o.k=='veh')aiT(o,dt)}
 function aiH(w,dt){w.walk=false;if(!w.steps){w.steps=taskH(w);w.tm=0;if(!w.steps){const h=fr(w.home);go(w,h.x,h.y,dt);return}}
  const s=w.steps[0];if(!s){w.steps=null;return}
@@ -467,6 +467,7 @@ function plan(w){const L=a=>nearest(a,w),act=(...r)=>objs.filter(o=>r.includes(o
  if(fu){let br=null;for(const k in fu.inv)if(fu.inv[k]>0&&(!br||fu.inv[k]>fu.inv[br]))br=k;const wh=nearest(objs.filter(h=>h.role=='wh'&&h.act!==false&&h.inv&&tot(h)<h.cap),fu);if(br&&wh){const k='t'+oid(fu);cl(k);w.ks=[k];return[{go:()=>ft(fu)},{d:1,st:'take',fn:()=>{const a=Math.min(10,fu.inv[br]||0,wh.cap-tot(wh));if(a<1)return false;fu.inv[br]-=a;w.n=a;w.car=br}},{go:()=>ft(wh)},{d:.8,st:'drop',fn:()=>{give(wh,w.car,w.n);w.car=null}}]}}
  const pf=L(act('pen').filter(p=>p.nf&&!CL.has('f'+oid(p)))),fs=['feed','corn'].find(r=>stk(r).length);
  if(pf&&fs){const k='f'+oid(pf),s=nearest(stk(fs),w);cl(k);w.ks=[k];return[{go:()=>ft(s)},{d:.8,st:'take',fn:()=>{const a=Math.min(s.inv[fs]||0,pf.nf);if(a<1)return false;s.inv[fs]-=a;w.n=a;w.car='feed'}},{go:()=>ft(pf)},{d:1.5,st:'feed',fn:()=>{pf.nf=Math.max(0,pf.nf-w.n);w.car=null;penDone(pf)}}]}
+ if(me!='animal')return null;
  const ws=wsrc(w),pw=L(act('pen').filter(p=>p.nw&&!CL.has('p'+oid(p))));
  if(pw&&ws){const k='p'+oid(pw);cl(k);w.ks=[k];return[{go:once(()=>wsrc(w))},{d:1.2,st:'fill',fn:()=>{w.car='bucket'}},{go:()=>ft(pw)},{d:1.5,st:'water',fn:()=>{pw.nw=0;w.car=null;penDone(pw)}}]}
  const fl=L(act('field').filter(f=>f.st==0&&!CL.has('w'+oid(f))));
@@ -642,7 +643,7 @@ RC['Steel Mill']={in:{ore:5},out:'steel',ic:{ore:100},oc:20};
 RC['Refinery']={in:{oil:1},out:'fuel',outs:[['fuel',2]],ic:{oil:100},oc:100};
 const icap=(rc,r)=>(rc.ic&&rc.ic[r])||rc.in[r]*3;
 const FARMN=new Set(['Windmill','Feed Mill','Bakery','Cakery','Candy Shop','Chocolate Shop','Winery','Cafe','Beekeeper House','Beehive']);
-const dom=o=>(o.role=='field'||o.role=='pen'||FARMN.has(ITEMS[o.ci][2]))?'farm':'hand';
+const dom=o=>(o.role=='field'||FARMN.has(ITEMS[o.ci][2]))?'farm':o.role=='pen'?'animal':'hand';
 const DIRECT=new Set([...FOV,'ore','oil']),PREF={flour:['wh'],egg:['wh'],milk:['wh'],wool:['wh'],bat:['wh'],steel:['wh'],honey:['wh'],feed:['silo'],fuel:['fuelst'],wood:['store']};
 function give(s,r,n){if(!s||!s.inv)return;const sp=s.cap?s.cap-tot(s):icap(RC[ITEMS[s.ci][2]],r)-(s.inv[r]||0);s.inv[r]=(s.inv[r]||0)+Math.max(0,Math.min(n,sp))}
 function dst(r,n,p){let b=null,bd=1e9;n=n||1;
@@ -660,16 +661,16 @@ function tick(o,dt){const r=o.role;if(!r)return;if(o.k=='veh'){(r=='truck'?aiK:a
  else if(r=='pen'){if(o.nw||o.nf>0)o.need=1;if(!o.need){o.tf=(o.tf==null?30:o.tf)+dt;if(o.tf>=40){o.need=1;o.nw=1;o.nf=FEED[n]||1}}}
  else if(r=='prod'){if(o.out<10){o.pg+=dt;const p=PR[n];if(o.pg>=(p.t||20)){o.pg=0;o.out++;o.ores=p.out}}}
  else if(r=='proc'){const rc=RC[n],oc=rc.oc||10;if(!o.run){if(o.out<oc&&(o.oq||[]).length<4&&Object.keys(rc.in).every(k=>(o.inv[k]||0)>=rc.in[k])){for(const k in rc.in)o.inv[k]-=rc.in[k];o.run=1;o.pg=0}}else{o.pg+=dt;if(o.pg>=30){o.run=0;(rc.outs||[[rc.out,1]]).forEach(([rr,nn])=>{if(o.out>=1&&o.ores==rr)o.out+=nn;else if(!(o.out>=1)){o.out=nn;o.ores=rr}else(o.oq=o.oq||[]).push({r:rr,n:nn})})}}}}
-function plan(w){const me=w.role=='farm'?'farm':'hand',L=a=>nearest(a,w),act=(...r)=>objs.filter(o=>r.includes(o.role)&&o.act!==false&&o.inv&&dom(o)==me),stk=r=>objs.filter(q=>ACC[q.role]&&q.act!==false&&q.inv&&(q.inv[r]||0)>0);
+function plan(w){const me=w.role=='farm'?'farm':w.role=='animal'?'animal':'hand',L=a=>nearest(a,w),act=(...r)=>objs.filter(o=>r.includes(o.role)&&o.act!==false&&o.inv&&dom(o)==me),stk=r=>objs.filter(q=>ACC[q.role]&&q.act!==false&&q.inv&&(q.inv[r]||0)>0);
  const co=L(act('field','pen','prod','proc').filter(o=>o.out>=1&&(o.role!='field'||o.st==2)&&!CL.has('c'+oid(o))&&dst(o.ores,o.out,w)));
  if(co){const k='c'+oid(co),f=co.role=='field';cl(k);w.ks=[k];let D;return[{go:()=>f?ct(co):ft(co)},{d:1.2,st:f?'harv':'take',fn:()=>{if(co.out<1)return false;w.n=co.out;w.car=co.ores;co.out=0;if(f){co.st=0;co.t=0}}},{go:()=>(D=D||dst(w.car,w.n,w))&&ft(D)},{d:.6,st:'drop',fn:()=>{if(D)give(D,w.car,w.n);w.car=null}}]}
- const C=[];act('proc').forEach(p=>{const rc=RC[ITEMS[p.ci][2]];for(const r in rc.in){const need=Math.min(10,icap(rc,r)-(p.inv[r]||0)),k='d'+oid(p)+r;if(need>0&&!CL.has(k)){const s=nearest(stk(r),p);if(s)C.push({p,r,s,need,k,x:p.x,y:p.y})}}});
+ const C=[];act('proc').forEach(p=>{const rc=RC[ITEMS[p.ci][2]];for(const r in rc.in){const need=Math.min(10,icap(rc,r)-(p.inv[r]||0)),k='d'+oid(p)+r;if(need>0&&!CL.has(k)){const sources=ITEMS[p.ci][2]=='Windmill'&&r=='wheat'?objs.filter(q=>q.role=='silo'&&q.act!==false&&q.inv&&(q.inv.wheat||0)>=10):stk(r);const s=nearest(sources,p);if(s)C.push({p,r,s,need:ITEMS[p.ci][2]=='Windmill'&&r=='wheat'?Math.min(10,need):need,k,x:p.x,y:p.y})}}});
  const c=L(C);
  if(c){cl(c.k);w.ks=[c.k];return[{go:()=>ft(c.s)},{d:.8,st:'take',fn:()=>{const a=Math.min(c.s.inv[c.r]||0,c.need);if(a<1)return false;c.s.inv[c.r]-=a;w.n=a;w.car=c.r}},{go:()=>ft(c.p)},{d:.8,st:'drop',fn:()=>{c.p.inv[c.r]=(c.p.inv[c.r]||0)+w.n;w.car=null}}]}
  const dm={silo:'farm',pantry:'farm',store:'farm',depot:'hand',fuelst:'hand'},hasWh=()=>objs.some(h=>h.role=='wh'&&h.act!==false&&h.inv&&tot(h)<h.cap);
  const fu=L(objs.filter(s=>dm[s.role]==me&&s.act!==false&&s.inv&&tot(s)>=s.cap&&!CL.has('t'+oid(s))&&hasWh()));
  if(fu){let br=null;for(const k in fu.inv)if(fu.inv[k]>0&&(!br||fu.inv[k]>fu.inv[br]))br=k;const wh=nearest(objs.filter(h=>h.role=='wh'&&h.act!==false&&h.inv&&tot(h)<h.cap),fu);if(br&&wh){const k='t'+oid(fu);cl(k);w.ks=[k];return[{go:()=>ft(fu)},{d:1,st:'take',fn:()=>{const a=Math.min(10,fu.inv[br]||0,wh.cap-tot(wh));if(a<1)return false;fu.inv[br]-=a;w.n=a;w.car=br}},{go:()=>ft(wh)},{d:.8,st:'drop',fn:()=>{give(wh,w.car,w.n);w.car=null}}]}}
- if(me!='farm')return null;
+ if(me!='animal'&&me!='farm')return null;
  const pf=L(act('pen').filter(p=>p.nf&&!CL.has('f'+oid(p)))),fs=['feed','corn'].find(r=>stk(r).length);
  if(pf&&fs){const k='f'+oid(pf),s=nearest(stk(fs),w);cl(k);w.ks=[k];return[{go:()=>ft(s)},{d:.8,st:'take',fn:()=>{const a=Math.min(s.inv[fs]||0,pf.nf);if(a<1)return false;s.inv[fs]-=a;w.n=a;w.car='feed'}},{go:()=>ft(pf)},{d:1.5,st:'feed',fn:()=>{pf.nf=Math.max(0,pf.nf-w.n);w.car=null;penDone(pf)}}]}
  const ws=wsrc(w),pw=L(act('pen').filter(p=>p.nw&&!CL.has('p'+oid(p))));
@@ -680,13 +681,14 @@ function plan(w){const me=w.role=='farm'?'farm':'hand',L=a=>nearest(a,w),act=(..
 /* ===== الواجهة الاحترافية والمحفظة وأوامر البيع ===== */
 const RM=window.RM||(window.RM=new Set());
 function applyRM(){for(let i=objs.length-1;i>=0;i--){const o=objs[i];if(o.k=='rock'&&RM.has(Math.floor(o.x)+','+Math.floor(o.y))){T[Math.floor(o.x)][Math.floor(o.y)]=0;objs.splice(i,1)}}}
+applyRM();
 const DELP={0:20,1:40,2:60,3:100,4:40,5:60,6:100,7:150,8:150,10:80,11:50},delP=o=>DELP[ITEMS[o.ci][0]]||50;
 const RN={wood:'خشب',plank:'ألواح',wheat:'قمح',corn:'ذرة',cotton:'قطن',sugar:'قصب سكر',soy:'فول صويا',salt:'ملح',mint:'نعناع',pumpkin:'قرع',strawberry:'فراولة',blueberry:'توت أزرق',lettuce:'خس',tomato:'طماطم',vanilla:'فانيليا',clover:'برسيم',clay:'طين',cocoa:'كاكاو',apple:'تفاح',bamboo:'خيزران',grape:'عنب',feed:'علف',flour:'دقيق',egg:'بيض',milk:'حليب',honey:'عسل',bread:'خبز',cake:'كعك',candy:'حلوى',choco:'شوكولاتة',wine:'نبيذ',meal:'وجبة',jam:'مربى',wool:'صوف',fabric:'قماش',pot:'فخار',ore:'خام حديد',sand:'رمل',glass:'زجاج',steel:'سبائك حديد',bat:'بطاريات',oil:'نفط',fuel:'وقود'};
 const UP={name:'اللاعب',av:'',tx:[],sold:0};
 try{Object.assign(UP,JSON.parse(localStorage.getItem('village_profile_v1')||'{}'))}catch(e){}
 const saveUP=()=>{try{localStorage.setItem('village_profile_v1',JSON.stringify(UP))}catch(e){}};
 const TO={},toast=s=>{$('info').textContent=s};let bcat=0,shKind=null,detObj=null;
-function delThing(o){if(o.k=='rock'){if(money<50){toast('رصيدك لا يكفي لإزالة الصخرة (50$)');return false}money-=50;const tx=Math.floor(o.x),ty=Math.floor(o.y);objs.splice(objs.indexOf(o),1);T[tx][ty]=0;RM.add(tx+','+ty);toast('تمت إزالة الصخرة (−50$) ولن تظهر مجدداً');return true}
+function delThing(o){if(o.k=='rock'){if(money<100){toast('رصيدك لا يكفي لإزالة الصخرة (100$)');return false}money-=100;const tx=Math.floor(o.x),ty=Math.floor(o.y);objs.splice(objs.indexOf(o),1);T[tx][ty]=0;RM.add(tx+','+ty);save();toast('تمت إزالة الصخرة (−100$) ولن تظهر مجدداً');return true}
  const pr=delP(o);if(money<pr){toast('رصيدك لا يكفي للحذف ('+pr+'$)');return false}money-=pr;const nm=ITEMS[o.ci]?ITEMS[o.ci][1]:'';if(o.k!='veh')occ(o,0);objs.splice(objs.indexOf(o),1);objs.filter(q=>q.k=='worker'&&q.home===o).forEach(q=>{if(q.tg&&q.tg.k=='tree')q.tg.res=0;objs.splice(objs.indexOf(q),1)});CL.clear();mov=null;objs.forEach(q=>{if(q.k=='worker'&&q.role!='wood')fin(q);if(q.k=='veh'&&!q.away){q.st='idle';q.car=0}});toast('تم حذف: '+nm+' (−'+pr+'$)');return true}
 function pickVeh(px,py){const wx=(px-cam.x)/cam.s,wy=(py-cam.y)/cam.s;let v=null,bd=40;objs.forEach(q=>{if(q.k=='veh'&&!q.away){const [sx,sy]=P(q.x,q.y),d=Math.hypot(sx-wx,sy-16-wy);if(d<bd){bd=d;v=q}}});return v}
 function pickRock(px,py){for(const z of[0,12,26]){const p=pick(px,py+z*cam.s);if(p&&T[p.x][p.y]==5){const r=objs.find(o=>o.k=='rock'&&Math.floor(o.x)==p.x&&Math.floor(o.y)==p.y);if(r)return r}}return null}
