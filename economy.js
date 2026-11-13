@@ -1906,6 +1906,7 @@
     resources:qTableResources,facilities:qTableFacilities,recipes:qTableRecipes,
     producerRecipes:qTableProducerRecipes,
     workers:Object.entries(qTableWorkers).map(([id,row])=>({id,...qTableCopy(row)})),
+    chains:qTableRecipes.concat(qTableProducerRecipes).map(r=>({from:qTableCopy(r.inputs),facility:r.facility,to:r.output,seconds:r.seconds})),
     storage:qTableStorage,construction:qTableCopy(QARYATI_BUILD_REQUIREMENTS||{}),
     constructionTimes:qTableCopy(QARYATI_BUILD_TIMES||{}),
     salePrices:qTableCopy(SALE_PER_UNIT||{}),
