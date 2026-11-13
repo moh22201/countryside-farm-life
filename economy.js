@@ -732,6 +732,68 @@
     powerPlantInputQuantitySource:'local adaptation; not stated in Standard Rulebook'
   };
 
-  window.QARYATI_ECONOMY_VERSION='unified-townstar-multirecipe-5';
+
+  // ===== Construction material costs (verified building guides) =====
+  // Cash prices remain Qaryati's existing prices. These are additional
+  // material requirements consumed only after a building is successfully placed.
+  const QARYATI_BUILD_REQUIREMENTS={
+    'Water Facility':{wood:1},
+    'Power Plant':{lumber:10,wood:10,energy:10}
+  };
+  const qBuildMaterialLabel=(r,n)=>n+' '+(RN[r]||r);
+  const qBuildMaterialText=name=>{
+    const req=QARYATI_BUILD_REQUIREMENTS[name];
+    return req?Object.entries(req).map(([r,n])=>qBuildMaterialLabel(r,n)).join(' + '):'';
+  };
+  const qBuildAvailable=r=>stock(r).reduce((sum,o)=>sum+(o.inv[r]||0),0);
+  const qBuildConsume=(r,n,site)=>{
+    const sources=stock(r).filter(o=>(o.inv[r]||0)>0)
+      .sort((a,b)=>Math.hypot(a.x-site.x,a.y-site.y)-Math.hypot(b.x-site.x,b.y-site.y));
+    for(const o of sources){
+      if(n<=0)break;
+      const take=Math.min(n,o.inv[r]||0);
+      o.inv[r]-=take;n-=take;
+    }
+    return n===0;
+  };
+  window.QARYATI_BUILD_REQUIREMENTS=QARYATI_BUILD_REQUIREMENTS;
+  const qOldSelectItem=selectItem;
+  selectItem=function(i){
+    qOldSelectItem(i);
+    const name=ITEMS[i]&&ITEMS[i][2],materials=qBuildMaterialText(name);
+    if(materials)toast('مواد البناء المطلوبة: '+materials);
+  };
+  const qOldBuildTap=tap;
+  tap=function(px,py){
+    const name=placing&&ITEMS[placing-1]?ITEMS[placing-1][2]:'';
+    const req=QARYATI_BUILD_REQUIREMENTS[name];
+    if(!req)return qOldBuildTap(px,py);
+    const missing=Object.entries(req).filter(([r,n])=>qBuildAvailable(r)<n);
+    if(missing.length){
+      toast('مواد البناء غير كافية: '+missing.map(([r,n])=>
+        qBuildMaterialLabel(r,n)+' (المتوفر '+qBuildAvailable(r)+')').join(' · '));
+      return;
+    }
+    const before=objs.length;
+    qOldBuildTap(px,py);
+    if(objs.length>before){
+      const site=objs[objs.length-1];
+      Object.entries(req).forEach(([r,n])=>qBuildConsume(r,n,site));
+      save();
+      toast('اكتمل البناء واستهلاك مواده: '+qBuildMaterialText(name));
+    }
+  };
+  const qOldBuildDetail=rDet;
+  rDet=function(o){
+    let html=qOldBuildDetail(o);
+    if(o&&o.ci>=0&&ITEMS[o.ci]){
+      const name=ITEMS[o.ci][2],materials=qBuildMaterialText(name);
+      if(materials)html+='<div style="margin-top:10px;padding:8px;border-top:1px solid #9996">'+
+        '<b>مواد البناء التي استُهلكت</b><div style="font-size:12px">'+materials+'</div></div>';
+    }
+    return html;
+  };
+
+  window.QARYATI_ECONOMY_VERSION='unified-townstar-multirecipe-6';
 
 })();
