@@ -346,7 +346,7 @@
     sugar:3150,salt:2550,lumber:1350,baguette:91300,dough:29150,
     butter:16250,batter:48700,cake:178050,pumpkinPie:49750,
     candyCanes:25700,choco:6650,cottonYarn:3250,woolYarn:24250,
-    uniforms:34450,foodParcel:165000
+    uniforms:34450
   });
 
   const QARYATI_RECIPES = {
@@ -409,10 +409,14 @@
           const old=RC[name];
           RC[name]=qCoreRecipe(name,recipe);
           const standard=PROCESS_SECONDS[name]||30;
-          const result=qBaseTick(o,dt*standard/recipe.time);
-          if(!wasRunning && o.run) o.activeRecipeId=recipe.id;
-          if(wasRunning && !o.run) delete o.activeRecipeId;
-          RC[name]=old;
+          let result;
+          try {
+            result=qBaseTick(o,dt*standard/recipe.time);
+            if(!wasRunning && o.run) o.activeRecipeId=recipe.id;
+            if(wasRunning && !o.run) delete o.activeRecipeId;
+          } finally {
+            RC[name]=old;
+          }
           return result;
         }
       }
