@@ -706,12 +706,12 @@ function tap(px,py){const p=pick(px,py),info=toast;
  const t=pickVeh(px,py)||pickObj(px,py)||pickRock(px,py);if(t&&(t.mv||t.k=='veh'||t.k=='rock')){detObj=t;showSheet('det');return}
  sel=p;info(p?'المربع ('+(p.x+1)+'، '+(p.y+1)+') — '+NAMES[T[p.x][p.y]]:'خارج الأرض')}
 function whStock(){const s={};objs.forEach(o=>{if(o.role=='wh'&&o.inv)for(const k in o.inv)if(o.inv[k]>0)s[k]=(s[k]||0)+o.inv[k]});return s}
-const fuelHave=()=>objs.reduce((a,o)=>a+((o.inv&&(o.role=='fuelst'||o.role=='wh'||o.role=='depot'))?(o.inv.fuel||0):0),0);
+const fuelHave=()=>objs.reduce((a,o)=>a+(o.role=='fuelst'&&o.inv?(o.inv.fuel||0):0),0);
 function sendTruck(){const tr=objs.find(o=>o.k=='veh'&&o.role=='truck'&&o.st=='idle'&&!o.away&&!o.order);if(!tr)return toast('لا توجد شاحنة متاحة — ابنِ شاحنة بيع من قسم التجارة والنقل');
  const st=whStock(),order=Object.keys(TO).filter(k=>TO[k]>0&&(st[k]||0)>0).map(k=>({r:k,n:Math.min(20,TO[k],st[k])}));if(!order.length)return toast('اختر منتجات للبيع أولاً');
- const fs=objs.filter(o=>o.inv&&(o.inv.fuel||0)>0&&(o.role=='fuelst'||o.role=='wh'||o.role=='depot')),have=fs.reduce((a,o)=>a+o.inv.fuel,0);if(have<10)return toast('الوقود غير كافٍ: الرحلة تحتاج 10 براميل (المتوفر '+have+')');
+ const fs=objs.filter(o=>o.role=='fuelst'&&o.inv&&(o.inv.fuel||0)>0),have=fs.reduce((a,o)=>a+o.inv.fuel,0);if(have<10)return toast('الوقود غير كافٍ في مخزن الوقود: الرحلة تحتاج 10 براميل (المتوفر '+have+')');
  const tx=Math.floor(tr.x),ty=Math.floor(tr.y);if(!asph(tx,ty)||!bfs(tx,ty,brd))return toast('الشاحنة تحتاج طريقاً أسفلتياً يصل إلى حافة المدينة');
- let need=10;fs.sort((a,b)=>(a.role=='fuelst'?0:1)-(b.role=='fuelst'?0:1)).forEach(o=>{const a=Math.min(need,o.inv.fuel);o.inv.fuel-=a;need-=a});
+ let need=10;fs.forEach(o=>{if(need<=0)return;const a=Math.min(need,o.inv.fuel);o.inv.fuel-=a;need-=a});
  tr.order=order;toast('🚚 انطلقت الشاحنة: '+order.map(l=>RS[l.r][1]+l.n).join(' ')+' (−10 ⛽)')}
 function aiK(o,dt){o.walk=false;o.tm=(o.tm||0)+dt;const info=s=>{if((o.mt||0)<performance.now()){o.mt=performance.now()+8000;toast(s)}},tx=Math.floor(o.x),ty=Math.floor(o.y);
  if(o.st=='idle'){
