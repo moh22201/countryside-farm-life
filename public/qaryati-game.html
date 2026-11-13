@@ -536,15 +536,31 @@ function save(manual){if(noSave)return;try{const pl=objs.filter(o=>o.k=='cat'||o
  for(let x=0;x<W;x++)for(let y=0;y<H;y++)if(T[x][y]==1)s.rd.push([x,y,RT[x][y]]);
  objs.forEach(o=>{if(o.k=='tree')s.tr.push([+o.x.toFixed(2),+o.y.toFixed(2),+o.s.toFixed(2),o.pine?1:0,+o.v.toFixed(2)])});
  localStorage.setItem(SK,JSON.stringify(s));if(manual)$('info').textContent='💾 تم حفظ التقدم'}catch(e){if(manual)$('info').textContent='تعذّر الحفظ في هذا المتصفح'}}
-function load(){let s=null;try{s=JSON.parse(localStorage.getItem(SK))}catch(e){}if(!s||s.v!=1)return;
- const ow=s.W||40,oh=s.H||25;window.LF=ow==W&&oh==H;for(let x=0;x<ow;x++)for(let y=0;y<oh;y++){if(T[x][y]==1||T[x][y]==4)T[x][y]=0}
- s.rd.forEach(([x,y,t])=>{T[x][y]=1;RT[x][y]=t});
- for(let i=objs.length-1;i>=0;i--){const k=objs[i].k;if((k=='tree'&&objs[i].x<ow&&objs[i].y<oh)||k=='worker'||k=='cat'||k=='veh')objs.splice(i,1)}
- s.tr.forEach(([x,y,sc,p,v])=>{objs.push({k:'tree',x,y,s:sc,pine:!!p,v});T[Math.floor(x)][Math.floor(y)]=4});
- const pl=s.pl.map(r=>{const ci=ITEMS.findIndex(d=>d[2]==r.nm);if(ci<0)return null;const o=Object.assign({},r,{ci});delete o.nm;o.role=roleOf(ITEMS[ci]);if(o.k=='veh'){o.st='idle';o.away=0;o.car=0;o.tm=0;if(o.cargo){money+=o.cargo*10;o.cargo=0}}objs.push(o);if(o.k=='cat')occ(o,1);return o});
- money=s.m;window.RM=new Set(s.rr||[]);
- s.wk.forEach(r=>{const home=pl[r.hi]||{x:r.hm[0],y:r.hm[1],fw:r.hm[2],fd:r.hm[3]};objs.push({k:'worker',role:(home.role=='fhouse'?'farm':home.role=='whouse'?'hand':r.role),home,x:r.x,y:r.y,st:'idle',tm:0,car:null,fx:1,mvg:0,walk:false})});
- $('info').textContent='✅ تم استرجاع التقدم المحفوظ'}
+function load(){
+ let s=null;
+ try{s=JSON.parse(localStorage.getItem(SK))}catch(e){}
+ if(!s||s.v!=1)return;
+ const ow=Number(s.W)||40,oh=Number(s.H)||25;
+ const valid=(Array.isArray(s.rd)&&Array.isArray(s.tr)&&Array.isArray(s.pl)&&Array.isArray(s.wk)
+  &&Number.isInteger(ow)&&Number.isInteger(oh)&&ow>0&&oh>0&&ow<=W&&oh<=H
+  &&Number.isFinite(Number(s.m))
+  &&s.rd.every(r=>Array.isArray(r)&&r.length>=3&&Number.isInteger(r[0])&&Number.isInteger(r[1])&&r[0]>=0&&r[0]<W&&r[1]>=0&&r[1]<H)
+  &&s.tr.every(r=>Array.isArray(r)&&r.length>=5&&r.slice(0,3).every(Number.isFinite)&&r[0]>=0&&r[0]<W&&r[1]>=0&&r[1]<H)
+  &&s.pl.every(r=>r&&typeof r==='object'&&typeof r.nm==='string'&&(r.k==='cat'||r.k==='veh'))
+  &&s.wk.every(r=>r&&typeof r==='object'&&Number.isFinite(r.x)&&Number.isFinite(r.y)&&Array.isArray(r.hm)&&r.hm.length>=4&&r.hm.slice(0,4).every(Number.isFinite)));
+ if(!valid){$('info').textContent='⚠️ بيانات الحفظ قديمة أو غير مكتملة؛ تم تشغيل القرية الحالية دون تحميلها';return}
+ try{
+  window.LF=ow==W&&oh==H;
+  for(let x=0;x<ow;x++)for(let y=0;y<oh;y++){if(T[x][y]==1||T[x][y]==4)T[x][y]=0}
+  s.rd.forEach(([x,y,t])=>{T[x][y]=1;RT[x][y]=t});
+  for(let i=objs.length-1;i>=0;i--){const k=objs[i].k;if((k=='tree'&&objs[i].x<ow&&objs[i].y<oh)||k=='worker'||k=='cat'||k=='veh')objs.splice(i,1)}
+  s.tr.forEach(([x,y,sc,p,v])=>{objs.push({k:'tree',x,y,s:sc,pine:!!p,v});T[Math.floor(x)][Math.floor(y)]=4});
+  const pl=s.pl.map(r=>{const ci=ITEMS.findIndex(d=>d[2]==r.nm);if(ci<0)return null;const o=Object.assign({},r,{ci});delete o.nm;o.role=roleOf(ITEMS[ci]);if(o.k=='veh'){o.st='idle';o.away=0;o.car=0;o.tm=0;if(o.cargo){money+=o.cargo*10;o.cargo=0}}objs.push(o);if(o.k=='cat')occ(o,1);return o});
+  money=Number(s.m);window.RM=new Set(Array.isArray(s.rr)?s.rr:[]);
+  s.wk.forEach(r=>{const home=pl[r.hi]||{x:r.hm[0],y:r.hm[1],fw:r.hm[2],fd:r.hm[3]};objs.push({k:'worker',role:(home.role=='fhouse'?'farm':home.role=='whouse'?'hand':r.role),home,x:r.x,y:r.y,st:'idle',tm:0,car:null,fx:1,mvg:0,walk:false})});
+  $('info').textContent='✅ تم استرجاع التقدم المحفوظ';
+ }catch(e){console.error('Save restore failed:',e);$('info').textContent='⚠️ تعذّر استرجاع الحفظ؛ تم إبقاء المشهد الأساسي قيد التشغيل'}
+}
 let rq=0;$('bs').onclick=()=>save(true);
 $('br').onclick=()=>{if(Date.now()<rq){noSave=true;try{localStorage.removeItem(SK)}catch(e){}location.reload();return}rq=Date.now()+4000;$('info').textContent='⚠️ اضغط 🔄 مرة ثانية خلال 4 ثوانٍ لمسح التقدم والبدء من جديد'};
 load();setInterval(()=>save(),5000);addEventListener('pagehide',()=>save());document.addEventListener('visibilitychange',()=>{if(document.hidden)save()});
