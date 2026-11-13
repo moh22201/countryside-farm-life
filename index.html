@@ -6,7 +6,7 @@
 :root{--ink:#2b3a2a;--card:rgba(255,255,255,.9);--sky1:#bfe3f7;--sky2:#eaf6e4;box-sizing:border-box}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--ink:#e8f0e4;--card:rgba(28,38,36,.88);--sky1:#14212e;--sky2:#22362f}}
 :root[data-theme="dark"]{--ink:#e8f0e4;--card:rgba(28,38,36,.88);--sky1:#14212e;--sky2:#22362f}
-html,body{height:100%;margin:0;overflow:hidden;color:var(--ink);background:linear-gradient(var(--sky1),var(--sky2));font-family:system-ui,"Segoe UI",Tahoma,sans-serif}
+html,body{height:100%;margin:0;overflow:hidden;overscroll-behavior:none;touch-action:none;user-select:none;-webkit-user-select:none;color:var(--ink);background:linear-gradient(var(--sky1),var(--sky2));font-family:system-ui,"Segoe UI",Tahoma,sans-serif}
 canvas{position:fixed;inset:0;width:100%;height:100%;touch-action:none;display:block}
 .hud{position:fixed;left:10px;right:10px;display:flex;gap:8px;align-items:center;justify-content:space-between;pointer-events:none}
 .top{top:calc(10px + env(safe-area-inset-top,0px))}
@@ -311,14 +311,37 @@ function rs(){dpr=Math.min(devicePixelRatio||1,2);cw=innerWidth;ch=innerHeight;c
 function center(){const [px,py]=P(20,12.5);cam.s=Math.min(1.1,cw/520);cam.x=cw/2-px*cam.s;cam.y=ch*.46-py*cam.s}
 function zoom(f,cx=cw/2,cy=ch/2){const n=Math.max(Math.max(.15,ch/3300,cw/5000),Math.min(2.2,cam.s*f)),k=n/cam.s;cam.x=cx-(cx-cam.x)*k;cam.y=cy-(cy-cam.y)*k;cam.s=n}
 function pick(px,py){const wx=(px-cam.x)/cam.s,wy=(py-cam.y)/cam.s,gx=(wy/(TH/2)+wx/(TW/2))/2,gy=(wy/(TH/2)-wx/(TW/2))/2,x=Math.floor(gx),y=Math.floor(gy);return x>=0&&y>=0&&x<W&&y<H?{x,y}:null}
-const ptrs=new Map();let moved=0,pd=0;
-cv.addEventListener('pointerdown',e=>{cv.setPointerCapture(e.pointerId);ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});moved=0;if(ptrs.size==2){const [a,b]=[...ptrs.values()];pd=Math.hypot(a.x-b.x,a.y-b.y)}});
-cv.addEventListener('pointermove',e=>{const p=ptrs.get(e.pointerId);if(!p)return;
- if(ptrs.size==1&&isRd()){paint(e.clientX,e.clientY);moved=99}else if(ptrs.size==1){cam.x+=e.clientX-p.x;cam.y+=e.clientY-p.y;moved+=Math.abs(e.clientX-p.x)+Math.abs(e.clientY-p.y)}
- p.x=e.clientX;p.y=e.clientY;
- if(ptrs.size==2){const [a,b]=[...ptrs.values()],d=Math.hypot(a.x-b.x,a.y-b.y);if(pd)zoom(d/pd,(a.x+b.x)/2,(a.y+b.y)/2);pd=d;moved=99}});
-const up=e=>{if(ptrs.has(e.pointerId)&&ptrs.size==1&&moved<8)tap(e.clientX,e.clientY);ptrs.delete(e.pointerId);pd=0};
-cv.addEventListener('pointerup',up);cv.addEventListener('pointercancel',up);
+const ptrs=new Map();let moved=0,pd=0,pm=null;
+const mid2=(a,b)=>({x:(a.x+b.x)/2,y:(a.y+b.y)/2});
+const finishPointer=(e,allowTap)=>{if(!ptrs.has(e.pointerId))return;
+ if(allowTap&&ptrs.size===1&&moved<8)tap(e.clientX,e.clientY);
+ ptrs.delete(e.pointerId);pd=0;pm=null;
+ if(ptrs.size)moved=99;
+};
+cv.addEventListener('pointerdown',e=>{
+ if(e.cancelable)e.preventDefault();
+ try{cv.setPointerCapture(e.pointerId)}catch(_){}
+ ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});
+ if(ptrs.size===1)moved=0;
+ if(ptrs.size===2){const [a,b]=[...ptrs.values()];pd=Math.hypot(a.x-b.x,a.y-b.y);pm=mid2(a,b);moved=99}
+},{passive:false});
+cv.addEventListener('pointermove',e=>{
+ const p=ptrs.get(e.pointerId);if(!p)return;
+ const ox=p.x,oy=p.y;p.x=e.clientX;p.y=e.clientY;
+ if(ptrs.size===1){
+  if(isRd()){paint(e.clientX,e.clientY);moved=99}
+  else{cam.x+=e.clientX-ox;cam.y+=e.clientY-oy;moved+=Math.abs(e.clientX-ox)+Math.abs(e.clientY-oy)}
+ }else if(ptrs.size===2){
+  const [a,b]=[...ptrs.values()],d=Math.hypot(a.x-b.x,a.y-b.y),m=mid2(a,b);
+  if(pd>0&&d>0){const f=d/pd;if(f>1.012||f<.988)zoom(f,m.x,m.y)}
+  if(pm){cam.x+=m.x-pm.x;cam.y+=m.y-pm.y}
+  pd=d;pm=m;moved=99;
+ }
+});
+cv.addEventListener('pointerup',e=>finishPointer(e,true));
+cv.addEventListener('pointercancel',e=>finishPointer(e,false));
+cv.addEventListener('lostpointercapture',e=>finishPointer(e,false));
+cv.addEventListener('contextmenu',e=>e.preventDefault());
 cv.addEventListener('wheel',e=>{e.preventDefault();zoom(e.deltaY<0?1.12:.89,e.clientX,e.clientY)},{passive:false});
 function pickObj(px,py){for(const dx of[0,-24,24,-48,48,-72,72])for(const z of[0,20,40,60,80,100,120,140]){const p=pick(px+dx*cam.s,py+z*cam.s);if(p&&OBJ[p.x][p.y])return OBJ[p.x][p.y]}let best=null,bd=1e9;objs.forEach(o=>{if(o.k!='cat')return;const [x,y]=P(o.x+(o.fw||1)/2,o.y+(o.fd||1)/2),sx=cam.x+x*cam.s,sy=cam.y+y*cam.s,dx=Math.abs(px-sx),dy=py-sy;if(dx<70*cam.s&&dy>-145*cam.s&&dy<35*cam.s){const d=dx*dx+dy*dy;if(d<bd){bd=d;best=o}}});return best}
 function fits(o,x,y){for(let i=0;i<(o.fw||1);i++)for(let j=0;j<(o.fd||1);j++){const a=x+i,b=y+j;if(a<0||b<0||a>=W||b>=H)return false;if(T[a][b]!=0&&OBJ[a][b]!==o)return false}return true}
@@ -842,19 +865,32 @@ function go(w,tx,ty,dt){const dx=tx-w.x,dy=ty-w.y,l=Math.hypot(dx,dy);if(l<.07)r
 function aiR(w,dt){if(!w.steps){const r0=w.role;w.role='hand';let s=plan(w);if(!s){w.role='farm';s=plan(w)}w.role=r0;w.steps=s;w.tm=0;if(!s){w.walk=false;return}}aiH(w,dt)}
 function mainWarehouseFull(){return objs.some(o=>o.role=='wh'&&o.inv&&tot(o)>=(o.cap||CAP.wh||100))}
 function update(dt){if(mainWarehouseFull())return;[...objs].forEach(o=>{if(o.k=='worker')(o.role=='wood'?aiW:o.role=='rider'?aiR:aiH)(o,dt);if(HS[o.role]&&o.mv&&onRoad(o)&&(!o.sp||(o.role=='ihouse'&&!objs.some(w=>w.k=='worker'&&w.home===o)))){o.sp=1;spawnFor(o)}tick(o,dt)});hud()}
-function roadAt(x,y){const dirt=ITEMS[placing-1][2]=='Dirt Road',pr=priceOf(placing-1);if(!((T[x][y]==0&&!OBJ[x][y])||(T[x][y]==1&&RT[x][y]!=(dirt?1:0))))return;if(money<pr){toast('رصيدك لا يكفي لبناء الطريق ('+pr+'$ للمربع)');return}money-=pr;T[x][y]=1;RT[x][y]=dirt?1:0}
+function roadAt(x,y){const dirt=ITEMS[placing-1][2]=='Dirt Road',pr=priceOf(placing-1);if(!((T[x][y]==0&&!OBJ[x][y])||(T[x][y]==1&&RT[x][y]!=(dirt?1:0)))){toast(T[x][y]==2?'لا يمكن بناء الطريق فوق الماء':'هذا المربع مشغول؛ اختر أرضاً فارغة');return false}if(money<pr){toast('رصيدك لا يكفي لبناء الطريق ('+pr+'$ للمربع)');return false}money-=pr;T[x][y]=1;RT[x][y]=dirt?1:0;toast('تم بناء '+(dirt?'طريق ترابي':'طريق معبّد')+' ✓ (−'+pr+'$)');save();return true}
 function pickVeh(px,py){const wx=(px-cam.x)/cam.s,wy=(py-cam.y)/cam.s;let v=null,bd=40;objs.forEach(q=>{if((q.k=='veh'&&!q.away)||(q.k=='worker'&&q.role=='rider')){const s=P(q.x,q.y),d=Math.hypot(s[0]-wx,s[1]-16-wy);if(d<bd){bd=d;v=q}}});return v}
 function delThing(o){if(o.k=='rock'){if(money<100){toast('رصيدك لا يكفي لإزالة الصخرة (100$)');return false}money-=100;const tx=Math.floor(o.x),ty=Math.floor(o.y);objs.splice(objs.indexOf(o),1);T[tx][ty]=0;RM.add(tx+','+ty);toast('تمت إزالة الصخرة (−100$) ولن تظهر مجدداً');return true}
  const pr=delP(o);if(money<pr){toast('رصيدك لا يكفي للحذف ('+pr+'$)');return false}money-=pr;const nm=ITEMS[o.ci]?ITEMS[o.ci][1]:'';if(o.k=='cat')occ(o,0);objs.splice(objs.indexOf(o),1);objs.filter(q=>q.k=='worker'&&q.home===o).forEach(q=>{if(q.tg&&q.tg.k=='tree')q.tg.res=0;objs.splice(objs.indexOf(q),1)});CL.clear();mov=null;objs.forEach(q=>{if(q.k=='worker'&&q.role!='wood')fin(q);if(q.k=='veh'&&!q.away){q.st='idle';q.car=0}});toast('تم حذف: '+nm+' (−'+pr+'$)');return true}
 function tap(px,py){const p=pick(px,py),info=toast;
- 
- if(placing){if(!p)return;const d=ITEMS[placing-1],pr=priceOf(placing-1);if(d[2]=='Paved Road'||d[2]=='Dirt Road'){roadAt(p.x,p.y);return}
-  if(money<pr)return info('رصيدك لا يكفي — السعر '+pr.toLocaleString()+'$');
-  if(d[2]=='Quad Rider'){if(T[p.x][p.y]>1)return info('المربع مشغول');objs.push({k:'worker',role:'rider',ci:placing-1,x:p.x+.5,y:p.y+.5,st:'idle',tm:0,car:null,fx:1,mvg:0,walk:false,home:null});money-=pr;return info('تم شراء راكبة الدراجة ✓ (−'+pr+'$)')}
-  const z=SZ[d[3]]||1,o={k:'cat',ci:placing-1,role:ROLE(d),x:p.x,y:p.y,fw:z,fd:z,mv:1,st:0,t:0};if(o.role=='tractor'||o.role=='truck'){delete o.fw;delete o.fd;o.k='veh';o.x+=.5;o.y+=.5;o.hx=o.x;o.hy=o.y;o.nocc=1;o.mv=0;o.st='idle';o.fx=1}if(!fits(o,p.x,p.y))return info('المربع مشغول');money-=pr;objs.push(o);occ(o,1);return info('تم الشراء والبناء ✓ (−'+pr.toLocaleString()+'$)')}
- if(mov){if(p&&OBJ[p.x][p.y]===mov){mov=null;return info('أُلغي النقل')}if(p&&fits(mov,p.x,p.y)){occ(mov,0);mov.x=p.x;mov.y=p.y;occ(mov,1);mov=null;return info('تم النقل ✓')}return info('لا يتسع هنا — اختر مكاناً فارغاً')}
- const t=pickVeh(px,py)||pickObj(px,py)||pickRock(px,py);if(t&&t.k=='rock'){delThing(t);return}if(t&&(t.k=='cat'||t.k=='veh')){detObj=t;showSheet('det');return}
- sel=p;info(p?'المربع ('+(p.x+1)+'، '+(p.y+1)+') — '+NAMES[T[p.x][p.y]]:'خارج الأرض')}
+ if(placing){
+  if(!p){info('المس مساحة الأرض داخل حدود الخريطة');return}
+  const d=ITEMS[placing-1],pr=priceOf(placing-1);
+  if(d[2]=='Paved Road'||d[2]=='Dirt Road'){roadAt(p.x,p.y);return}
+  if(money<pr){info('رصيدك لا يكفي — السعر '+pr.toLocaleString()+'$');return}
+  if(d[2]=='Quad Rider'){
+   if(T[p.x][p.y]>1){info('المربع مشغول؛ اختر أرضاً فارغة');return}
+   objs.push({k:'worker',role:'rider',ci:placing-1,x:p.x+.5,y:p.y+.5,st:'idle',tm:0,car:null,fx:1,mvg:0,walk:false,home:null});
+   money-=pr;save();return info('تم شراء راكبة الدراجة ✓ (−'+pr.toLocaleString()+'$)')
+  }
+  const z=SZ[d[3]]||1,o={k:'cat',ci:placing-1,role:ROLE(d),x:p.x,y:p.y,fw:z,fd:z,mv:1,st:0,t:0};
+  if(o.role=='tractor'||o.role=='truck'){delete o.fw;delete o.fd;o.k='veh';o.x+=.5;o.y+=.5;o.hx=o.x;o.hy=o.y;o.nocc=1;o.mv=0;o.st='idle';o.fx=1}
+  if(!fits(o,p.x,p.y)){info('لا يمكن وضع '+d[1]+' هنا؛ اختر أرضاً خالية غير مشغولة');return}
+  money-=pr;objs.push(o);occ(o,1);save();return info('تم شراء '+d[1]+' ووضعها على الأرض ✓ (−'+pr.toLocaleString()+'$)')
+ }
+ if(mov){if(p&&OBJ[p.x][p.y]===mov){mov=null;return info('أُلغي النقل')}if(p&&fits(mov,p.x,p.y)){occ(mov,0);mov.x=p.x;mov.y=p.y;occ(mov,1);mov=null;save();return info('تم النقل ✓')}return info('لا يتسع هنا — اختر مكاناً فارغاً')}
+ const t=pickVeh(px,py)||pickObj(px,py)||pickRock(px,py);
+ if(t&&t.k=='rock'){delThing(t);return}
+ if(t&&(t.k=='cat'||t.k=='veh')){detObj=t;showSheet('det');return}
+ sel=p;info(p?'المربع ('+(p.x+1)+'، '+(p.y+1)+') — '+NAMES[T[p.x][p.y]]:'خارج الأرض')
+}
 function selectItem(i){placing=i+1;mov=null;closeSheet();toast('المس الأرض لشراء ووضع: '+ITEMS[i][1]+' — '+priceOf(i).toLocaleString()+'$')}
 function rBuild(){const cs=CATS.map((c,i)=>ITEMS.some(d=>d[0]==i)?`<button class='${i==bcat?'on':''}' data-a='cat' data-i='${i}'>${c[0]} ${c[1]}</button>`:'').join('');const its=ITEMS.map((d,i)=>[d,i]).filter(([d])=>d[0]==bcat).map(([d,i])=>`<div class='row' style='flex-direction:column;margin:0;text-align:center;font-size:12px;cursor:pointer' data-a='pick' data-i='${i}'><img src='${icon(i)}' style='width:100%'><div>${d[1]}</div><div style='color:#c98a00;font-weight:700'>💰 ${priceOf(i).toLocaleString()}$${/Road/.test(d[2])?' / مربع':''}</div></div>`).join('');return `<div class='cats'>${cs}</div><div class='g'>${its}</div>`}
 function rFact(){return Object.keys(RC).map(n=>{const i=ITEMS.findIndex(d=>d[2]==n);if(i<0)return'';const rc=RC[n],d=ITEMS[i],recipes=rc.recipes||[rc],lines=recipes.map(q=>{const ins=Object.entries(q.in).map(([k,v])=>v+(RN[k]||k)).join(' + '),out=(q.outs||[[q.out,1]]).map(([k,v])=>v+(RN[k]||k)).join(' + ');return `<div style='font-size:12px'>${ins} ← ${out} · ${q.t||rc.t||30}ث</div>`}).join('')+(n=='Power Plant'?`<div style='font-size:12px'>إنتاج الطاقة · 10ث</div>`:'') ,pl=objs.filter(o=>o.k=='cat'&&o.ci==i),run=pl.filter(o=>o.run).length;return `<div class='row'><img src='${icon(i)}' style='width:64px'><div style='flex:1'><b>${d[1]}</b>${lines}<div style='font-size:11px;opacity:.75'>سعة الناتج ${rc.oc||10} · مبنية: ${pl.length} · تعمل: ${run}</div><div style='font-size:12px;color:#c98a00;font-weight:700'>💰 ${priceOf(i).toLocaleString()}$</div></div><button class='btn' data-a='pick' data-i='${i}'>شراء</button></div>`}).join('')}
