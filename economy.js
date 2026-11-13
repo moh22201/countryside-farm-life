@@ -27,7 +27,7 @@
     cottonYarn:['goods','🧵'], woolYarn:['goods','🧶'], uniforms:['goods','👕'],
     dough:['food','🥣'], butter:['food','🧈'], batter:['food','🥣'],
     baguette:['food','🥖'], pumpkinPie:['food','🥧'], candyCanes:['food','🍬'],
-    blueSteel:['goods','🔷'], honeycomb:['goods','🍯'], wax:['goods','🕯️'],
+    blueSteel:['goods','🔷'], cabernetSauvignon:['food','🍷'], chardonnay:['food','🥂'], pinotNoir:['food','🍷'], candy:['food','🍬'], honeycomb:['goods','🍯'], wax:['goods','🕯️'],
     ceramicBowl:['goods','🏺'], foodParcel:['goods','📦'], giftParcel:['goods','🎁'],
     woodenBox:['goods','🪵'], fabricBox:['goods','🧵'], supplyBox:['goods','📦'],
     partyBox:['goods','🎁'], stackBox:['goods','📦']
@@ -38,7 +38,7 @@
     jetFuel:'وقود طائرات',wineBottle:'زجاجة نبيذ',oakBarrel:'برميل بلوط',
     cottonYarn:'خيط قطني',woolYarn:'خيط صوفي',uniforms:'زي موحد',
     dough:'عجين',butter:'زبدة',batter:'خليط الكعك',baguette:'رغيف باغيت',
-    pumpkinPie:'فطيرة قرع',candyCanes:'حلوى قصب',blueSteel:'فولاذ أزرق',
+    pumpkinPie:'فطيرة قرع',candyCanes:'حلوى قصب',candy:'حلوى قصب',cabernetSauvignon:'نبيذ كابيرنيه',chardonnay:'نبيذ شاردونيه',pinotNoir:'نبيذ بينو نوار',blueSteel:'فولاذ أزرق',
     honeycomb:'قرص عسل',wax:'شمع',ceramicBowl:'وعاء سيراميك',
     foodParcel:'طرد غذائي',giftParcel:'طرد هدايا',woodenBox:'صندوق خشبي',
     fabricBox:'صندوق قماشي',supplyBox:'صندوق إمدادات',partyBox:'صندوق حفلات',
@@ -136,7 +136,7 @@
     steel:47000,blueSteel:270950,waterDrum:50,wineBottle:12800,
     oakBarrel:5500,cottonYarn:3250,woolYarn:24250,uniforms:34450,
     bread:91300,butter:16250,dough:29150,batter:48700,cake:178050,
-    candyCanes:25700,pumpkinPie:49750
+    candy:25700,candyCanes:25700,cabernetSauvignon:42000,chardonnay:27950,pinotNoir:57200,pumpkinPie:49750
   };
   window.QARYATI_SALE_PER_UNIT = SALE_PER_UNIT;
   Object.keys(SB).forEach(k=>SB[k]=10);
@@ -149,6 +149,14 @@
   PRICE['Boxing Facility']=PRICE['Steel Mill']||3500;
   PR['Water Facility']={out:'waterDrum',t:30};
   PR['Nuclear Power']={out:'energy',t:20};
+  const baseLoad = load;
+  load = function(){
+    baseLoad();
+    for(let i=objs.length-1;i>=0;i--){
+      const o=objs[i];
+      if(o.k==='cat'&&o.ci>=0&&ITEMS[o.ci]&&ITEMS[o.ci][0]===-1){occ(o,0);objs.splice(i,1)}
+    }
+  };
   const baseRoleOf = roleOf;
   roleOf = function(d) {
     const n=d&&d[2];
