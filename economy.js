@@ -284,7 +284,7 @@
     ];
   };
   plan=function(w){
-    if(w.role==='farm')return qBalancedFieldPlan(w);
+    if(w.role==='farm')return fieldPlan(w);
     if(w.role==='animal')return animalPlan(w);
     if(w.role==='bee')return beePlan(w);
     if(w.role==='industry'){
@@ -1811,31 +1811,6 @@
         spawnFor(home);
       }
     });
-  // Divide the farm fields into stable lanes so eight farmers do not all
-  // repeatedly choose the same nearest plot. Twenty plots are split 2–3 per worker.
-  const qBalancedFieldPlan=w=>{
-    const farmers=objs.filter(o=>o&&o.k==='worker'&&o.role==='farm')
-      .sort((a,b)=>((a.home&&a.home.x)||a.x)-((b.home&&b.home.x)||b.x)||
-        ((a.home&&a.home.y)||a.y)-((b.home&&b.home.y)||b.y));
-    const lane=Math.max(0,farmers.indexOf(w));
-    const count=Math.max(1,farmers.length);
-    const plots=objs.filter(o=>o&&o.role==='field').sort((a,b)=>a.x-b.x||a.y-b.y);
-    const assigned=plots.filter((o,i)=>i%count===lane);
-    const ripe=nearest(assigned.filter(o=>o.st===2&&o.out>0&&reserve('c'+oid(o))),w);
-    if(ripe){const steps=deliverSteps(ripe,ripe.ores,'c',w);if(steps)return steps}
-    const dry=nearest(assigned.filter(o=>o.st===0&&reserve('w'+oid(o))),w);
-    const water=wsrc(w);
-    if(dry&&water){
-      const key='w'+oid(dry);cl(key);w.ks=[key];
-      return [
-        {go:once(()=>wsrc(w))},
-        {d:1.2,st:'fill',fn:()=>{w.car='bucket'}},
-        {go:()=>ct(dry)},
-        {d:1.5,st:'water',fn:()=>{if(dry.st!==0)return false;dry.st=1;dry.t=0;w.car=null}}
-      ];
-    }
-    return null;
-  };
   // Final dispatch is role-specific: no fallback through the general services worker.
   const qFinalPreviousPlan=plan;
   plan=function(w){
@@ -1885,22 +1860,9 @@
   // The Industrial Worker then carries it from the Storehouse to downstream factories.
   const qFinalDestination=dst;
   dst=function(resource,amount,position){
-    const n=Math.max(1,amount||1);
-    if(resource==='wood'||resource==='oakWood'){
-      // Logs belong in Wood Sheds. Never feed them directly into a mill,
-      // even when a mill recipe also lists wood as an ingredient.
-      const sheds=objs.filter(o=>o.role==='store'&&o.act!==false&&o.inv&&o.cap&&
-        (SG.store||[]).includes(resource)&&tot(o)+n<=o.cap);
-      return sheds.length?nearest(sheds,position):null;
-    }
-    if(resource==='wheat'){
-      const silos=objs.filter(o=>o.role==='silo'&&o.act!==false&&o.inv&&o.cap&&
-        (SG.silo||[]).includes('wheat')&&tot(o)+n<=o.cap);
-      return silos.length?nearest(silos,position):null;
-    }
     if(resource==='flour'){
       const stores=objs.filter(o=>o.role==='depot'&&o.act!==false&&o.inv&&o.cap&&
-        (SG.depot||[]).includes('flour')&&tot(o)+n<=o.cap);
+        (SG.depot||[]).includes('flour')&&tot(o)+Math.max(1,amount||1)<=o.cap);
       return stores.length?nearest(stores,position):null;
     }
     return qFinalDestination(resource,amount,position);
