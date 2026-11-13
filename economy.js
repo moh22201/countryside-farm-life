@@ -1581,6 +1581,16 @@
     'Power Plant':180
   };
   window.QARYATI_BUILD_TIMES=QARYATI_BUILD_TIMES;
+  // Migrate already-placed Builder Houses created before their worker role existed.
+  objs.filter(home=>home&&home.ci>=0&&ITEMS[home.ci]&&ITEMS[home.ci][2]==='Builder House')
+    .forEach(home=>{
+      home.role='builderhouse';
+      const workerExists=objs.some(w=>w&&w.k==='worker'&&w.home===home&&w.role==='builder');
+      if(!workerExists){
+        home.sp=0;
+        if(home.mv&&onRoad(home)){home.sp=1;spawnFor(home);}
+      }
+    });
   const qPlanBeforeConstruction=plan;
   plan=function(worker){
     if(worker&&worker.role==='builder'){
