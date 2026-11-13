@@ -358,7 +358,7 @@
     'Bakery':[
       {id:'butter',label:'الزبدة',in:{milk:2,salt:2,sugar:1},out:'butter',time:30},
       {id:'dough',label:'العجين',in:{flour:5,egg:1,butter:1},out:'dough',time:30},
-      {id:'baguette',label:'الباغيت',in:{dough:2,butter:2,wood:2},out:'baguette',time:60}
+      {id:'baguette',label:'الباغيت',in:{dough:1,flour:1,butter:1},out:'baguette',time:60}
     ],
     'Cakery':[
       {id:'batter',label:'خليط الكعك',in:{flour:5,egg:3,butter:2},out:'batter',time:30},
@@ -1004,8 +1004,8 @@
   RS.jam=['food','🫙'];
   if(!SG.pantry.includes('jam'))SG.pantry.push('jam');
   QARYATI_RECIPES['Bakery'].push({
-    id:'jam',label:'المربى',in:{strawberry:6,choco:2,energy:2},
-    out:'jam',time:90,source:'community-guide; 45–360s variable range'
+    id:'jam',label:'المربى',in:{strawberry:10,sugar:3,waterDrum:1},
+    out:'jam',time:60,source:'community-guide; 45–360s variable range'
   });
   SALE_PER_UNIT.jam=22000;
   SALE_PER_UNIT.lumber=1350;
@@ -1014,7 +1014,7 @@
   // Register them in the unified recipe selector so the industrial worker can
   // actually supply their inputs using the same logistics engine.
   QARYATI_RECIPES['Feed Mill']=[
-    {id:'feed',label:'إنتاج العلف',in:{wheat:2,corn:1},out:'feed',time:30,source:'existing Qaryati recipe'}
+    {id:'feed',label:'إنتاج العلف',in:{corn:1},out:'feed',time:30,source:'existing Qaryati recipe'}
   ];
   QARYATI_RECIPES['Cafe']=[
     {id:'meal',label:'وجبة المقهى',in:{bread:1,milk:1},out:'meal',time:30,source:'existing Qaryati recipe'}
@@ -1064,13 +1064,12 @@
     if(d&&d[2]==='Lumber Yard')return 'store';
     return qRoleBeforeLumberYard(d);
   };
-  PRICE['Lumber Yard']=50000;
   QARYATI_BUILD_REQUIREMENTS['Lumber Yard']={wood:5};
   const qLumberCapacityTick=tick;
   tick=function(o,dt){
     const result=qLumberCapacityTick(o,dt);
     if(o&&o.role==='store'&&ITEMS[o.ci]&&ITEMS[o.ci][2]==='Lumber Yard'&&o.inv){
-      o.cap=Math.max(20,tot(o));
+      o.cap=Math.max(100,tot(o));
     }
     return result;
   };
@@ -1262,7 +1261,138 @@
     woodShed:SG.store.slice(),silo:SG.silo.slice(),storehouse:SG.depot.slice(),
     pantry:SG.pantry.slice(),warehouse:SG.wh.slice(),fuelStorage:SG.fuelst.slice()
   };
-  window.QARYATI_ECONOMY_VERSION='unified-townstar-multirecipe-13';
+
+  // ===== Complete the documented Bakery and Beehive input chains =====
+  // Standard craft guide: Jam = 10 Strawberries + 3 Sugar + 1 Water Drum.
+  const qJam=QARYATI_RECIPES.Bakery.find(r=>r.id==='jam');
+  if(qJam){qJam.in={strawberry:10,sugar:3,waterDrum:1};qJam.time=60;qJam.source='Learn Town Star Jam guide + Nov 2022 craft sheet';}
+  // Standard Baguette inputs are Dough, Flour and Butter (not Wood).
+  const qBaguette=QARYATI_RECIPES.Bakery.find(r=>r.id==='baguette');
+  if(qBaguette)qBaguette.in={dough:1,flour:1,butter:1};
+
+  // Ceramic Bowl chain; retain the existing local Pottery item as a second option.
+  RS.ceramicBowl=['goods','🏺'];RN.ceramicBowl='وعاء خزفي';
+  QARYATI_RECIPES['Pottery Shop']=[
+    {id:'ceramicBowl',label:'الوعاء الخزفي',in:{clay:2,waterDrum:1,energy:2},out:'ceramicBowl',time:30,source:'Town Star Crafts'},
+    {id:'pot',label:'وعاء فخاري محلي',in:{clay:2},out:'pot',time:30,source:'Qaryati local recipe'}
+  ];
+
+  // Nectar is collected directly from Clover Field and cannot be stored.
+  RS.nectar=['goods','🌸'];RN.nectar='رحيق';
+  FO['Wild Clover']='nectar';
+  SG.silo=SG.silo.filter(r=>r!=='nectar'&&r!=='clover');
+  SG.store=Array.from(new Set([...(SG.store||[]),'wood','oakWood','lumber']));
+  SG.pantry=Array.from(new Set([...(SG.pantry||[]),'honey','honeycomb','jam']));
+  SG.wh=Array.from(new Set([...(SG.wh||[]),'wax','ceramicBowl']));
+  SG.depot=SG.depot.filter(r=>![
+    'lumber','chromium','limestone','silica','energy','waterDrum','ore','iron',
+    'blueSteel','wineBottle','oakBarrel','cottonYarn','woolYarn','uniforms',
+    'honeycomb','wax','ceramicBowl','foodParcel','giftParcel','woodenBox',
+    'fabricBox','supplyBox','partyBox','stackBox'
+  ].includes(r));
+  SG.wh=Array.from(new Set([...(SG.wh||[]),
+    'ore','iron','chromium','limestone','silica','energy','waterDrum',
+    'blueSteel','wineBottle','oakBarrel','cottonYarn','woolYarn','uniforms',
+    'wax','ceramicBowl','foodParcel','giftParcel','woodenBox','fabricBox',
+    'supplyBox','partyBox','stackBox'
+  ]));
+
+  // Beehive recipe components and worker movement. Ingredient quantities are
+  // explicit local Qaryati batch settings; craft sources confirm the ingredients
+  // and building/worker/storage path, but not a universal batch quantity.
+  QARYATI_PRODUCER_RECIPES['Beehive']=[
+    {id:'honey',label:'العسل',in:{nectar:3,lumber:1,ceramicBowl:1},out:'honey',time:60,source:'craft inputs verified; local batch quantities'},
+    {id:'honeycomb',label:'أقراص العسل',in:{nectar:3,lumber:1,ceramicBowl:1},out:'honeycomb',time:120,source:'craft inputs verified; local batch quantities'},
+    {id:'wax',label:'الشمع',in:{nectar:3,lumber:1,ceramicBowl:1},out:'wax',time:60,source:'craft inputs verified; local batch quantities'}
+  ];
+  window.QARYATI_PRODUCER_RECIPES=QARYATI_PRODUCER_RECIPES;
+  const qBeeDstBeforeNectar=dst;
+  dst=function(resource,amount,position){
+    if(resource==='nectar'){
+      const hives=objs.filter(o=>o.role==='prod'&&ITEMS[o.ci]&&ITEMS[o.ci][2]==='Beehive'&&o.act!==false&&o.inv);
+      return hives.length?nearest(hives,position):null;
+    }
+    return qBeeDstBeforeNectar(resource,amount,position);
+  };
+
+  const qBeePlanBeforeComplete=plan;
+  plan=function(w){
+    if(!w||w.role!=='bee')return qBeePlanBeforeComplete(w);
+    const hive=nearest(objs.filter(o=>o.role==='prod'&&ITEMS[o.ci]&&
+      ITEMS[o.ci][2]==='Beehive'&&o.act!==false&&o.inv),w);
+    if(!hive)return null;
+    if(hive.out>0)return deliverSteps(hive,hive.ores,'b',w);
+    const recipe=QARYATI_PRODUCER_RECIPES.Beehive.find(r=>r.id===(hive.recipeId||'honey'))||
+      QARYATI_PRODUCER_RECIPES.Beehive[0];
+    const missing=Object.entries(recipe.in).find(([r,n])=>(hive.inv[r]||0)<n);
+    if(!missing)return null;
+    const [resource,required]=missing;
+    if(resource==='nectar'){
+      const field=nearest(objs.filter(o=>o.role==='field'&&o.out>0&&o.ores==='nectar'&&
+        reserve('n'+oid(o))),hive);
+      return field?deliverSteps(field,'nectar','n',w):null;
+    }
+    const source=nearest(stock(resource),hive);
+    if(!source)return null;
+    const key='bi'+oid(hive)+resource;
+    if(!reserve(key))return null;
+    cl(key);w.ks=[key];let amount=0;
+    return [
+      {go:()=>ft(source)},
+      {d:.8,st:'take',fn:()=>{
+        amount=Math.min(required-(hive.inv[resource]||0),source.inv[resource]||0);
+        if(amount<1)return false;
+        source.inv[resource]-=amount;w.n=amount;w.car=resource;
+      }},
+      {go:()=>ft(hive)},
+      {d:.8,st:'drop',fn:()=>{
+        hive.inv[resource]=(hive.inv[resource]||0)+amount;w.car=null;
+      }}
+    ];
+  };
+
+  // Charge Beehive ingredients once per production cycle, then allow the
+  // standard producer timer to complete the selected Honey/Honeycomb/Wax output.
+  const qBeeProductionTick=tick;
+  tick=function(o,dt){
+    if(o&&o.role==='prod'&&ITEMS[o.ci]&&ITEMS[o.ci][2]==='Beehive'&&o.mv){
+      const recipe=QARYATI_PRODUCER_RECIPES.Beehive.find(r=>r.id===(o.recipeId||'honey'))||
+        QARYATI_PRODUCER_RECIPES.Beehive[0];
+      if(o.out>=10)return qBeeProductionTick(o,dt);
+      if(!o._qBeeInputsPaid){
+        const ready=Object.entries(recipe.in).every(([r,n])=>(o.inv&&o.inv[r]||0)>=n);
+        if(!ready){o.beeWaiting=true;return qBeeProductionTick(o,0);}
+        Object.entries(recipe.in).forEach(([r,n])=>{o.inv[r]-=n;});
+        o._qBeeInputsPaid=true;o.beeWaiting=false;
+      }
+      const before=o.out||0;
+      const result=qBeeProductionTick(o,dt);
+      if((o.out||0)>before)o._qBeeInputsPaid=false;
+      return result;
+    }
+    return qBeeProductionTick(o,dt);
+  };
+
+  const qBeeStatusDetail=rDet;
+  rDet=function(o){
+    let html=qBeeStatusDetail(o);
+    if(o&&o.role==='prod'&&ITEMS[o.ci]&&ITEMS[o.ci][2]==='Beehive'){
+      const recipe=QARYATI_PRODUCER_RECIPES.Beehive.find(r=>r.id===(o.recipeId||'honey'))||QARYATI_PRODUCER_RECIPES.Beehive[0];
+      html+='<div style="font-size:12px;margin-top:8px">مدخلات الدورة: '+Object.entries(recipe.in).map(([r,n])=>n+' '+(RN[r]||r)).join(' + ')+
+        '<br>'+(o.beeWaiting?'⏳ تنتظر استكمال المدخلات':'🐝 '+recipe.label+' · '+recipe.time+' ثانية')+'</div>';
+    }
+    return html;
+  };
+  window.QARYATI_BEE_CHAIN={
+    inputs:['nectar','ceramicBowl','lumber'],
+    outputs:['honey','honeycomb','wax'],
+    worker:'Beekeeper House',
+    outputStorage:{honey:'Pantry',honeycomb:'Pantry',wax:'Warehouse'},
+    batchQuantities:'Qaryati local adaptation; input names and logistics based on Town Star Crafts'
+  };
+  window.QARYATI_ECONOMY_VERSION='unified-townstar-multirecipe-14';
+
+  window.QARYATI_ECONOMY_VERSION='unified-townstar-multirecipe-14';
 
   window.QARYATI_ECONOMY_VERSION='unified-townstar-multirecipe-13';
 
