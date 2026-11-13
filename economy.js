@@ -371,6 +371,9 @@
     'Chocolate Shop':[
       {id:'choco',label:'ألواح الشوكولاتة',in:{cocoa:3,sugar:2,milk:1},out:'choco',time:90}
     ],
+    'Lumber Mill':[
+      {id:'lumber',label:'الخشب المنشور',in:{wood:2},out:'lumber',time:10}
+    ],
     'Fabric Plant':[
       {id:'cottonYarn',label:'خيط قطني',in:{cotton:5,lumber:1,energy:1},out:'cottonYarn',time:60},
       {id:'woolYarn',label:'خيط صوفي',in:{wool:5,lumber:1,energy:1},out:'woolYarn',time:60},
