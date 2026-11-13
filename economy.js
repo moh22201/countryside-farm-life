@@ -1873,5 +1873,96 @@
     oilPump:'oil -> Fuel Storage',
     industrialWorker:'spawned only from Industrial Worker House; services industrial producers and processors'
   };
+  // ===== Canonical in-game economy tables =====
+  // Expose the existing approved data as one inspectable source of truth.
+  const qTableCopy = value => JSON.parse(JSON.stringify(value || {}));
+  const qTableWorkers = {
+    farm:{home:'Farm House',role:'farm',tasks:['سقي الحقول من مصدر الماء المباشر','انتظار نضج المحصول','حصاد الحقول','تسليم القمح إلى الصومعة']},
+    wood:{home:'Lumberjack House',role:'wood',tasks:['قطع الأشجار أو جمع مخرجات مزارع الخشب','تسليم الخشب إلى مخزن الأخشاب']},
+    animal:{home:'Animal Worker House',role:'animal',tasks:['توفير العلف','توفير الماء المباشر','جمع منتجات الحيوانات','تسليم المنتجات إلى مخازنها']},
+    industry:{home:'Industrial Worker House',role:'industry',tasks:['جمع مخرجات المنتجين والمصانع','نقل مدخلات الوصفات المختارة من المخازن','تسليم المدخلات إلى المنشأة الصحيحة']},
+    bee:{home:'Beekeeper House',role:'bee',tasks:['توفير مدخلات وصفة خلية النحل','جمع العسل والشمع ومخرجات الخلية']},
+    builder:{home:'Builder House',role:'builder',tasks:['جمع مواد البناء المطلوبة','تسليم المواد إلى موقع البناء','تنفيذ البناء بعد اكتمال المواد']},
+    hand:{home:'Worker House',role:'hand',tasks:['نقل فائض المخازن المتخصصة إلى المستودع العام']}
+  };
+  const qTableRecipes = Object.entries(QARYATI_RECIPES).flatMap(([facility,list]) =>
+    (list||[]).map(r=>({facility,id:r.id,label:r.label,inputs:qTableCopy(r.in),output:r.out,
+      seconds:r.time,source:r.source||'configured'})));
+  const qTableProducerRecipes = Object.entries(QARYATI_PRODUCER_RECIPES||{}).flatMap(([facility,list]) =>
+    (list||[]).map(r=>({facility,id:r.id,label:r.label,inputs:{},output:r.out,
+      seconds:r.time,source:r.source||'configured'})));
+  const qTableStorage = Object.entries(SG).map(([role,resources])=>({
+    role,capacity:CAP[role]||null,resources:[...(resources||[])]
+  }));
+  const qTableResources = Object.keys(RS).map(key=>({
+    id:key,name:RN[key]||key,category:RS[key]&&RS[key][0]||'unclassified',
+    icon:RS[key]&&RS[key][1]||''
+  }));
+  const qTableFacilities = ITEMS.filter(item=>item&&item[0]>=0).map(item=>({
+    name:item[2],displayName:item[1],price:PRICE[item[2]]||0,
+    producer:qTableCopy(PR[item[2]]),processor:qTableCopy(RC[item[2]])
+  }));
+  const QARYATI_ECONOMY_TABLES = {
+    resources:qTableResources,facilities:qTableFacilities,recipes:qTableRecipes,
+    producerRecipes:qTableProducerRecipes,
+    workers:Object.entries(qTableWorkers).map(([id,row])=>({id,...qTableCopy(row)})),
+    storage:qTableStorage,construction:qTableCopy(QARYATI_BUILD_REQUIREMENTS||{}),
+    constructionTimes:qTableCopy(QARYATI_BUILD_TIMES||{}),
+    salePrices:qTableCopy(SALE_PER_UNIT||{}),
+    transport:{saleTruck:{unitsPerOrder:10,fuelBarrelsPerTrip:10},fuelStorage:'fuelst'},
+    reference:'Town Star Standard Rules for verified data; local adaptations remain labeled.'
+  };
+  window.QARYATI_ECONOMY_TABLES = QARYATI_ECONOMY_TABLES;
+  const qKnownResources = new Set(qTableResources.map(r=>r.id));
+  const qTableWarnings = [];
+  qTableRecipes.forEach(r=>{
+    Object.keys(r.inputs||{}).forEach(k=>{if(!qKnownResources.has(k))qTableWarnings.push('مدخل وصفة غير مسجل: '+r.facility+'.'+k);});
+    if(r.output&&!qKnownResources.has(r.output))qTableWarnings.push('ناتج وصفة غير مسجل: '+r.facility+'.'+r.output);
+  });
+  qTableProducerRecipes.forEach(r=>{
+    if(r.output&&!qKnownResources.has(r.output))qTableWarnings.push('ناتج منتج غير مسجل: '+r.facility+'.'+r.output);
+  });
+  window.QARYATI_ECONOMY_AUDIT = {
+    resources:qTableResources.length,facilities:qTableFacilities.length,
+    recipes:qTableRecipes.length,producerRecipes:qTableProducerRecipes.length,
+    workerRoles:Object.keys(qTableWorkers).length,storageTypes:qTableStorage.length,
+    warnings:qTableWarnings
+  };
+
+  // Show the complete data tables inside the existing Factories panel.
+  const qTablesPreviousFact = rFact;
+  rFact = function(){
+    const current=qTablesPreviousFact();
+    const esc=v=>String(v==null?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    const recipeRows=qTableRecipes.concat(qTableProducerRecipes).map(r=>{
+      const inputs=Object.entries(r.inputs||{}).map(([k,n])=>n+' '+esc(RN[k]||k)).join(' + ')||'لا توجد مدخلات';
+      return '<div style="padding:7px 0;border-bottom:1px solid #9994"><b>'+esc(r.facility)+' — '+esc(r.label||r.id)+'</b>'+
+        '<div style="font-size:12px">'+inputs+' ← '+esc(RN[r.output]||r.output)+' · '+esc(r.seconds)+' ثانية</div>'+
+        '<div style="font-size:10px;opacity:.65">المصدر: '+esc(r.source)+'</div></div>';
+    }).join('');
+    const workerRows=QARYATI_ECONOMY_TABLES.workers.map(w=>
+      '<div style="padding:7px 0;border-bottom:1px solid #9994"><b>'+esc(w.home)+'</b>'+
+      '<div style="font-size:12px">'+w.tasks.map(esc).join(' ← ')+'</div></div>').join('');
+    const storageRows=qTableStorage.map(s=>
+      '<div style="padding:5px 0;border-bottom:1px solid #9994"><b>'+esc(s.role)+'</b>'+
+      '<div style="font-size:11px">السعة: '+esc(s.capacity||'حسب المنشأة')+' · '+s.resources.map(r=>esc(RN[r]||r)).join('، ')+'</div></div>').join('');
+    const resourceRows=qTableResources.map(r=>
+      '<span style="display:inline-block;padding:3px 6px;margin:2px;border:1px solid #9995;border-radius:8px;font-size:11px">'+
+      esc(r.icon)+' '+esc(r.name)+'</span>').join('');
+    return current+'<details style="margin:14px 0;padding:10px;border:1px solid #9996;border-radius:10px">'+
+      '<summary style="cursor:pointer;font-weight:700">📚 دفتر الاقتصاد الكامل — الجداول</summary>'+
+      '<div style="margin-top:10px"><b>الموارد والمكونات ('+qTableResources.length+')</b><div>'+resourceRows+'</div></div>'+
+      '<div style="margin-top:12px"><b>الوصفات وسلاسل التصنيع ('+(qTableRecipes.length+qTableProducerRecipes.length)+')</b>'+recipeRows+'</div>'+
+      '<div style="margin-top:12px"><b>العمال والمهام والمنازل ('+QARYATI_ECONOMY_TABLES.workers.length+')</b>'+workerRows+'</div>'+
+      '<div style="margin-top:12px"><b>المخازن والتخزين</b>'+storageRows+'</div>'+
+      '<div style="margin-top:12px"><b>النقل والبيع</b><div style="font-size:12px">شاحنة واحدة · 10 وحدات في الطلب · 10 براميل وقود لكل رحلة</div></div>'+
+      '<div style="margin-top:12px"><b>فحص ترابط الجداول</b><div style="font-size:12px">الموارد: '+window.QARYATI_ECONOMY_AUDIT.resources+
+      ' · المنشآت: '+window.QARYATI_ECONOMY_AUDIT.facilities+' · الوصفات: '+window.QARYATI_ECONOMY_AUDIT.recipes+
+      ' · وصفات المنتجين: '+window.QARYATI_ECONOMY_AUDIT.producerRecipes+
+      ' · تحذيرات الربط: '+window.QARYATI_ECONOMY_AUDIT.warnings.length+'</div>'+
+      (window.QARYATI_ECONOMY_AUDIT.warnings.length?'<div style="font-size:11px;color:#b45309">'+window.QARYATI_ECONOMY_AUDIT.warnings.map(esc).join('<br>')+'</div>':'<div style="font-size:11px;color:#15803d">مراجع الموارد في الوصفات معروفة في جدول الموارد.</div>')+
+      '</div></details>';
+  };
+
 
 })();
