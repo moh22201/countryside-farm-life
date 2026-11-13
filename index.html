@@ -442,7 +442,7 @@ const H0=K.H;K.H=function(a,b,c,f){if(f!='k')return H0(a,b,c,f);GND('#9a9aa0','#
 function drive(o,tx,ty,dt,sp){const dx=tx-o.x,dy=ty-o.y,l=Math.hypot(dx,dy);if(l<.1)return true;const s=Math.min(l,(sp||2.4)*dt);o.x+=dx/l*s;o.y+=dy/l*s;o.walk=true;o.fx=dx-dy>=0?1:-1;return false}
 function update(dt){[...objs].forEach(o=>{if(o.k=='worker')(o.role=='wood'?aiW:aiH)(o,dt);if(HS[o.role]&&o.mv&&!o.sp&&onRoad(o)){o.sp=1;spawnFor(o)}tick(o,dt)});hud()}
 function hud(){const s={};objs.forEach(o=>{if(o.inv&&STO[o.role])for(const k in o.inv)s[k]=(s[k]||0)+o.inv[k]});const g=x=>Object.keys(s).filter(k=>RS[k][0]==x).reduce((a,k)=>a+s[k],0);const t='🪵 '+g('wood')+' · 🌾 '+g('crop')+' · 🍞 '+g('food')+' · ⚙️ '+(g('goods')-(s.bat||0))+' · 🔋 '+(s.bat||0)+' · 🛢️ '+g('fuel')+' · 💰 '+money.toLocaleString();if($('res').textContent!=t)$('res').textContent=t}
-function spawnFor(o){const r={whouse:'hand',lhouse:'wood',fhouse:'hand'}[o.role];if(!r)return;const d=fr(o);objs.push({k:'worker',role:r,home:o,x:d.x,y:d.y,st:'idle',tm:0,car:null,fx:1,mvg:0,walk:false})}
+function spawnFor(o){const r={whouse:'animal',lhouse:'wood',fhouse:'hand'}[o.role];if(!r)return;const d=fr(o);objs.push({k:'worker',role:r,home:o,x:d.x,y:d.y,st:'idle',tm:0,car:null,fx:1,mvg:0,walk:false})}
 function tick(o,dt){const r=o.role;if(!r)return;if(o.k=='veh'){(r=='truck'?aiK:aiT)(o,dt);return}if(!o.mv)return;
  if(o.inv==null){o.inv={};o.out=0;o.pg=0;if(STO[r])o.cap=100}
  o.act=NEED.includes(r)?onRoad(o):true;if(!o.act)return;const n=ITEMS[o.ci][2];
@@ -651,7 +651,7 @@ function dst(r,n,p){let b=null,bd=1e9;n=n||1;
  if(b)return b;
  for(const pr of(PREF[r]||[])){bd=1e9;objs.forEach(o=>{if(o.role!=pr||o.act===false||!o.inv||tot(o)+n>o.cap)return;const s=Math.hypot(o.x-p.x,o.y-p.y);if(s<bd){bd=s;b=o}});if(b)return b}
  bd=1e9;objs.forEach(o=>{const t=SG[o.role];if(!t||o.act===false||!o.inv||!t.includes(r)||tot(o)+n>o.cap)return;const s=Math.hypot(o.x-p.x,o.y-p.y)+(RK[o.role]||0)*1000;if(s<bd){bd=s;b=o}});return b}
-function spawnFor(o){const r={whouse:'hand',lhouse:'wood',fhouse:'farm'}[o.role];if(!r)return;const d=fr(o);objs.push({k:'worker',role:r,home:o,x:d.x,y:d.y,st:'idle',tm:0,car:null,fx:1,mvg:0,walk:false})}
+function spawnFor(o){const r={whouse:'animal',lhouse:'wood',fhouse:'farm'}[o.role];if(!r)return;const d=fr(o);objs.push({k:'worker',role:r,home:o,x:d.x,y:d.y,st:'idle',tm:0,car:null,fx:1,mvg:0,walk:false})}
 function tick(o,dt){const r=o.role;if(!r)return;if(o.k=='veh'){(r=='truck'?aiK:aiT)(o,dt);return}if(!o.mv)return;
  if(o.inv==null){o.inv={};o.out=0;o.pg=0}
  if(STO[r])o.cap=CAP[r]||100;
