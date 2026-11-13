@@ -627,6 +627,31 @@
     return qMetalSheetClick.call(this,e);
   };
 
-  window.QARYATI_ECONOMY_VERSION='unified-townstar-multirecipe-3';
+
+  // ===== Wine production chain =====
+  // Ingredient quantities are cross-checked against community production
+  // guides; the Standard Rulebook is used for the production timers.
+  QARYATI_PRODUCER_RECIPES['Sand Mine']=[
+    {id:'silica',label:'استخراج السيليكا',out:'silica',time:565}
+  ];
+  QARYATI_RECIPES['Lumber Mill']=[
+    {id:'lumber',label:'الخشب المنشور',in:{wood:2},out:'lumber',time:10},
+    {id:'oakBarrel',label:'برميل البلوط',in:{ore:1,oakWood:3,bat:1},out:'oakBarrel',time:30,source:'community-guide'}
+  ];
+  QARYATI_RECIPES['Glass Factory']=[
+    {id:'wineBottle',label:'زجاجة النبيذ',in:{silica:3,chromium:1,limestone:1},out:'wineBottle',time:60,source:'community-guide'}
+  ];
+  QARYATI_RECIPES['Winery']=[
+    {id:'cabernet',label:'نبيذ كابيرنيه',in:{cabernetGrapes:5,oakBarrel:1,wineBottle:1},out:'cabernetSauvignon',time:270,source:'community-guide'},
+    {id:'chardonnay',label:'نبيذ شاردونيه',in:{chardonnayGrapes:5,oakBarrel:1,wineBottle:1},out:'chardonnay',time:240,source:'community-guide'},
+    {id:'pinotNoir',label:'نبيذ بينو نوار',in:{pinotGrapes:5,oakBarrel:1,wineBottle:1},out:'pinotNoir',time:300,source:'community-guide'}
+  ];
+  window.QARYATI_WINE_CHAIN={
+    ingredientsSource:'Town Star Crafts + community production guide (not official Rulebook quantities)',
+    timersSource:'Gala Games Standard Rulebook',
+    sangriaIncluded:false
+  };
+
+  window.QARYATI_ECONOMY_VERSION='unified-townstar-multirecipe-4';
 
 })();
