@@ -407,7 +407,7 @@ const SO='#8a5c34',ITEMS=[
 [8,'محطة الطاقة','Power Plant','E','#a8aeb8','#d6552e','#f2c030','p','⚡'],[8,'محطة الطاقة النووية','Nuclear Power','E','#d8dce0','#c0c4c8','#e8f0a0','n','☢️'],[8,'توربين الرياح','Wind Turbine','W','#f4f6f8','#d0d4d8','#cc3333','t','🌀'],
 [9,'مصنع الصناديق والطرود','Boxing Facility','Y','#c4a070','#7a8a98','#c9a46a','b','🎁'],
 [10,'مركز التجارة البري','Trade Depot','B','#8a98a8','#4a5a70','#e8a838','Wx','🚛'],[10,'رصيف التجارة البحري','Trade Dock','D','#8a5a32','#cc4a3a','#e4c08a','c','⚓'],[10,'الرافعة الشوكية','Forklift','H','#f2b82e','#e8c030','#222222','f','🏗️'],
-[11,'منزل البنّاء','Builder House','B','#d8b480','#8a5a3a','#f2b82e','cs','🔨'],[11,'بيت عامل الحيوانات','Worker House','B','#c8d0d8','#5a6a8a','#f2b82e','h','🐄'],[11,'بيت عامل الصناعة','Industry Worker House','B','#aeb8c4','#526579','#e49a35','h','🏭'],
+[11,'منزل البنّاء','Builder House','B','#d8b480','#8a5a3a','#f2b82e','cs','🔨'],[11,'بيت عامل الحيوانات','Worker House','B','#c8d0d8','#5a6a8a','#f2b82e','h','🐄'],[11,'بيت عامل الصناعة','Industry Worker House','B','#9aa8b5','#34495e','#e49a35','cg','🏭'],
 [12,'ورشة الساحر','Wizard\u0027s Workshop','B','#6a5ab0','#4a2a8a','#f2d84a','T','🧙'],
 [13,'منطقة الصيد','Fishing Spot','Z','#8a5a32','#4aa0d4','#ff8a5a','f','🎣'],[13,'مزرعة السلمون','Salmon Farm','Z','#cfd6dc','#4aa0d4','#ff7a5a','n','🐟'],
 [14,'متجر الفطر','Mushroom Stand','B','#a87848','#e8553a','#f4f1ea','m','🍄'],[14,'مرآب المركبات','Twin\u0027s Garage','B','#9aa8b8','#4a5a70','#e8553a','g','🚗'],[14,'متجر الفن والزخرفة','Art and Deco Shop','B','#f2e6e0','#8a4aa8','#e8b830','f','🎨'],[14,'مخزن المربى','Jam Storage','B','#e8d0c0','#a8344a','#c0405a','j','🫙']];
@@ -649,7 +649,7 @@ function dst(r,n,p){let b=null,bd=1e9;n=n||1;
  if(b)return b;
  for(const pr of(PREF[r]||[])){bd=1e9;objs.forEach(o=>{if(o.role!=pr||o.act===false||!o.inv||tot(o)+n>o.cap)return;const s=Math.hypot(o.x-p.x,o.y-p.y);if(s<bd){bd=s;b=o}});if(b)return b}
  bd=1e9;objs.forEach(o=>{const t=SG[o.role];if(!t||o.act===false||!o.inv||!t.includes(r)||tot(o)+n>o.cap)return;const s=Math.hypot(o.x-p.x,o.y-p.y)+(RK[o.role]||0)*1000;if(s<bd){bd=s;b=o}});return b}
-function spawnFor(o){const r={whouse:'animal',lhouse:'wood',fhouse:'farm'}[o.role];if(!r)return;const d=fr(o);objs.push({k:'worker',role:r,home:o,x:d.x,y:d.y,st:'idle',tm:0,car:null,fx:1,mvg:0,walk:false})}
+function spawnFor(o){const r={whouse:'animal',lhouse:'wood',fhouse:'farm',ihouse:'hand'}[o.role];if(!r)return;const d=fr(o);objs.push({k:'worker',role:r,home:o,x:d.x,y:d.y,st:'idle',tm:0,car:null,fx:1,mvg:0,walk:false})}
 function tick(o,dt){const r=o.role;if(!r)return;if(o.k=='veh'){(r=='truck'?aiK:aiT)(o,dt);return}if(!o.mv)return;
  if(o.inv==null){o.inv={};o.out=0;o.pg=0}
  if(STO[r])o.cap=CAP[r]||100;
@@ -837,7 +837,7 @@ const wk2=DRAW.worker;DRAW.worker=(o,t)=>o.role=='rider'?riderDraw(o,t):wk2(o,t)
 function go(w,tx,ty,dt){const dx=tx-w.x,dy=ty-w.y,l=Math.hypot(dx,dy);if(l<.07)return true;const s=Math.min(l,(w.spd||(w.role=='rider'?3.6:1.7))*dt);w.x+=dx/l*s;w.y+=dy/l*s;w.mvg+=dt*10;w.walk=true;w.fx=dx-dy>=0?1:-1;return false}
 function aiR(w,dt){if(!w.steps){const r0=w.role;w.role='hand';let s=plan(w);if(!s){w.role='farm';s=plan(w)}w.role=r0;w.steps=s;w.tm=0;if(!s){w.walk=false;return}}aiH(w,dt)}
 function mainWarehouseFull(){return objs.some(o=>o.role=='wh'&&o.inv&&tot(o)>=(o.cap||CAP.wh||100))}
-function update(dt){if(mainWarehouseFull())return;[...objs].forEach(o=>{if(o.k=='worker')(o.role=='wood'?aiW:o.role=='rider'?aiR:aiH)(o,dt);if(HS[o.role]&&o.mv&&!o.sp&&onRoad(o)){o.sp=1;spawnFor(o)}tick(o,dt)});hud()}
+function update(dt){if(mainWarehouseFull())return;[...objs].forEach(o=>{if(o.k=='worker')(o.role=='wood'?aiW:o.role=='rider'?aiR:aiH)(o,dt);if(HS[o.role]&&o.mv&&onRoad(o)&&(!o.sp||(o.role=='ihouse'&&!objs.some(w=>w.k=='worker'&&w.home===o)))){o.sp=1;spawnFor(o)}tick(o,dt)});hud()}
 function roadAt(x,y){const dirt=ITEMS[placing-1][2]=='Dirt Road',pr=priceOf(placing-1);if(!((T[x][y]==0&&!OBJ[x][y])||(T[x][y]==1&&RT[x][y]!=(dirt?1:0))))return;if(money<pr){toast('رصيدك لا يكفي لبناء الطريق ('+pr+'$ للمربع)');return}money-=pr;T[x][y]=1;RT[x][y]=dirt?1:0}
 function pickVeh(px,py){const wx=(px-cam.x)/cam.s,wy=(py-cam.y)/cam.s;let v=null,bd=40;objs.forEach(q=>{if((q.k=='veh'&&!q.away)||(q.k=='worker'&&q.role=='rider')){const s=P(q.x,q.y),d=Math.hypot(s[0]-wx,s[1]-16-wy);if(d<bd){bd=d;v=q}}});return v}
 function delThing(o){if(o.k=='rock'){if(money<100){toast('رصيدك لا يكفي لإزالة الصخرة (100$)');return false}money-=100;const tx=Math.floor(o.x),ty=Math.floor(o.y);objs.splice(objs.indexOf(o),1);T[tx][ty]=0;RM.add(tx+','+ty);toast('تمت إزالة الصخرة (−100$) ولن تظهر مجدداً');return true}
