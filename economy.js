@@ -1860,9 +1860,15 @@
   // The Industrial Worker then carries it from the Storehouse to downstream factories.
   const qFinalDestination=dst;
   dst=function(resource,amount,position){
+    const n=Math.max(1,amount||1);
+    if(resource==='wheat'){
+      const silos=objs.filter(o=>o.role==='silo'&&o.act!==false&&o.inv&&o.cap&&
+        (SG.silo||[]).includes('wheat')&&tot(o)+n<=o.cap);
+      return silos.length?nearest(silos,position):null;
+    }
     if(resource==='flour'){
       const stores=objs.filter(o=>o.role==='depot'&&o.act!==false&&o.inv&&o.cap&&
-        (SG.depot||[]).includes('flour')&&tot(o)+Math.max(1,amount||1)<=o.cap);
+        (SG.depot||[]).includes('flour')&&tot(o)+n<=o.cap);
       return stores.length?nearest(stores,position):null;
     }
     return qFinalDestination(resource,amount,position);
