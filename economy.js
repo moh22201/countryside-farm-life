@@ -199,7 +199,11 @@
     return [
       {go:()=>source.role==='field'?ct(source):ft(source)},
       {d:1.2,st:'take',fn:()=>{
-        const stillFits=drop.inv&&drop.cap&&tot(drop)+amount<=drop.cap;
+        const targetName=drop.role==='proc'&&ITEMS[drop.ci]?ITEMS[drop.ci][2]:null;
+        const targetRecipe=targetName&&RC[targetName];
+        const stillFits=drop.role==='proc'
+          ? !!(targetRecipe&&targetRecipe.in&&targetRecipe.in[res]&&(drop.inv[res]||0)+amount<=(targetRecipe.oc||10))
+          : !!(drop.inv&&drop.cap&&tot(drop)+amount<=drop.cap);
         if(!(source.out>=amount)||!stillFits)return false;
         source.out-=amount;w.n=amount;w.car=res;
         if(source.role==='field'&&source.out<=0){source.st=0;source.t=0}
@@ -207,10 +211,17 @@
       {go:()=>ft(drop)},
       {d:.6,st:'drop',fn:()=>{
         if(!drop||!w.car)return false;
-        const before=drop.inv[res]||0;
-        give(drop,res,amount);
-        const stored=(drop.inv[res]||0)-before;
-        if(stored<amount){drop.inv[res]=before;source.out+=amount;return false}
+        if(drop.role==='proc')drop.inv[res]=(drop.inv[res]||0)+amount;
+        else{
+          const before=drop.inv[res]||0;
+          give(drop,res,amount);
+          const stored=(drop.inv[res]||0)-before;
+          if(stored<amount){
+            drop.inv[res]=before;source.out+=amount;
+            if(source.role==='field'){source.st=2;source.t=0}
+            return false;
+          }
+        }
         w.car=null;
       }}
     ];
