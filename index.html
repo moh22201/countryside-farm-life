@@ -296,13 +296,18 @@ function catDraw(o,t){const z=o.fw,[sx,sy]=P(o.x+z/2,o.y+z/2),d=ITEMS[o.ci],k=.8
  if(DK(t)>.05&&'BYEM'.includes(d[3]))GLOW.push([sx,sy-18*k,46*k])}
 
 /* ---------- loop ---------- */
-function frame(t){const dt=Math.min(.05,(t-(frame.l||t))/1000);frame.l=t;update(dt);
- ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,cv.width,cv.height);
- ctx.setTransform(dpr*cam.s,0,0,dpr*cam.s,dpr*cam.x,dpr*cam.y);
- {const m=90*cam.s;for(let y=0;y<H;y++)for(let x=0;x<W;x++){const sx=cam.x+(x-y)*TW/2*cam.s,sy=cam.y+(x+y+1)*TH/2*cam.s;if(sx<-m||sx>cw+m||sy<-m*1.5||sy>ch+m*2)continue;tile(x,y,t)}};
- if(grid){ctx.strokeStyle='rgba(255,255,255,.28)';ctx.lineWidth=1;for(let y=0;y<H;y++)for(let x=0;x<W;x++)poly([[x,y],[x+1,y],[x+1,y+1],[x,y+1]],null,'rgba(255,255,255,.28)')}
- objs.forEach(o=>o.d=dep(o));objs.sort((a,b)=>a.d-b.d);objs.forEach(o=>{if(vis(o))DRAW[o.k](o,t)});lighting(t);if(mov)poly([[mov.x,mov.y],[mov.x+mov.fw,mov.y],[mov.x+mov.fw,mov.y+mov.fd],[mov.x,mov.y+mov.fd]],'rgba(255,220,60,.45)','#fff',2);
- if(sel){const v=T[sel.x][sel.y];poly([[sel.x,sel.y],[sel.x+1,sel.y],[sel.x+1,sel.y+1],[sel.x,sel.y+1]],v?'rgba(255,80,80,.38)':'rgba(90,255,110,.42)','#fff',2)}
+function frame(t){
+ const dt=Math.min(.05,(t-(frame.l||t))/1000);frame.l=t;
+ /* لا نسمح لخطأ مؤقت في حركة عامل أو مركبة بإيقاف رسم أرض القرية بالكامل. */
+ try{update(dt)}catch(e){console.error('Village simulation error:',e)}
+ try{
+  ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,cv.width,cv.height);
+  ctx.setTransform(dpr*cam.s,0,0,dpr*cam.s,dpr*cam.x,dpr*cam.y);
+  {const m=90*cam.s;for(let y=0;y<H;y++)for(let x=0;x<W;x++){const sx=cam.x+(x-y)*TW/2*cam.s,sy=cam.y+(x+y+1)*TH/2*cam.s;if(sx<-m||sx>cw+m||sy<-m*1.5||sy>ch+m*2)continue;tile(x,y,t)}};
+  if(grid){ctx.strokeStyle='rgba(255,255,255,.28)';ctx.lineWidth=1;for(let y=0;y<H;y++)for(let x=0;x<W;x++)poly([[x,y],[x+1,y],[x+1,y+1],[x,y+1]],null,'rgba(255,255,255,.28)')}
+  objs.forEach(o=>o.d=dep(o));objs.sort((a,b)=>a.d-b.d);objs.forEach(o=>{if(vis(o)){try{DRAW[o.k](o,t)}catch(e){console.error('Village object render error:',o.k,e)}}});lighting(t);if(mov)poly([[mov.x,mov.y],[mov.x+mov.fw,mov.y],[mov.x+mov.fw,mov.y+mov.fd],[mov.x,mov.y+mov.fd]],'rgba(255,220,60,.45)','#fff',2);
+  if(sel){const v=T[sel.x][sel.y];poly([[sel.x,sel.y],[sel.x+1,sel.y],[sel.x+1,sel.y+1],[sel.x,sel.y+1]],v?'rgba(255,80,80,.38)':'rgba(90,255,110,.42)','#fff',2)}
+ }catch(e){console.error('Village scene render error:',e)}
  requestAnimationFrame(frame);
 }
 
