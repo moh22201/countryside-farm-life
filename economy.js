@@ -580,10 +580,11 @@
           const old=PR[name];
           // Keep the original internal tick threshold; scale real time to the
           // selected Standard Rulebook duration without altering other producers.
-          PR[name]=Object.assign({},old||{},{out:recipe.out});
+          PR[name]=Object.assign({},old||{},{out:recipe.out,t:recipe.time});
           try{
-            const result=qProducerBaseTick(o,dt*30/recipe.time);
-            return result;
+            // qProducerBaseTick already applies the Standard producer timer.
+            // Do not scale a second time here (that would multiply long timers).
+            return qProducerBaseTick(o,dt);
           }finally{PR[name]=old;}
         }
       }
@@ -652,6 +653,85 @@
     sangriaIncluded:false
   };
 
-  window.QARYATI_ECONOMY_VERSION='unified-townstar-multirecipe-4';
+
+  // ===== Energy and fuel chain =====
+  // Standard producer timers are taken from Gala's Standard Rulebook.
+  // Ingredient quantities not published in that rulebook are labeled as
+  // local operating adaptations, not claimed as official Standard recipes.
+  QARYATI_PRODUCER_RECIPES['Wind Turbine']=[
+    {id:'battery',label:'بطاريات التشغيل المحلية',out:'bat',time:60,source:'qaryati'},
+    {id:'energy',label:'طاقة صناعية',out:'energy',time:60,source:'standard-timer'}
+  ];
+  QARYATI_PRODUCER_RECIPES['Nuclear Power']=[
+    {id:'energy',label:'طاقة نووية',out:'energy',time:20,source:'standard-timer'}
+  ];
+  QARYATI_RECIPES['Power Plant']=[
+    {id:'energy',label:'إنتاج الطاقة من النفط',in:{oil:1},out:'energy',time:10,source:'adapted'}
+  ];
+  // Existing Wind Turbine behavior remains the default for old saves.
+  const qEnergyBaseRecipe=qProducerRecipe;
+  const qEnergyRecipe=(name,id)=>{
+    if(!id&&name==='Wind Turbine')return QARYATI_PRODUCER_RECIPES[name].find(r=>r.id==='battery');
+    return qEnergyBaseRecipe(name,id);
+  };
+  const qEnergyOldTick=tick;
+  tick=function(o,dt){
+    if(o&&o.role==='prod'&&o.mv){
+      const name=ITEMS[o.ci]&&ITEMS[o.ci][2];
+      const list=QARYATI_PRODUCER_RECIPES[name];
+      if(list&&list.length){
+        const recipe=qEnergyRecipe(name,o.recipeId);
+        if(recipe){
+          const old=PR[name];
+          PR[name]=Object.assign({},old||{},{out:recipe.out,t:recipe.time});
+          try{return qEnergyOldTick(o,dt)}
+          finally{PR[name]=old}
+        }
+      }
+    }
+    return qEnergyOldTick(o,dt);
+  };
+  const qEnergyOldDetail=rDet;
+  rDet=function(o){
+    let html=qEnergyOldDetail(o);
+    if(!o||o.role!=='prod')return html;
+    const name=ITEMS[o.ci]&&ITEMS[o.ci][2];
+    const list=QARYATI_PRODUCER_RECIPES[name];
+    if(!list||!list.length)return html;
+    const selected=qEnergyRecipe(name,o.recipeId);
+    const buttons=list.map(r=>{
+      const active=selected&&selected.id===r.id;
+      return '<button class="btn '+(active?'':'gray')+'" data-a="producer-recipe" data-r="'+r.id+'" '+
+        'style="margin:3px;white-space:normal;height:auto;line-height:1.35;padding:8px">'+
+        (active?'✓ ':'')+r.label+'<div style="font-size:10px;font-weight:400">'+
+        (RN[r.out]||r.out)+' · '+r.time+'ث</div></button>';
+    }).join('');
+    html+='<div style="margin-top:12px;padding-top:10px;border-top:1px solid #9996">'+
+      '<b>اختيار إنتاج المنشأة</b><div style="display:flex;flex-wrap:wrap;gap:4px">'+buttons+'</div></div>';
+    return html;
+  };
+  const qEnergyOldClick=$('sb').onclick;
+  $('sb').onclick=function(e){
+    const b=e.target.closest('[data-a="producer-recipe"]');
+    if(b){
+      if(!detObj||detObj.role!=='prod'){toast('اختر منشأة إنتاج أولاً');return;}
+      if(detObj.out>0){toast('اجمع الناتج الحالي قبل تغيير الإنتاج');return;}
+      detObj.recipeId=b.dataset.r;
+      save();
+      toast('تم تغيير إنتاج المنشأة');
+      render();
+      return;
+    }
+    return qEnergyOldClick.call(this,e);
+  };
+  window.QARYATI_ENERGY_CHAIN={
+    timersSource:'Gala Games Standard Rules',
+    windTurbineOptions:['battery','energy'],
+    nuclearPower:'energy',
+    powerPlantInput:'oil',
+    powerPlantInputQuantitySource:'local adaptation; not stated in Standard Rulebook'
+  };
+
+  window.QARYATI_ECONOMY_VERSION='unified-townstar-multirecipe-5';
 
 })();
