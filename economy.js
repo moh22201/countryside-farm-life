@@ -537,6 +537,96 @@
   RC['Boxing Facility']={in:{baguette:3,jam:2,honey:1},out:'foodParcel',oc:10,t:30};
   PROCESS_SECONDS['Chocolate Shop']=90;
   PROCESS_SECONDS['Boxing Facility']=30;
-  window.QARYATI_ECONOMY_VERSION='unified-townstar-multirecipe-2';
+
+  // ===== Mineral production + steel recipes =====
+  // Standard Rulebook confirms the base timers; recipe quantities below are
+  // explicitly a local adaptation based on the documented legacy production guide.
+  Object.assign(RS,{
+    iron:['goods','⛓️'],chromium:['goods','🔩'],limestone:['goods','🪨']
+  });
+  Object.assign(RN,{
+    iron:'حديد',chromium:'كروم',limestone:'حجر جيري'
+  });
+  SG.depot.push('iron','chromium','limestone');
+  const QARYATI_PRODUCER_RECIPES={
+    'Iron Mine':[
+      {id:'iron',label:'استخراج الحديد',out:'ore',time:30},
+      {id:'chromium',label:'استخراج الكروم',out:'chromium',time:60},
+      {id:'limestone',label:'استخراج الحجر الجيري',out:'limestone',time:60}
+    ]
+  };
+  window.QARYATI_PRODUCER_RECIPES=QARYATI_PRODUCER_RECIPES;
+  // The existing local resource key "ore" is retained for compatibility;
+  // its displayed name is now "حديد".
+  RN.ore='حديد';
+  QARYATI_RECIPES['Steel Mill']=[
+    {id:'steel',label:'الفولاذ',in:{ore:10,bat:5,waterDrum:5},out:'steel',time:90,source:'adapted'},
+    {id:'blueSteel',label:'الفولاذ الأزرق',in:{steel:5,bat:10,uniforms:1},out:'blueSteel',time:90,source:'adapted'}
+  ];
+  if(!SALE_PER_UNIT.blueSteel)SALE_PER_UNIT.blueSteel=270950;
+  if(!SALE_PER_UNIT.steel)SALE_PER_UNIT.steel=47000;
+  const qProducerRecipe=(name,id)=>{
+    const list=QARYATI_PRODUCER_RECIPES[name]||[];
+    return list.find(r=>r.id===id)||list[0]||null;
+  };
+  const qProducerBaseTick=tick;
+  tick=function(o,dt){
+    if(o&&o.role==='prod'&&o.mv){
+      const name=ITEMS[o.ci]&&ITEMS[o.ci][2];
+      const list=QARYATI_PRODUCER_RECIPES[name];
+      if(list&&list.length){
+        const recipe=qProducerRecipe(name,o.recipeId);
+        if(recipe){
+          const old=PR[name];
+          // Keep the original internal tick threshold; scale real time to the
+          // selected Standard Rulebook duration without altering other producers.
+          PR[name]=Object.assign({},old||{},{out:recipe.out});
+          try{
+            const result=qProducerBaseTick(o,dt*30/recipe.time);
+            return result;
+          }finally{PR[name]=old;}
+        }
+      }
+    }
+    return qProducerBaseTick(o,dt);
+  };
+  const qMetalBaseRDet=rDet;
+  rDet=function(o){
+    let html=qMetalBaseRDet(o);
+    if(!o||o.role!=='prod')return html;
+    const name=ITEMS[o.ci]&&ITEMS[o.ci][2];
+    const list=QARYATI_PRODUCER_RECIPES[name];
+    if(!list||!list.length)return html;
+    const selected=qProducerRecipe(name,o.recipeId);
+    const buttons=list.map(r=>{
+      const active=selected&&selected.id===r.id;
+      return '<button class="btn '+(active?'':'gray')+'" data-a="mine-recipe" data-r="'+r.id+'" '+
+        'style="margin:3px;white-space:normal;height:auto;line-height:1.35;padding:8px">'+
+        (active?'✓ ':'')+r.label+'<div style="font-size:10px;font-weight:400">'+
+        (RN[r.out]||r.out)+' · '+r.time+'ث</div></button>';
+    }).join('');
+    html+='<div style="margin-top:12px;padding-top:10px;border-top:1px solid #9996">'+
+      '<b>اختيار ناتج المنجم</b><div style="font-size:11px;opacity:.75;margin:5px 0">'+
+      'يمكن تغيير الناتج بعد انتهاء الجمع الحالي.</div>'+buttons+'</div>';
+    return html;
+  };
+  const qMetalSheetClick=$('sb').onclick;
+  $('sb').onclick=function(e){
+    const b=e.target.closest('[data-a="mine-recipe"]');
+    if(b){
+      if(!detObj||detObj.role!=='prod'){toast('اختر المنجم أولاً');return;}
+      if(detObj.out>0){toast('اجمع الناتج الحالي قبل تغيير نوع الاستخراج');return;}
+      detObj.recipeId=b.dataset.r;
+      save();
+      const name=ITEMS[detObj.ci]&&ITEMS[detObj.ci][2];
+      const recipe=qProducerRecipe(name,detObj.recipeId);
+      toast('تم اختيار '+recipe.label);
+      render();
+      return;
+    }
+    return qMetalSheetClick.call(this,e);
+  };
+
+  window.QARYATI_ECONOMY_VERSION='unified-townstar-multirecipe-3';
 
 })();
