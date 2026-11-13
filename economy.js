@@ -1814,6 +1814,10 @@
   const qFinalPreviousPlan=plan;
   plan=function(w){
     if(!w)return null;
+    // Keep the dedicated farm and livestock loops in the final dispatcher.
+    // Earlier industry/bee/builder overrides must not bypass these assignments.
+    if(w.role==='farm')return fieldPlan(w);
+    if(w.role==='animal')return animalPlan(w);
     if(w.role==='industry')return qIndustryPlan(w);
     if(w.role==='builder'){
       const construction=qConstructionPlan(w);
@@ -1849,6 +1853,18 @@
       o.inv.water=100;
     }
     return result;
+  };
+
+  // Flour from the Windmill must be stored in the Storehouse first.
+  // The Industrial Worker then carries it from the Storehouse to downstream factories.
+  const qFinalDestination=dst;
+  dst=function(resource,amount,position){
+    if(resource==='flour'){
+      const stores=objs.filter(o=>o.role==='depot'&&o.act!==false&&o.inv&&o.cap&&
+        (SG.depot||[]).includes('flour')&&tot(o)+Math.max(1,amount||1)<=o.cap);
+      return stores.length?nearest(stores,position):null;
+    }
+    return qFinalDestination(resource,amount,position);
   };
 
   window.QARYATI_DIRECT_ROLES={
