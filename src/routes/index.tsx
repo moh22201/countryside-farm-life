@@ -25,7 +25,7 @@ function Index() {
     >
       <iframe
         title="قريتي – المرحلة ١"
-        src="/village.html"
+        src="/qaryati-game.html"
         style={{
           display: "block",
           width: "100%",
