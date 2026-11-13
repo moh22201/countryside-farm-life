@@ -17,8 +17,6 @@ function Index() {
         position: "fixed",
         inset: 0,
         width: "100%",
-        height: "100vh",
-        height: "100dvh",
         margin: 0,
         padding: 0,
         overflow: "hidden",
