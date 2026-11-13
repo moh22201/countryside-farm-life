@@ -1083,6 +1083,43 @@
     pottery:{building:'Pottery Shop',inputs:{clay:2},out:'pot'}
   };
 
-  window.QARYATI_ECONOMY_VERSION='unified-townstar-multirecipe-8';
+
+  // ===== Lumber Yard storage + Shallow Mine production =====
+  // Lumber Yard is a dedicated Wood/Oak Wood/Lumber store (20-unit capacity).
+  const qRoleBeforeLumberYard=roleOf;
+  roleOf=function(d){
+    if(d&&d[2]==='Lumber Yard')return 'store';
+    return qRoleBeforeLumberYard(d);
+  };
+  PRICE['Lumber Yard']=50000;
+  QARYATI_BUILD_REQUIREMENTS['Lumber Yard']={wood:5};
+  const qLumberCapacityTick=tick;
+  tick=function(o,dt){
+    const result=qLumberCapacityTick(o,dt);
+    if(o&&o.role==='store'&&ITEMS[o.ci]&&ITEMS[o.ci][2]==='Lumber Yard'&&o.inv){
+      o.cap=Math.max(20,tot(o));
+    }
+    return result;
+  };
+  const qLumberLoad=load;
+  load=function(){
+    qLumberLoad();
+    objs.forEach(o=>{
+      if(o.k==='cat'&&ITEMS[o.ci]&&ITEMS[o.ci][2]==='Lumber Yard'&&!o.role){
+        o.role='store';o.inv=o.inv||{};o.cap=Math.max(20,tot(o));
+      }
+    });
+  };
+
+  // Shallow Mine produces the same mineral choices as Iron Mine at 2x time.
+  QARYATI_PRODUCER_RECIPES['Shallow Mine']=[
+    {id:'iron',label:'استخراج الحديد',out:'ore',time:60,source:'standard mine x2'},
+    {id:'chromium',label:'استخراج الكروم',out:'chromium',time:120,source:'standard mine x2'},
+    {id:'limestone',label:'استخراج الحجر الجيري',out:'limestone',time:120,source:'standard mine x2'}
+  ];
+  window.QARYATI_PRODUCER_RECIPES=QARYATI_PRODUCER_RECIPES;
+  window.QARYATI_STORAGE_MAP.woodYard=['wood','oakWood','lumber'];
+
+  window.QARYATI_ECONOMY_VERSION='unified-townstar-multirecipe-9';
 
 })();
