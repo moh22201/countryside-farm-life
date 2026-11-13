@@ -674,7 +674,7 @@ function plan(w){const me=w.role=='farm'?'farm':w.role=='animal'?'animal':'hand'
  if(me!='animal'&&me!='farm')return null;
  const pf=L(act('pen').filter(p=>p.nf&&!CL.has('f'+oid(p)))),fs=['feed','corn'].find(r=>stk(r).length);
  if(pf&&fs){const k='f'+oid(pf),s=nearest(stk(fs),w);cl(k);w.ks=[k];return[{go:()=>ft(s)},{d:.8,st:'take',fn:()=>{const a=Math.min(s.inv[fs]||0,pf.nf);if(a<1)return false;s.inv[fs]-=a;w.n=a;w.car='feed'}},{go:()=>ft(pf)},{d:1.5,st:'feed',fn:()=>{pf.nf=Math.max(0,pf.nf-w.n);w.car=null;penDone(pf)}}]}
- const ws=wsrc(w),pw=L(act('pen').filter(p=>p.nw&&!CL.has('p'+oid(p))));
+ const ws=wsrc(w),pw=L((me=='farm'?objs.filter(p=>p.role=='pen'&&p.act!==false&&p.inv):act('pen')).filter(p=>p.nw&&!CL.has('p'+oid(p))));
  if(pw&&ws){const k='p'+oid(pw);cl(k);w.ks=[k];return[{go:once(()=>wsrc(w))},{d:1.2,st:'fill',fn:()=>{w.car='bucket'}},{go:()=>ft(pw)},{d:1.5,st:'water',fn:()=>{pw.nw=0;w.car=null;penDone(pw)}}]}
  const fl=L(act('field').filter(f=>f.st==0&&!CL.has('w'+oid(f))));
  if(fl&&ws){const k='w'+oid(fl);cl(k);w.ks=[k];return[{go:once(()=>wsrc(w))},{d:1.2,st:'fill',fn:()=>{w.car='bucket'}},{go:()=>ct(fl)},{d:1.5,st:'water',fn:()=>{if(fl.st!=0)return false;fl.st=1;fl.t=0;w.car=null}}]}
