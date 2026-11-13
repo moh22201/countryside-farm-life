@@ -1497,4 +1497,114 @@
 
   window.QARYATI_ECONOMY_VERSION='unified-townstar-multirecipe-18';
 
+
+
+  // ===== Construction sites: place first, deliver materials afterwards =====
+  // A building must not require a material before it exists. The player pays
+  // the cash price and places a blueprint; Builder/Industry workers then fetch
+  // the listed materials from storage or ready tree-farm output.
+  const qConstructionSources = resource => {
+    const stored=stock(resource).filter(s=>(s.inv[resource]||0)>0);
+    const produced=objs.filter(s=>s.role==='field'&&s.act!==false&&s.out>0&&
+      s.ores===resource);
+    return stored.concat(produced);
+  };
+  const qConstructionPlan = worker => {
+    const sites=objs.filter(site=>site._qBuildPending&&site.mv&&
+      site.ci>=0&&ITEMS[site.ci]&&QARYATI_BUILD_REQUIREMENTS[ITEMS[site.ci][2]]);
+    const jobs=[];
+    sites.forEach(site=>{
+      const name=ITEMS[site.ci][2],req=QARYATI_BUILD_REQUIREMENTS[name];
+      site._qBuildDelivered=site._qBuildDelivered||{};
+      Object.entries(req).forEach(([resource,required])=>{
+        const missing=required-(site._qBuildDelivered[resource]||0);
+        if(missing<=0)return;
+        const source=nearest(qConstructionSources(resource).filter(s=>
+          reserve('qbuildsrc'+oid(site)+resource+oid(s))),site);
+        if(source)jobs.push({site,resource,source,amount:Math.min(missing,
+          source.role==='field'?source.out:(source.inv[resource]||0))});
+      });
+    });
+    const job=nearest(jobs,worker);
+    if(!job||job.amount<=0)return null;
+    const key='qbuild'+oid(job.site)+job.resource+oid(job.source);
+    if(!reserve(key))return null;
+    cl(key);worker.ks=[key];
+    let amount=0;
+    return [
+      {go:()=>job.source.role==='field'?ct(job.source):ft(job.source)},
+      {d:.8,st:'take',fn:()=>{
+        amount=Math.min(job.amount,job.source.role==='field'?job.source.out:
+          (job.source.inv[job.resource]||0));
+        if(amount<1)return false;
+        if(job.source.role==='field'){
+          job.source.out-=amount;
+          if(job.source.out<=0){job.source.out=0;job.source.st=0;job.source.t=0;}
+        }else job.source.inv[job.resource]-=amount;
+        worker.n=amount;worker.car=job.resource;
+      }},
+      {go:()=>ft(job.site)},
+      {d:.8,st:'build',fn:()=>{
+        job.site._qBuildDelivered=job.site._qBuildDelivered||{};
+        job.site._qBuildDelivered[job.resource]=(job.site._qBuildDelivered[job.resource]||0)+amount;
+        worker.car=null;
+        const req=QARYATI_BUILD_REQUIREMENTS[ITEMS[job.site.ci][2]];
+        const complete=Object.entries(req).every(([r,n])=>(job.site._qBuildDelivered[r]||0)>=n);
+        if(complete){
+          job.site._qBuildPending=false;
+          job.site._qBuildComplete=true;
+          save();
+          toast('اكتمل بناء '+ITEMS[job.site.ci][1]+' بعد توريد مواده ✓');
+        }else save();
+      }}
+    ];
+  };
+
+  const qPlanBeforeConstruction=plan;
+  plan=function(worker){
+    if(worker&&(worker.role==='builder'||worker.role==='industry')){
+      const construction=qConstructionPlan(worker);
+      if(construction)return construction;
+    }
+    return qPlanBeforeConstruction(worker);
+  };
+
+  // Bypass the old pre-placement inventory gate for material-based buildings.
+  // The cash purchase and normal placement validation remain unchanged.
+  const qTapBeforeConstruction=tap;
+  tap=function(px,py){
+    const name=placing&&ITEMS[placing-1]?ITEMS[placing-1][2]:'';
+    const req=QARYATI_BUILD_REQUIREMENTS[name];
+    if(!req)return qTapBeforeConstruction(px,py);
+    const before=objs.length;
+    qOldBuildTap(px,py);
+    if(objs.length>before){
+      const site=objs[objs.length-1];
+      site._qBuildPending=true;
+      site._qBuildComplete=false;
+      site._qBuildDelivered={};
+      site._qBuildRequired=Object.assign({},req);
+      save();
+      toast('وُضعت المنشأة كمخطط بناء. سيحضر عامل البناء/الصناعة المواد المطلوبة: '+qBuildMaterialText(name));
+    }
+  };
+
+  const qTickBeforeConstruction=tick;
+  tick=function(o,dt){
+    if(o&&o._qBuildPending)return;
+    return qTickBeforeConstruction(o,dt);
+  };
+  const qDetailBeforeConstruction=rDet;
+  rDet=function(o){
+    let html=qDetailBeforeConstruction(o);
+    if(o&&o._qBuildPending){
+      const req=o._qBuildRequired||{},done=o._qBuildDelivered||{};
+      const rows=Object.entries(req).map(([r,n])=>
+        (RN[r]||r)+': '+(done[r]||0)+' / '+n).join(' · ');
+      html+='<div style="margin-top:10px;padding:8px;border-top:1px solid #9996">'+
+        '<b>🏗️ قيد الإنشاء</b><div style="font-size:12px">المواد المورّدة: '+rows+
+        '</div><div style="font-size:11px">سيجلب العامل المواد من المخازن أو من إنتاج الأشجار الجاهز. لن يبدأ تشغيل المنشأة قبل اكتمال التوريد.</div></div>';
+    }
+    return html;
+  };
 })();
