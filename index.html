@@ -543,7 +543,7 @@ function load(){let s=null;try{s=JSON.parse(localStorage.getItem(SK))}catch(e){}
  const pl=s.pl.map(r=>{const ci=ITEMS.findIndex(d=>d[2]==r.nm);if(ci<0)return null;const o=Object.assign({},r,{ci});delete o.nm;o.role=roleOf(ITEMS[ci]);if(o.k=='veh'){o.st='idle';o.away=0;o.car=0;o.tm=0;if(o.cargo){money+=o.cargo*10;o.cargo=0}}objs.push(o);if(o.k=='cat')occ(o,1);return o});
  money=s.m;window.RM=new Set(s.rr||[]);
  s.wk.forEach(r=>{const home=pl[r.hi]||(r.hm?{x:r.hm[0],y:r.hm[1],fw:r.hm[2],fd:r.hm[3]}:null);objs.push({k:'worker',role:(home&&home.role=='fhouse'?'farm':home&&home.role=='whouse'?'animal':r.role),home,x:r.x,y:r.y,st:'idle',tm:0,car:null,fx:1,mvg:0,walk:false})});
- $('info').textContent='✅ تم استرجاع التقدم المحفوظ';const off=Math.max(0,Math.floor((Date.now()-(s.savedAt||Date.now()))/1000));for(let t=0;t<off&&!mainWarehouseFull();t++)update(1);if(off>0)$('info').textContent='✅ استمر الإنتاج أثناء غيابك ('+Math.floor(off/60)+' دقيقة)'}
+ $('info').textContent='✅ تم استرجاع التقدم المحفوظ';const off=Math.max(0,Math.floor((Date.now()-(s.savedAt||Date.now()))/1000));for(let t=0;t<off&&!mainWarehouseFull();t++)update(1);if(off>0)$('info').textContent='✅ استمر الإنتاج أثناء غيابك ('+Math.floor(off/60)+' دقيقة)';save()}
 let rq=0;
 $('br').onclick=()=>{if(Date.now()<rq){noSave=true;try{localStorage.removeItem(SK)}catch(e){}location.reload();return}rq=Date.now()+4000;$('info').textContent='⚠️ اضغط 🔄 مرة ثانية خلال 4 ثوانٍ لمسح التقدم والبدء من جديد'};
 load();setInterval(()=>save(),5000);addEventListener('pagehide',()=>save());document.addEventListener('visibilitychange',()=>{if(document.hidden)save()});
