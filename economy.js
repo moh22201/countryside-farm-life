@@ -1526,7 +1526,28 @@
       });
     });
     const job=nearest(jobs,worker);
-    if(!job||job.amount<=0)return null;
+    if(!job){
+      const ready=nearest(sites.filter(site=>{
+        const req=QARYATI_BUILD_REQUIREMENTS[ITEMS[site.ci][2]];
+        return Object.entries(req).every(([r,n])=>(site._qBuildDelivered&&site._qBuildDelivered[r]||0)>=n);
+      }).filter(site=>!site._qBuildStarted),worker);
+      if(!ready)return null;
+      const buildKey='qbuildwork'+oid(ready);
+      if(!reserve(buildKey))return null;
+      cl(buildKey);worker.ks=[buildKey];
+      return [
+        {go:()=>ft(ready)},
+        {d:QARYATI_BUILD_TIMES[ITEMS[ready.ci][2]]||60,st:'build',fn:()=>{
+          ready._qBuildStarted=true;
+          ready._qBuildPending=false;
+          ready._qBuildComplete=true;
+          ready._qBuildProgress=QARYATI_BUILD_TIMES[ITEMS[ready.ci][2]]||60;
+          save();
+          toast('أنهى عامل البناء إنشاء '+ITEMS[ready.ci][1]+' ✓');
+        }}
+      ];
+    }
+    if(job.amount<=0)return null;
     const key='qbuild'+oid(job.site)+job.resource+oid(job.source);
     if(!reserve(key))return null;
     cl(key);worker.ks=[key];
@@ -1544,27 +1565,26 @@
         worker.n=amount;worker.car=job.resource;
       }},
       {go:()=>ft(job.site)},
-      {d:.8,st:'build',fn:()=>{
+      {d:.8,st:'deliver',fn:()=>{
         job.site._qBuildDelivered=job.site._qBuildDelivered||{};
         job.site._qBuildDelivered[job.resource]=(job.site._qBuildDelivered[job.resource]||0)+amount;
         worker.car=null;
-        const req=QARYATI_BUILD_REQUIREMENTS[ITEMS[job.site.ci][2]];
-        const complete=Object.entries(req).every(([r,n])=>(job.site._qBuildDelivered[r]||0)>=n);
-        if(complete){
-          job.site._qBuildPending=false;
-          job.site._qBuildComplete=true;
-          save();
-          toast('اكتمل بناء '+ITEMS[job.site.ci][1]+' بعد توريد مواده ✓');
-        }else save();
+        save();
       }}
     ];
   };
 
+  const QARYATI_BUILD_TIMES={
+    'Water Facility':60,
+    'Power Plant':180
+  };
+  window.QARYATI_BUILD_TIMES=QARYATI_BUILD_TIMES;
   const qPlanBeforeConstruction=plan;
   plan=function(worker){
-    if(worker&&(worker.role==='builder'||worker.role==='industry')){
+    if(worker&&worker.role==='builder'){
       const construction=qConstructionPlan(worker);
       if(construction)return construction;
+      if(objs.some(site=>site._qBuildPending))return null;
     }
     return qPlanBeforeConstruction(worker);
   };
