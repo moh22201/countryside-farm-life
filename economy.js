@@ -1038,7 +1038,7 @@
       html+='<div style="margin-top:8px;font-size:12px">'+
         (o.waterBlocked?
           '⛔ متوقفة: لا يوجد بئر أو مصدر ماء ضمن 6 مربعات.':
-          '💧 مصدر المياه متاح؛ تنتج برميل ماء كل 30 ثانية.')+
+          '💧 معدل الإنتاج الأساسي 30 ثانية، وقد يتأثر بموقع المنشأة ومصادر المياه.')+
         '</div>';
     }
     if(o&&o.k==='veh'&&o.role==='tractor'){
@@ -1482,7 +1482,21 @@
     }
     return html;
   };
-  window.QARYATI_ECONOMY_VERSION='unified-townstar-multirecipe-17';
+
+  // Water Facility cannot advance when the map contains no usable water source.
+  // The nearest-source distance is displayed; no unsupported distance cutoff is imposed.
+  const qWaterFacilityTick=tick;
+  tick=function(o,dt){
+    if(o&&o.role==='prod'&&ITEMS[o.ci]&&ITEMS[o.ci][2]==='Water Facility'){
+      const hasSource=objs.some(p=>p.role==='well'&&p.act!==false)||(SHORE||[]).length>0;
+      o.waterBlocked=!hasSource;
+      if(!hasSource){o.pg=0;return qWaterFacilityTick(o,0);}
+    }
+    return qWaterFacilityTick(o,dt);
+  };
+  window.QARYATI_ECONOMY_VERSION='unified-townstar-multirecipe-18';
+
+  window.QARYATI_ECONOMY_VERSION='unified-townstar-multirecipe-18';
 
   window.QARYATI_ECONOMY_VERSION='unified-townstar-multirecipe-17';
 
